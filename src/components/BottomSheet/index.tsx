@@ -32,7 +32,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             <div className="w-9 h-1 bg-[#E5E7EB] rounded-sm mx-auto mt-3 mb-5" />
             {title && (
               <Dialog.Title asChild>
-                <h2 className="text-lg font-bold text-[#111827] px-6">{title}</h2>
+                <h2 className="text-[15px] font-bold text-[#111827] px-6">{title}</h2>
               </Dialog.Title>
             )}
             {subtitle && (
@@ -65,19 +65,18 @@ export const SheetRow: React.FC<SheetRowProps> = ({
   variant = 'default',
   isLast = false,
 }) => {
-  const iconColor = variant === 'destructive' ? '#DC2626' : '#374151';
-  const labelColor = variant === 'destructive' ? '#DC2626' : '#111827';
+  const labelClass = variant === 'destructive' ? 'text-[#DC2626]' : 'text-[#111827]';
 
   return (
     <div
       onClick={onTap}
       className={`flex items-center gap-3.5 min-h-[56px] cursor-pointer ${
-        isLast ? '' : 'border-b border-[#F3F4F6]'
+        isLast ? '' : 'border-t border-[#F3F4F6]'
       }`}
     >
-      {icon && <span style={{ color: iconColor }}>{icon}</span>}
+      {icon}
       <div className="flex flex-col">
-        <span className="text-[15px] font-medium" style={{ color: labelColor }}>{label}</span>
+        <span className={`text-[15px] font-medium ${labelClass}`}>{label}</span>
         {sublabel && <span className="text-xs text-[#9CA3AF]">{sublabel}</span>}
       </div>
     </div>

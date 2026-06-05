@@ -18,6 +18,7 @@ import Jobs from './screens/Jobs';
 import JobDetail from './screens/JobDetail';
 import Quote from './screens/Quote';
 import Settings from './screens/Settings';
+import Activity from './screens/Activity';
 
 function AuthGuard() {
   const navigate = useNavigate();
@@ -96,6 +97,7 @@ export default function App() {
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/" element={<Home />} />
             <Route path="/jobs" element={<Jobs />} />
+            <Route path="/activity" element={<Activity />} />
             <Route path="/jobs/:jobId" element={<JobDetail />} />
             <Route path="/quote" element={<Quote />} />
             <Route path="/settings" element={<Settings />} />

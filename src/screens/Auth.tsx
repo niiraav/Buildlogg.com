@@ -237,7 +237,7 @@ export default function Auth() {
               maxLength={6}
               value={otp}
               onChange={handleOtpChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base"
               autoComplete="one-time-code"
             />
           </div>

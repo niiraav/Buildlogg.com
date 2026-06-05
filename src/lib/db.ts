@@ -87,7 +87,7 @@ export interface Payment {
   id: string;
   job_id: string;
   type: 'deposit' | 'balance' | 'full';
-  method: 'cash' | 'bank_transfer' | 'other';
+  method: 'cash' | 'bank_transfer' | 'terminal' | 'other';
   method_description?: string;
   amount: number;
   recorded_at: string;

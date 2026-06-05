@@ -607,11 +607,18 @@ const { data, error } = await supabase.auth.verifyOtp({
 ## You are building
 The 4-screen onboarding flow for new users.
 
-## Reference wireframe
-`onboarding.html` — all 4 states (s1, s2, s3, s4)
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/onboarding.html` and paste the ENTIRE file content below.
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE FULL CONTENT OF onboarding.html HERE]
+```
+
+All 4 states are in the file (s1–s4). The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
-SCREEN-SPECS.md §2 (Onboarding) — all business rules
+SCREEN-SPECS.md §2 (Onboarding) — business rules, state transitions, validation logic
 
 ## Files to create / modify
 
@@ -677,8 +684,15 @@ Use the `StickyFooter` component from M03 for all footer CTAs.
 ## You are building
 The full Home screen — both Today tab and Tasks tab — with all 12 states from the wireframe.
 
-## Reference wireframe
-`home.html` — all 12 states (s1–s12)
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/home.html` and paste the ENTIRE file content below.
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE FULL CONTENT OF home.html HERE]
+```
+
+All 12 states are in the file (s1–s12). The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §3 (Home) — all states, all business rules, all CTA behaviours
@@ -818,8 +832,15 @@ async function markDoneNotYet(job: Job) {
 ## You are building
 The Jobs list screen — grouped by status, filter chips, empty state.
 
-## Reference wireframe
-`jobs.html` — all 3 states (s1, s2, s3)
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/jobs.html` and paste the ENTIRE file content below.
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE FULL CONTENT OF jobs.html HERE]
+```
+
+All 3 states are in the file (s1–s3). The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §6 (Jobs List)
@@ -879,8 +900,15 @@ Show per SCREEN-SPECS.md §6 S1 spec.
 ## You are building
 The Job Detail screen for two states: Booked (s1/s2) and In Progress (s3/s4/s5).
 
-## Reference wireframe
-`job-detail.html` — states s1, s2, s3, s4, s5
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/job-detail.html` and paste states s1–s5 only (Booked, Cancel sheet, In Progress, Add Charge sheet, Mark Done sheet). You can trim the file to those states to keep the prompt focused.
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE job-detail.html STATES s1–s5 HERE]
+```
+
+The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §4 (Job Detail) — S1 through S5
@@ -962,8 +990,15 @@ await db.line_items.delete(lineItemId);
 ## You are building
 Job Detail for Awaiting Payment state (s6) and the Send Reminder sheet (s7).
 
-## Reference wireframe
-`job-detail.html` — states s6, s7
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/job-detail.html` and paste states s6–s7 only (Awaiting Payment, Send Reminder sheet).
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE job-detail.html STATES s6–s7 HERE]
+```
+
+The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §4 S6 + S7
@@ -1013,8 +1048,15 @@ On WhatsApp/SMS send:
 ## You are building
 Job Detail for No-Show (s8/s9) and all 3 terminal states: Paid (s10), Cancelled (s11), Written Off (s12).
 
-## Reference wireframe
-`job-detail.html` — states s8, s9, s10, s11, s12
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/job-detail.html` and paste states s8–s12 only (No-Show, Callout Charge sheet, Paid, Cancelled, Written Off).
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE job-detail.html STATES s8–s12 HERE]
+```
+
+The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §4 S8 through S12
@@ -1080,8 +1122,15 @@ await db.jobs.update(job.id, { status: 'written_off', updated_at: now(), _sync_s
 ## You are building
 The first half of the Quote flow: logging a missed call and capturing customer details.
 
-## Reference wireframe
-`quote.html` — states s1, s2, s3
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/quote.html` and paste states s1–s3 only (Log Missed Call, Missed call task card, Customer details).
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE quote.html STATES s1–s3 HERE]
+```
+
+The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §5 QF-1 through QF-3
@@ -1144,8 +1193,15 @@ On "Save only":
 ## You are building
 The second half of the Quote flow: building the quote, previewing it, and sending it.
 
-## Reference wireframe
-`quote.html` — states s4, s5, s6, s7, s8
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/quote.html` and paste states s4–s8 only (Quote Builder, Deposit variant, Preview, Send sheet, Sent confirmation).
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE quote.html STATES s4–s8 HERE]
+```
+
+The HTML IS the visual spec — match it exactly. Pay close attention to the dev comments at the top of the file — they contain implementation rules for deposit auto-scroll, amount field validation, and send method logic.
 
 ## Reference spec
 SCREEN-SPECS.md §5 QF-4 through QF-8
@@ -1228,8 +1284,15 @@ Navigate to Job Detail for this job (renders in Quoted state — new state to ad
 ## You are building
 The Settings screen — inline edit, business profile, defaults, about section.
 
-## Reference wireframe
-`settings.html` — all 3 states (s1, s2, s3)
+## ⚠️ WIREFRAME — PASTE BEFORE SENDING
+Open `/wireframes/settings.html` and paste the ENTIRE file content below.
+Kimi has no file system access. Without this the design cannot be matched.
+
+```html
+[PASTE FULL CONTENT OF settings.html HERE]
+```
+
+All 3 states are in the file (s1–s3). The HTML IS the visual spec — match it exactly.
 
 ## Reference spec
 SCREEN-SPECS.md §7 (Settings)
@@ -1543,7 +1606,7 @@ Produce a QA summary with:
 2. **Copy the HARD RULES BLOCK** from §1 above
 3. **Copy the PROJECT CONTEXT BLOCK** from §2 above
 4. **Paste the milestone ticket** (M01, M02, etc. in order)
-5. **Attach the relevant wireframe HTML** if the ticket references one (paste the full HTML in the prompt)
+5. **Fill the wireframe placeholder** — each ticket with a screen has a `⚠️ WIREFRAME — PASTE BEFORE SENDING` block. Open the referenced HTML file from `/wireframes/`, copy the entire content (or the specified states), and replace `[PASTE ... HERE]` with the actual HTML. Do not skip this step — Kimi has no file system access.
 6. **Attach the relevant handoff doc sections** referenced in the ticket
 7. **Send** — wait for complete output
 8. **Review output** against acceptance criteria

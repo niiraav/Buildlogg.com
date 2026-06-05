@@ -7,17 +7,17 @@ import { ProgressDots } from '../../components/ProgressDots';
 import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
 import { SegmentedControl } from '../../components/SegmentedControl';
-import { Check } from 'lucide-react';
+import { Check, Wrench, Zap, HardHat, Hammer } from 'lucide-react';
 
 type TradeType = 'plumber' | 'electrician' | 'builder' | 'other';
 type PaymentTerms = 'on_completion' | 'deposit' | 'invoice';
 type Step = 1 | 2 | 3 | 4;
 
-const TRADE_OPTIONS: Array<{ value: TradeType; label: string }> = [
-  { value: 'plumber', label: 'Plumber' },
-  { value: 'electrician', label: 'Electrician' },
-  { value: 'builder', label: 'Builder' },
-  { value: 'other', label: 'Other' },
+const TRADE_OPTIONS: Array<{ value: TradeType; label: string; icon: React.ReactNode }> = [
+  { value: 'plumber', label: 'Plumber', icon: <Wrench size={18} /> },
+  { value: 'electrician', label: 'Electrician', icon: <Zap size={18} /> },
+  { value: 'builder', label: 'Builder', icon: <HardHat size={18} /> },
+  { value: 'other', label: 'Other', icon: <Hammer size={18} /> },
 ];
 
 const PAYMENT_TERMS_OPTIONS = [
@@ -46,7 +46,6 @@ export default function Onboarding() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        // Try to get phone from user metadata or phone field
         const phoneFromAuth = user.phone || user.user_metadata?.phone || '';
         setPhone(phoneFromAuth);
       }
@@ -78,7 +77,6 @@ export default function Onboarding() {
 
     await db.profiles.put(profile);
 
-    // Add to sync queue for background sync
     await db.sync_queue.add({
       operation: 'insert',
       table_name: 'profiles',
@@ -134,11 +132,11 @@ export default function Onboarding() {
           <div className="flex flex-col gap-4">
             {/* Full name */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-1.5 block">
                 Your name
               </label>
               <div
-                className={`flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden transition-colors ${
+                className={`flex items-center border-[1.5px] rounded-xl min-h-[52px] overflow-hidden transition-colors ${
                   fullName.trim().length === 0
                     ? 'border-[#E5E7EB]'
                     : 'border-[#111827]'
@@ -150,7 +148,7 @@ export default function Onboarding() {
                   placeholder="e.g. Dave Smith"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="flex-1 text-base text-[#111827] outline-none min-h-[48px] px-4 bg-transparent"
+                  className="flex-1 text-base text-[#111827] outline-none min-h-[52px] px-4 bg-transparent"
                   autoFocus
                 />
               </div>
@@ -158,20 +156,17 @@ export default function Onboarding() {
 
             {/* Phone (read-only, pre-filled) */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-1.5 block">
                 Your phone number
               </label>
-              <div className="flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden bg-[#F9FAFB] border-[#E5E7EB]">
+              <div className="flex items-center border-[1.5px] rounded-xl min-h-[52px] overflow-hidden bg-[#F9FAFB] border-[#E5E7EB]">
                 <input
                   type="tel"
                   value={phone}
                   readOnly
-                  className="flex-1 text-base text-[#6B7280] min-h-[48px] px-4 bg-transparent outline-none cursor-not-allowed"
+                  className="flex-1 text-base text-[#6B7280] min-h-[52px] px-4 bg-transparent outline-none cursor-not-allowed"
                 />
               </div>
-              <p className="text-xs text-[#9CA3AF] mt-1">
-                You can update this in Settings
-              </p>
             </div>
           </div>
 
@@ -204,24 +199,24 @@ export default function Onboarding() {
           <div className="flex flex-col gap-4">
             {/* Business name */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">
-                Business name
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-1.5 block">
+                Business name <span className="font-normal normal-case tracking-normal text-[11px] ml-1">(optional)</span>
               </label>
-              <div className="flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden border-[#E5E7EB]">
+              <div className="flex items-center border-[1.5px] rounded-xl min-h-[52px] overflow-hidden border-[#E5E7EB]">
                 <input
                   type="text"
                   inputMode="text"
                   placeholder="Dave's Plumbing & Heating"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="flex-1 text-base text-[#111827] outline-none min-h-[48px] px-4 bg-transparent"
+                  className="flex-1 text-base text-[#111827] outline-none min-h-[52px] px-4 bg-transparent"
                 />
               </div>
             </div>
 
             {/* Trade type — 2×2 grid */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-2 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-2 block">
                 Trade type
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -231,12 +226,13 @@ export default function Onboarding() {
                     <button
                       key={opt.value}
                       onClick={() => toggleTrade(opt.value)}
-                      className={`h-[48px] rounded-xl border-[1.5px] font-medium text-[15px] transition-all cursor-pointer ${
+                      className={`h-[52px] rounded-xl border-[1.5px] font-semibold text-[14px] transition-all cursor-pointer flex items-center justify-center gap-2 ${
                         isSelected
                           ? 'border-[#111827] bg-[#F9FAFB] text-[#111827]'
                           : 'border-[#E5E7EB] text-[#6B7280]'
                       }`}
                     >
+                      <span className={isSelected ? 'text-[#111827]' : 'text-[#9CA3AF]'}>{opt.icon}</span>
                       {opt.label}
                     </button>
                   );
@@ -273,27 +269,29 @@ export default function Onboarding() {
           <div className="flex flex-col gap-5">
             {/* Callout charge */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-1.5 block">
                 Callout charge
               </label>
-              <div className="flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden border-[#E5E7EB]">
-                <span className="text-[15px] text-[#6B7280] px-3 shrink-0">£</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={calloutCharge}
-                  onChange={(e) => setCalloutCharge(e.target.value.replace(/[^0-9.]/g, ''))}
-                  className="flex-1 text-base text-[#111827] outline-none min-h-[48px] bg-transparent"
-                />
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center border-[1.5px] rounded-xl min-h-[52px] overflow-hidden border-[#E5E7EB] flex-1">
+                  <span className="text-[15px] text-[#111827] px-4 shrink-0">£</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={calloutCharge}
+                    onChange={(e) => setCalloutCharge(e.target.value.replace(/[^0-9.]/g, ''))}
+                    className="flex-1 text-base text-[#111827] outline-none min-h-[52px] bg-transparent pr-4"
+                  />
+                </div>
+                <span className="text-[12px] text-[#9CA3AF] leading-relaxed shrink-0">
+                  Charged when<br />customer not home
+                </span>
               </div>
-              <p className="text-xs text-[#9CA3AF] mt-1">
-                Charged when customer not home
-              </p>
             </div>
 
             {/* Payment terms */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-2 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-2 block">
                 Default payment terms
               </label>
               <SegmentedControl
@@ -305,22 +303,24 @@ export default function Onboarding() {
 
             {/* Quote valid for */}
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">
+              <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] mb-1.5 block">
                 Quote valid for
               </label>
-              <div className="flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden border-[#E5E7EB]">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={quoteValidDays}
-                  onChange={(e) => setQuoteValidDays(e.target.value.replace(/\D/g, ''))}
-                  className="flex-1 text-base text-[#111827] outline-none min-h-[48px] px-4 bg-transparent"
-                />
-                <span className="text-[15px] text-[#6B7280] pr-4 shrink-0">days</span>
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center border-[1.5px] rounded-xl min-h-[52px] overflow-hidden border-[#E5E7EB] flex-1">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={quoteValidDays}
+                    onChange={(e) => setQuoteValidDays(e.target.value.replace(/\D/g, ''))}
+                    className="flex-1 text-[15px] font-semibold text-[#111827] outline-none min-h-[52px] px-4 bg-transparent"
+                  />
+                  <span className="text-[15px] text-[#6B7280] pr-4 shrink-0">days</span>
+                </div>
+                <span className="text-[12px] text-[#9CA3AF] leading-relaxed shrink-0">
+                  After this, quote<br />expires automatically
+                </span>
               </div>
-              <p className="text-xs text-[#9CA3AF] mt-1">
-                After this, quote expires automatically
-              </p>
             </div>
           </div>
 
@@ -350,6 +350,9 @@ export default function Onboarding() {
               </h1>
               <p className="text-[15px] text-[#6B7280] mt-2">
                 Log a missed call or create your first quote to get started.
+              </p>
+              <p className="text-[15px] text-[#6B7280] mt-1">
+                Your jobs will appear on the home screen as soon as they&apos;re booked.
               </p>
             </div>
           </div>

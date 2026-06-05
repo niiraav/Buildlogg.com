@@ -499,7 +499,7 @@ interface SegmentedControlProps {
   options: Array<{ value: string; label: string }>;
   value: string;
   onChange: (value: string) => void;
-  size?: 'sm' | 'md';   // sm: 34px height, md: 36px height (default md)
+  size?: 'sm' | 'md';   // both sizes: min-height 44px (touch compliance). sm: 12px font, md: 13px font (default md)
 }
 ```
 
@@ -507,7 +507,7 @@ interface SegmentedControlProps {
 ```
 [container — background #F3F4F6, border-radius 8px, padding 3px, display flex]
   [for each option]
-    [option — flex 1, height 34-36px, display flex, align-items center, justify-content center]
+    [option — flex 1, min-height 44px, display flex, align-items center, justify-content center]
       font-size: 12px (sm) / 13px (md)
       font-weight: 500 (inactive) / 700 (active)
       color: #6B7280 (inactive) / #111827 (active)
@@ -555,7 +555,7 @@ interface InlineEditRowProps {
   [left]
     label — same
   [right]
-    <input> — 14px, no border, text-align right, min-width 120px
+    <input> — font-size 16px (prevents iOS auto-zoom), no border, text-align right, min-width 120px, min-height 48px
     [Done button — 13px, 600, #111827, underlined]
 ```
 
@@ -645,7 +645,7 @@ interface HomeTabSwitcherProps {
 ### Structure
 ```
 [container — background #F3F4F6, border-radius 10px, padding 3px, margin 12px 16px 0, display flex]
-  [Today tab — flex 1, height 36px, display flex, align-items center, justify-content center]
+  [Today tab — flex 1, min-height 44px, display flex, align-items center, justify-content center]
     "Today" — 13px, 600
     active: background #fff, box-shadow inset 0 1px 3px rgba(0,0,0,.12), color #111827
     inactive: color #6B7280

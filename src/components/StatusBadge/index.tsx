@@ -18,32 +18,28 @@ const statusLabelMap: Record<JobStatus, string> = {
   written_off: 'Written Off',
 };
 
-const statusStyles: Record<JobStatus, { bg: string; text: string; dot: string }> = {
-  enquiry:       { bg: '#EFF6FF', text: '#1D4ED8', dot: '#93C5FD' },
-  quoted:        { bg: '#F5F3FF', text: '#6D28D9', dot: '#8B5CF6' },
-  booked:        { bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
-  in_progress:   { bg: '#F0FDF4', text: '#15803D', dot: '#16A34A' },
-  awaiting_payment: { bg: '#FFFBEB', text: '#B45309', dot: '#F59E0B' },
-  paid:          { bg: '#F0FDF4', text: '#15803D', dot: '#16A34A' },
-  no_show:       { bg: '#FEF3C7', text: '#92400E', dot: '#F97316' },
-  cancelled:     { bg: '#F9FAFB', text: '#6B7280', dot: '#9CA3AF' },
-  written_off:   { bg: '#F9FAFB', text: '#6B7280', dot: '#6B7280' },
+const statusClasses: Record<JobStatus, { bg: string; text: string; dot: string }> = {
+  enquiry:       { bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', dot: 'bg-[#93C5FD]' },
+  quoted:        { bg: 'bg-[#F5F3FF]', text: 'text-[#6D28D9]', dot: 'bg-[#8B5CF6]' },
+  booked:        { bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', dot: 'bg-[#3B82F6]' },
+  in_progress:   { bg: 'bg-[#F0FDF4]', text: 'text-[#15803D]', dot: 'bg-[#16A34A]' },
+  awaiting_payment: { bg: 'bg-[#FFFBEB]', text: 'text-[#B45309]', dot: 'bg-[#F59E0B]' },
+  paid:          { bg: 'bg-[#F0FDF4]', text: 'text-[#15803D]', dot: 'bg-[#16A34A]' },
+  no_show:       { bg: 'bg-[#FEF3C7]', text: 'text-[#92400E]', dot: 'bg-[#F97316]' },
+  cancelled:     { bg: 'bg-[#F9FAFB]', text: 'text-[#6B7280]', dot: 'bg-[#9CA3AF]' },
+  written_off:   { bg: 'bg-[#F9FAFB]', text: 'text-[#6B7280]', dot: 'bg-[#6B7280]' },
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
-  const style = statusStyles[status];
+  const classes = statusClasses[status];
   const label = statusLabelMap[status];
-  const fontSize = size === 'sm' ? '10px' : '12px';
+  const sizeClass = size === 'sm' ? 'text-[10px]' : 'text-xs';
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full capitalize"
-      style={{ backgroundColor: style.bg, color: style.text, fontSize, fontWeight: 600 }}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md capitalize font-semibold ${classes.bg} ${classes.text} ${sizeClass}`}
     >
-      <span
-        className="rounded-full shrink-0"
-        style={{ width: 8, height: 8, backgroundColor: style.dot }}
-      />
+      <span className={`w-2 h-2 rounded-full shrink-0 ${classes.dot}`} />
       {label}
     </span>
   );

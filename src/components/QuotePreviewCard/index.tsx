@@ -37,10 +37,10 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = ({
   return (
     <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="bg-[#111827] px-4 py-4">
-        <div className="text-[15px] font-bold text-white">{businessName}</div>
-        <div className="text-[13px] text-[#9CA3AF] mt-0.5">{customerName}</div>
-        <div className="text-xs text-[#6B7280] mt-0.5">{quoteNumber}</div>
+      <div className="bg-[#F9FAFB] border-b border-[#E5E7EB] px-4 py-4">
+        <div className="text-[15px] font-bold text-[#111827]">{businessName}</div>
+        <div className="text-[13px] text-[#6B7280] mt-0.5">{customerName}</div>
+        <div className="text-xs text-[#9CA3AF] mt-0.5">{quoteNumber}</div>
       </div>
 
       {/* Body */}

@@ -15,15 +15,12 @@ export const InvoiceItemRow: React.FC<InvoiceItemRowProps> = ({
   isAddedOnSite = false,
   onRemove,
 }) => {
-  const textColor = isAddedOnSite ? '#15803D' : '#374151';
-  const amountColor = isAddedOnSite ? '#15803D' : '#111827';
-
   return (
     <div className="flex items-center gap-2 py-2.5 border-b border-[#F3F4F6]">
-      <span className="flex-1 text-[13px] font-medium truncate" style={{ color: textColor }}>
+      <span className={`flex-1 text-[13px] font-medium truncate ${isAddedOnSite ? 'text-[#15803D]' : 'text-[#374151]'}`}>
         {item.description}
       </span>
-      <span className="shrink-0 text-sm font-bold" style={{ color: amountColor }}>
+      <span className={`shrink-0 text-sm font-bold ${isAddedOnSite ? 'text-[#15803D]' : 'text-[#111827]'}`}>
         £{item.amount.toFixed(2)}
       </span>
       {showRemove && onRemove && (

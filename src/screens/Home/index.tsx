@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Check, MessageCircle, Banknote, CreditCard, AlertTriangle } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { db, type Job, type Customer, type LineItem, type WorkLogEntry } from '../../lib/db';
+import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
 import { JobCard } from '../../components/JobCard';
 import { ActiveBar } from '../../components/ActiveBar';
@@ -21,12 +21,33 @@ function isToday(dateStr: string): boolean {
   return d.toDateString() === t.toDateString();
 }
 
+function daysSince(dateStr: string): number {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Morning";
+  if (h < 17) return "Afternoon";
+  return "Evening";
+}
+
 function formatAmount(n: number): string {
   return n.toFixed(2);
 }
 
 function jobTotal(items: LineItem[]): number {
   return items.reduce((sum, i) => sum + (i.amount || 0), 0);
+}
+
+function getDayName(d: Date): string {
+  return d.toLocaleDateString('en-GB', { weekday: 'short' });
+}
+
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 /* --- types --- */
@@ -37,7 +58,18 @@ type SheetState =
   | null
   | 'running_late'
   | 'mark_done'
-  | 'mark_done_deposit';
+  | 'mark_done_deposit'
+  | 'not_home';
+
+interface TaskItem {
+  id: string;
+  jobId: string;
+  customerName: string;
+  jobTitle: string;
+  tag: string;
+  amount: string;
+  isL2: boolean;
+}
 
 /* --- component --- */
 
@@ -53,6 +85,7 @@ export default function Home() {
   const [customers, setCustomers] = useState<Record<string, Customer>>({});
   const [lineItems, setLineItems] = useState<Record<string, LineItem[]>>({});
   const [workLog, setWorkLog] = useState<Record<string, WorkLogEntry[]>>({});
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   /* UI state */
@@ -71,6 +104,7 @@ export default function Home() {
     const allCustomers = await db.customers.where('user_id').equals(userId).toArray();
     const allItems = await db.line_items.toArray();
     const allWorkLog = await db.work_log.toArray();
+    const prof = await db.profiles.get(userId);
 
     const custMap: Record<string, Customer> = {};
     allCustomers.forEach((c) => { custMap[c.id] = c; });
@@ -91,6 +125,7 @@ export default function Home() {
     setCustomers(custMap);
     setLineItems(itemsMap);
     setWorkLog(logMap);
+    setProfile(prof || null);
     setLoading(false);
   }, [userId]);
 
@@ -150,6 +185,106 @@ export default function Home() {
     return diff;
   }, [activeJob, tick]);
 
+  const totalOwed = useMemo(() => {
+    // Sum all line items for jobs that are awaiting_payment
+    let owed = 0;
+    jobs.forEach((j) => {
+      if (j.status === 'awaiting_payment') {
+        const items = lineItems[j.id] || [];
+        owed += items.reduce((sum, i) => sum + (i.amount || 0), 0);
+      }
+    });
+    return owed;
+  }, [jobs, lineItems]);
+
+  const tasks = useMemo<TaskItem[]>(() => {
+    const items: TaskItem[] = [];
+
+    jobs.forEach((j) => {
+      if (j.user_id !== userId) return;
+      const c = customers[j.customer_id];
+      if (!c) return;
+      const total = jobTotal(lineItems[j.id] || []);
+
+      // L2: Can't ignore
+      if (j.status === 'no_show') {
+        items.push({
+          id: `no_show_${j.id}`,
+          jobId: j.id,
+          customerName: c.name,
+          jobTitle: j.title,
+          tag: 'No-show',
+          amount: j.scheduled_start
+            ? new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
+            : '',
+          isL2: true,
+        });
+      }
+
+      if (j.status === 'awaiting_payment' && j.invoice_sent_at && daysSince(j.invoice_sent_at) >= 30) {
+        items.push({
+          id: `overdue_${j.id}`,
+          jobId: j.id,
+          customerName: c.name,
+          jobTitle: j.title,
+          tag: 'Overdue',
+          amount: `£${formatAmount(total)}`,
+          isL2: true,
+        });
+      }
+
+      if (j.status === 'enquiry' && j.created_at) {
+        const ageMs = Date.now() - new Date(j.created_at).getTime();
+        if (ageMs < 2 * 60 * 60 * 1000) {
+          items.push({
+            id: `urgent_${j.id}`,
+            jobId: j.id,
+            customerName: c.name,
+            jobTitle: j.title,
+            tag: 'New',
+            amount: `£${formatAmount(total)}`,
+            isL2: true,
+          });
+        }
+      }
+
+      // L3: When you get a minute
+      if (j.status === 'awaiting_payment' && j.invoice_sent_at) {
+        const days = daysSince(j.invoice_sent_at);
+        if (days >= 1 && days < 30) {
+          items.push({
+            id: `chase_${j.id}`,
+            jobId: j.id,
+            customerName: c.name,
+            jobTitle: j.title,
+            tag: `Chase · ${days}d`,
+            amount: `£${formatAmount(total)}`,
+            isL2: false,
+          });
+        }
+      }
+
+      if (j.status === 'quoted' && j.quote_sent_at) {
+        const days = daysSince(j.quote_sent_at);
+        items.push({
+          id: `stale_${j.id}`,
+          jobId: j.id,
+          customerName: c.name,
+          jobTitle: j.title,
+          tag: `Stale · ${days}d`,
+          amount: `£${formatAmount(total)}`,
+          isL2: false,
+        });
+      }
+    });
+
+    return items;
+  }, [jobs, customers, lineItems, userId]);
+
+  const l2Tasks = tasks.filter((t) => t.isL2);
+  const l3Tasks = tasks.filter((t) => !t.isL2);
+  const l2Count = l2Tasks.length;
+
   /* --- helpers --- */
   const customerFor = (jobId: string) => {
     const j = jobs.find((x) => x.id === jobId);
@@ -158,6 +293,14 @@ export default function Home() {
   const itemsFor = (jobId: string) => lineItems[jobId] || [];
   const totalFor = (jobId: string) => jobTotal(itemsFor(jobId));
   const logFor = (jobId: string) => workLog[jobId] || [];
+
+  const firstName = profile?.full_name?.split(' ')[0] || 'there';
+  const today = new Date();
+  const todayLabel = `${getDayName(today)}`;
+  const jobCountToday = bookedToday.length + (activeJob ? 1 : 0);
+  const subLabel = jobCountToday > 0
+    ? `${jobCountToday} job${jobCountToday !== 1 ? 's' : ''} today`
+    : 'no jobs scheduled';
 
   /* --- actions --- */
 
@@ -233,7 +376,46 @@ export default function Home() {
     refresh();
   };
 
-  const handlePayment = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
+  const handleNotHome = async () => {
+    if (!nextUpJob || !userId) return;
+    const n = now();
+    await db.jobs.update(nextUpJob.id, {
+      status: 'no_show',
+      actual_end: n,
+      updated_at: n,
+      _sync_status: 'pending',
+    });
+    await db.work_log.add({
+      id: crypto.randomUUID(),
+      job_id: nextUpJob.id,
+      type: 'status_change',
+      description: 'Customer not home — no-show logged',
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await db.sync_queue.add({
+      operation: 'update',
+      table_name: 'jobs',
+      record_id: nextUpJob.id,
+      payload: { status: 'no_show', actual_end: n, updated_at: n },
+      created_at: n,
+      retry_count: 0,
+    });
+    setSheet(null);
+    refresh();
+  };
+
+  const handleDone = () => {
+    if (!activeJob) return;
+    setSelectedJobId(activeJob.id);
+    if (activeJob.payment_terms === 'deposit' && activeJob.deposit_pct) {
+      setSheet('mark_done_deposit');
+    } else {
+      setSheet('mark_done');
+    }
+  };
+
+  const handlePayment = async (method: 'cash' | 'terminal' | 'bank_transfer' | 'not_yet') => {
     if (!selectedJobId) return;
     const j = jobs.find((x) => x.id === selectedJobId);
     if (!j) return;
@@ -281,7 +463,7 @@ export default function Home() {
         id: crypto.randomUUID(),
         job_id: selectedJobId,
         type: 'status_change',
-        description: `Payment recorded — ${method === 'cash' ? 'Cash' : method === 'bank_transfer' ? 'Bank Transfer' : 'Other'} · £${formatAmount(paymentAmount)}`,
+        description: `Payment recorded — ${method === 'cash' ? 'Cash' : method === 'terminal' ? 'Terminal' : 'Bank Transfer'} · £${formatAmount(paymentAmount)}`,
         created_at: n,
         _sync_status: 'pending',
       });
@@ -291,7 +473,7 @@ export default function Home() {
     refresh();
   };
 
-  const handleNavigate = (tab: 'home' | 'jobs' | 'settings') => {
+  const handleNavigate = (tab: 'home' | 'jobs' | 'activity' | 'settings') => {
     if (tab === 'home') return;
     navigate('/' + tab);
   };
@@ -316,8 +498,11 @@ export default function Home() {
           customer={c}
           lineItemsTotal={total}
           isNextUp={true}
+          showAddress={false}
+          showNotHome={true}
           onRunningLate={handleRunningLate}
           onImHere={handleImHere}
+          onNotHome={handleNotHome}
           onBodyTap={() => navigate(`/jobs/${nextUpJob.id}`)}
         />
         {showNotify && (
@@ -343,6 +528,7 @@ export default function Home() {
         elapsedSeconds={activeElapsed}
         dayNumber={activeDayNumber}
         onTap={() => navigate(`/jobs/${activeJob.id}`)}
+        onDone={handleDone}
       />
     );
   };
@@ -381,27 +567,112 @@ export default function Home() {
           job={nextUpJob}
           customer={c}
           lineItemsTotal={totalFor(nextUpJob.id)}
+          showAddress={false}
           onBodyTap={() => navigate(`/jobs/${nextUpJob.id}`)}
         />
       </div>
     );
   };
 
-  const renderEmptyToday = () => (
+  const renderNoJobsToday = () => (
     <div className="px-4 mt-6">
-      <div className="border-[2px] border-dashed border-[#E5E7EB] rounded-xl p-8 text-center">
-        <p className="text-[15px] font-semibold text-[#9CA3AF]">No jobs today</p>
-        <p className="text-[13px] text-[#9CA3AF] mt-1">
-          Enjoy the break, or add a new quote.
+      <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] p-9 text-center">
+        <p className="text-[20px] font-bold text-[#111827]">No jobs today</p>
+        <p className="text-[13px] text-[#9CA3AF] mt-1.5">
+          {formatShortDate(today)} · Free day
         </p>
-      </div>
-      <div className="mt-4">
-        <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
-          + New Quote
-        </Button>
       </div>
     </div>
   );
+
+  const renderAllClear = () => (
+    <div className="px-4 mt-6">
+      <div className="border border-dashed border-[#D1D5DB] rounded-[10px] p-10 text-center">
+        <p className="text-[16px] font-semibold text-[#111827]">All clear</p>
+        <p className="text-[13px] text-[#9CA3AF] mt-1.5">
+          Nothing needs your attention today
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderTasks = () => {
+    return (
+      <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
+        {l2Tasks.length > 0 && (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">
+                Can't ignore
+              </span>
+            </div>
+            <div className="border border-[#D1D5DB] rounded-[10px] overflow-hidden mb-5">
+              {l2Tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => navigate(`/jobs/${task.jobId}`)}
+                  className="flex items-center px-4 py-3 gap-2.5 border-b border-[#F3F4F6] cursor-pointer min-h-[52px] last:border-b-0"
+                >
+                  <span className="text-[10px] font-bold text-[#111827] bg-[#F3F4F6] px-[7px] py-[2px] rounded-[4px] uppercase tracking-wide whitespace-nowrap shrink-0">
+                    {task.tag}
+                  </span>
+                  <span className="text-[14px] font-semibold text-[#111827] flex-1 min-w-0 truncate">
+                    {task.customerName} · {task.jobTitle}
+                  </span>
+                  <span className="text-[13px] text-[#6B7280] whitespace-nowrap shrink-0">
+                    {task.amount}
+                  </span>
+                  <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {l3Tasks.length > 0 && (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">
+                When you get a minute
+              </span>
+              <button
+                onClick={() => navigate('/jobs')}
+                className="text-[12px] text-[#6B7280] cursor-pointer"
+              >
+                See all
+              </button>
+            </div>
+            <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-5">
+              {l3Tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => navigate(`/jobs/${task.jobId}`)}
+                  className="flex items-center px-4 py-2.5 gap-2.5 border-b border-[#F3F4F6] cursor-pointer min-h-[48px] last:border-b-0"
+                >
+                  <span className="text-[10px] font-semibold text-[#9CA3AF] bg-[#F9FAFB] border border-[#E5E7EB] px-[7px] py-[2px] rounded-[4px] uppercase whitespace-nowrap shrink-0">
+                    {task.tag}
+                  </span>
+                  <span className="text-[13px] font-medium text-[#374151] flex-1 min-w-0 truncate">
+                    {task.customerName} · {task.jobTitle}
+                  </span>
+                  <span className="text-[12px] text-[#9CA3AF] whitespace-nowrap shrink-0">
+                    {task.amount}
+                  </span>
+                  <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tasks.length === 0 && (
+          <div className="flex items-center justify-center h-40">
+            <p className="text-[15px] text-[#9CA3AF]">Nothing needs your attention</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   /* --- selected for sheets --- */
   const selectedCustomer = selectedJobId ? customerFor(selectedJobId) : null;
@@ -421,22 +692,31 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-[100svh] relative">
       {/* Header */}
-      <div className="px-4 pt-4 flex items-center justify-between">
-        <span className="text-[20px] font-extrabold text-[#111827]">TradePad</span>
-        <button
-          onClick={() => navigate('/quote')}
-          className="text-[13px] font-semibold text-[#111827] border border-[#E5E7EB] rounded-lg px-3 py-2 cursor-pointer"
-        >
-          + New Quote
-        </button>
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between border-b border-[#F3F4F6]">
+        <div>
+          <span className="text-[18px] font-bold text-[#111827] block">
+            {getGreeting()}, {firstName}
+          </span>
+          <span className="text-[12px] text-[#9CA3AF] block mt-0.5">
+            {todayLabel} · {subLabel}
+          </span>
+        </div>
+        <div className="text-right">
+          <span className="text-[22px] font-extrabold text-[#111827] block">
+            £{totalOwed.toLocaleString('en-GB')}
+          </span>
+          <span className="text-[11px] text-[#9CA3AF] block mt-0.5">
+            owed to you
+          </span>
+        </div>
       </div>
 
       {/* Tab switcher */}
-      <HomeTabSwitcher activeTab={activeTab} onChange={setActiveTab} />
+      <HomeTabSwitcher activeTab={activeTab} tasksBadgeCount={l2Count} onChange={setActiveTab} />
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="flex-1 pb-4">
+        <div className="flex-1 pb-4 overflow-y-auto">
           {/* Active bar */}
           {(todayState === 'in_progress' || todayState === 'multi_day') && renderActiveBar()}
 
@@ -450,28 +730,33 @@ export default function Home() {
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
 
-          {/* All clear / no jobs */}
-          {todayState === 'all_clear' && renderEmptyToday()}
+          {/* No jobs today / All clear */}
+          {todayState === 'all_clear' && (
+            tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
+          )}
         </div>
       )}
 
-      {/* Tasks tab — placeholder */}
-      {activeTab === 'tasks' && (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[15px] text-[#9CA3AF]">Nothing to do</p>
-        </div>
-      )}
+      {/* Tasks tab content */}
+      {activeTab === 'tasks' && renderTasks()}
 
-      {/* FAB: Log missed call (shown in active state) */}
-      {(todayState === 'in_progress' || todayState === 'multi_day') && (
-        <button
-          onClick={() => navigate('/quote')}
-          className="absolute bottom-[72px] right-4 w-[52px] h-[52px] rounded-full bg-[#111827] flex items-center justify-center shadow-lg cursor-pointer z-30"
-          aria-label="Log missed call"
-        >
-          <Plus size={24} color="white" strokeWidth={2.5} />
-        </button>
-      )}
+      {/* Footer */}
+      <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
+        <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
+          <button
+            onClick={() => navigate('/quote')}
+            className="flex-1 h-[44px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            + New Quote
+          </button>
+          <button
+            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
+            className="flex-1 h-[44px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            Log Missed Call
+          </button>
+        </div>
+      </div>
 
       {/* Tab bar */}
       <TabBar activeTab="home" onNavigate={handleNavigate} />
@@ -480,14 +765,13 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'running_late'}
         onClose={() => setSheet(null)}
-        title={`Let ${selectedCustomer?.name || 'the customer'} know you're running late`}
+        title={`Running late to ${selectedCustomer?.name || 'the customer'}?`}
       >
-        <textarea
-          value={lateMsg}
-          onChange={(e) => setLateMsg(e.target.value)}
-          className="w-full min-h-[120px] border border-[#E5E7EB] rounded-xl p-3 text-[15px] text-[#111827] outline-none resize-none mb-4"
-          autoFocus
-        />
+        <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg p-3 mb-4">
+          <p className="text-[13px] text-[#374151] italic leading-relaxed">
+            "{lateMsg}"
+          </p>
+        </div>
         <div className="flex flex-col gap-2">
           <Button
             variant="primary"
@@ -517,7 +801,7 @@ export default function Home() {
         title="How were you paid?"
         subtitle={
           selectedCustomer && selectedJob
-            ? `for ${selectedCustomer.name} · ${selectedJob.title}`
+            ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(totalFor(selectedJob.id))}`
             : undefined
         }
       >
@@ -529,14 +813,13 @@ export default function Home() {
           />
           <SheetRow
             icon={<CreditCard size={18} color="#374151" />}
-            label="Bank Transfer"
-            onTap={() => handlePayment('bank_transfer')}
+            label="Terminal"
+            onTap={() => handlePayment('terminal')}
           />
           <SheetRow
-            icon={<AlertTriangle size={18} color="#374151" />}
-            label="Other"
-            sublabel="Entered manually"
-            onTap={() => handlePayment('other')}
+            icon={<CreditCard size={18} color="#374151" />}
+            label="Bank Transfer"
+            onTap={() => handlePayment('bank_transfer')}
           />
           <SheetRow
             icon={<AlertTriangle size={18} color="#DC2626" />}
@@ -553,47 +836,34 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'mark_done_deposit'}
         onClose={() => setSheet(null)}
-        title="How were you paid?"
+        title={`Balance to collect: £${formatAmount(
+          selectedJob
+            ? totalFor(selectedJob.id) -
+                (selectedJob.deposit_pct
+                  ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
+                  : 0)
+            : 0
+        )}`}
         subtitle={
           selectedCustomer && selectedJob
-            ? `for ${selectedCustomer.name} · ${selectedJob.title}`
+            ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(
+                selectedJob.deposit_pct
+                  ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
+                  : 0
+              )} deposit already paid`
             : undefined
         }
       >
-        {selectedJob && (
-          <div className="mb-4">
-            <div className="bg-[#F9FAFB] rounded-xl p-4 text-center">
-              <p className="text-[13px] text-[#6B7280] mb-1">Balance to collect</p>
-              <p className="text-[28px] font-extrabold text-[#111827]">
-                £{formatAmount(
-                  totalFor(selectedJob.id) -
-                    (selectedJob.deposit_pct
-                      ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
-                      : 0)
-                )}
-              </p>
-              <p className="text-[13px] text-[#9CA3AF] mt-1">
-                £{formatAmount(
-                  selectedJob.deposit_pct
-                    ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
-                    : 0
-                )}{' '}
-                deposit already paid
-              </p>
-            </div>
-          </div>
-        )}
         <div className="flex flex-col">
+          <SheetRow
+            icon={<CreditCard size={18} color="#374151" />}
+            label="Terminal"
+            onTap={() => handlePayment('terminal')}
+          />
           <SheetRow
             icon={<Banknote size={18} color="#374151" />}
             label="Cash"
             onTap={() => handlePayment('cash')}
-          />
-          <SheetRow
-            icon={<AlertTriangle size={18} color="#374151" />}
-            label="Other"
-            sublabel="Entered manually"
-            onTap={() => handlePayment('other')}
           />
           <SheetRow
             icon={<AlertTriangle size={18} color="#DC2626" />}
