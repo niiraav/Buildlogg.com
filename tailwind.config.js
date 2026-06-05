@@ -8,7 +8,7 @@ export default {
       },
       colors: {
         brand: {
-          black:       '#111111',
+          black:       '#111827',
           dark:        '#374151',
           mid:         '#6B7280',
           muted:       '#898989',
