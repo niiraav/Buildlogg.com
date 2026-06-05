@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, Clock, CreditCard, Banknote, Pencil, Building2,
+  ChevronLeft, Phone, MessageCircle, Clock, Banknote, Pencil, Building2,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -370,8 +370,8 @@ export default function JobDetail() {
         )}
 
         {/* Info card */}
-        <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-4">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-[#F9FAFB]">
+        <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-4 divide-y divide-[#F9FAFB]">
+          <div className="flex justify-between items-center px-4 py-3">
             <span className="text-[13px] text-[#9CA3AF]">Date &amp; time</span>
             <span className="text-[13px] font-medium text-[#111827] text-right">
               {formatDateTimeRange(job.scheduled_start, job.scheduled_end)}
@@ -384,7 +384,7 @@ export default function JobDetail() {
             </span>
           </div>
           {job.payment_terms === 'deposit' && job.deposit_pct && (
-            <div className="flex justify-between items-center px-4 py-3 border-t border-[#F9FAFB]">
+            <div className="flex justify-between items-center px-4 py-3">
               <span className="text-[13px] text-[#9CA3AF]">Deposit</span>
               <span className="text-[13px] font-medium text-[#111827] text-right">
                 {job.deposit_pct}% (£{((job.deposit_pct / 100) * total).toFixed(2)})
@@ -395,7 +395,7 @@ export default function JobDetail() {
 
         {/* Invoice items */}
         <div className="flex items-center justify-between mb-2.5">
-          <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">Invoice items</span>
+          <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">Quote items</span>
         </div>
         <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-5">
           {lineItems.map((item) => (
@@ -504,7 +504,7 @@ export default function JobDetail() {
         </Button>
         <button
           onClick={handleNotHome}
-          className="min-h-[44px] text-[13px] font-medium text-[#6B7280] cursor-pointer underline underline-offset-2 text-center"
+          className="min-h-[44px] text-[12px] text-[#9CA3AF] cursor-pointer underline underline-offset-2 text-center"
         >
           Customer not home?
         </button>

@@ -16,13 +16,7 @@ export const InvoiceItemRow: React.FC<InvoiceItemRowProps> = ({
   onRemove,
 }) => {
   return (
-    <div className="flex items-center gap-2 py-2.5 border-b border-[#F3F4F6]">
-      <span className={`flex-1 text-[13px] font-medium truncate ${isAddedOnSite ? 'text-[#15803D]' : 'text-[#374151]'}`}>
-        {item.description}
-      </span>
-      <span className={`shrink-0 text-sm font-bold ${isAddedOnSite ? 'text-[#15803D]' : 'text-[#111827]'}`}>
-        £{item.amount.toFixed(2)}
-      </span>
+    <div className={`flex items-center gap-2.5 py-2.5 px-3.5 border-b border-[#F3F4F6] ${isAddedOnSite ? 'bg-[#F0FDF4]' : ''}`}>
       {showRemove && onRemove && (
         <button
           onClick={onRemove}
@@ -32,6 +26,12 @@ export const InvoiceItemRow: React.FC<InvoiceItemRowProps> = ({
           <X size={14} color="#9CA3AF" />
         </button>
       )}
+      <span className="flex-1 text-[13px] font-medium truncate text-[#374151]">
+        {item.description}
+      </span>
+      <span className={`shrink-0 text-[13px] font-bold ${isAddedOnSite ? 'text-[#15803D]' : 'text-[#111827]'}`}>
+        £{item.amount.toFixed(2)}
+      </span>
     </div>
   );
 };
@@ -42,9 +42,9 @@ export interface InvoiceTotalRowProps {
 
 export const InvoiceTotalRow: React.FC<InvoiceTotalRowProps> = ({ total }) => {
   return (
-    <div className="flex justify-between items-center py-3.5 border-t-[1.5px] border-[#111827]">
+    <div className="flex justify-between items-center py-3 px-3.5 border-t border-[#E5E7EB]">
       <span className="text-[15px] font-bold text-[#111827]">Total</span>
-      <span className="text-2xl font-extrabold text-[#111827] tracking-tight">
+      <span className="text-[15px] font-bold text-[#111827]">
         £{total.toFixed(2)}
       </span>
     </div>
