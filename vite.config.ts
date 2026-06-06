@@ -13,7 +13,10 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
-      manifest: false, // we use our own manifest.json
+      manifest: false,
+      devOptions: {
+        enabled: false,
+      },
     }),
   ],
   resolve: {
@@ -22,6 +25,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
+    strictPort: true,
   },
 });

@@ -103,14 +103,53 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           }
 
           const dbItems = await db.line_items.where('job_id').equals(currentJobId).toArray();
-          setItems(
-            dbItems.map((i) => ({
-              id: i.id,
-              description: i.description,
-              amount: i.amount ? i.amount.toFixed(2) : '',
-              amountNum: i.amount || 0,
-            }))
-          );
+          if (dbItems.length > 0) {
+            setItems(
+              dbItems.map((i) => ({
+                id: i.id,
+                description: i.description,
+                amount: i.amount ? i.amount.toFixed(2) : '',
+                amountNum: i.amount || 0,
+              }))
+            );
+          } else {
+            // Auto-fill default labour charge from profile
+            const profile = await db.profiles.get(userId);
+            if (profile && profile.default_labour_charge > 0) {
+              const itemId = crypto.randomUUID();
+              const desc = profile.default_labour_description || 'Labour';
+              const amt = profile.default_labour_charge;
+              const itemNow = now();
+              setItems([{
+                id: itemId,
+                description: desc,
+                amount: amt.toFixed(2),
+                amountNum: amt,
+              }]);
+              await db.line_items.add({
+                id: itemId,
+                job_id: currentJobId,
+                description: desc,
+                amount: amt,
+                sort_order: 0,
+                added_on_site: false,
+                created_at: itemNow,
+                _sync_status: 'pending',
+              });
+              await db.sync_queue.add({
+                operation: 'insert',
+                table_name: 'line_items',
+                record_id: itemId,
+                payload: {
+                  id: itemId, job_id: currentJobId,
+                  description: desc, amount: amt,
+                  sort_order: 0, added_on_site: false, created_at: itemNow,
+                },
+                created_at: itemNow,
+                retry_count: 0,
+              });
+            }
+          }
         }
       } else {
         // Create new job — should not happen in normal flow (parent creates it)
@@ -141,6 +180,42 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           retry_count: 0,
         });
         setCurrentJobId(newJobId);
+
+        // Auto-fill default labour charge from profile
+        const profile = await db.profiles.get(userId);
+        if (profile && profile.default_labour_charge > 0) {
+          const itemId = crypto.randomUUID();
+          const desc = profile.default_labour_description || 'Labour';
+          const amt = profile.default_labour_charge;
+          setItems([{
+            id: itemId,
+            description: desc,
+            amount: amt.toFixed(2),
+            amountNum: amt,
+          }]);
+          await db.line_items.add({
+            id: itemId,
+            job_id: newJobId,
+            description: desc,
+            amount: amt,
+            sort_order: 0,
+            added_on_site: false,
+            created_at: n,
+            _sync_status: 'pending',
+          });
+          await db.sync_queue.add({
+            operation: 'insert',
+            table_name: 'line_items',
+            record_id: itemId,
+            payload: {
+              id: itemId, job_id: newJobId,
+              description: desc, amount: amt,
+              sort_order: 0, added_on_site: false, created_at: n,
+            },
+            created_at: n,
+            retry_count: 0,
+          });
+        }
       }
 
       setLoading(false);
@@ -450,7 +525,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               value={date}
               onChange={(e) => setDate(e.target.value)}
               onBlur={handleDateBlur}
-              className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827]"
+              className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
+              style={{ colorScheme: 'light' }}
             />
           </div>
 
@@ -464,7 +540,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 onBlur={handleStartTimeBlur}
-                className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827]"
+                className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
+                style={{ colorScheme: 'light' }}
               />
             </div>
             <div className="flex-1">
@@ -476,7 +553,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 onBlur={handleEndTimeBlur}
-                className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827]"
+                className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
+                style={{ colorScheme: 'light' }}
               />
             </div>
           </div>

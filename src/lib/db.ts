@@ -10,6 +10,8 @@ export interface Profile {
   trade?: 'plumber' | 'electrician' | 'builder' | 'other';
   callout_charge: number;
   payment_terms: 'on_completion' | 'deposit' | 'invoice';
+  default_labour_description: string;
+  default_labour_charge: number;
   quote_valid_days: number;
   created_at: string;
   updated_at: string;

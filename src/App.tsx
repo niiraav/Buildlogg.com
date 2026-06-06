@@ -57,7 +57,7 @@ function AuthGuard() {
           setChecking(false);
           return;
         }
-        navigate('/auth', { replace: true });
+        navigate('/auth' + window.location.search, { replace: true });
         setChecking(false);
         return;
       }
@@ -129,8 +129,12 @@ function AuthGuard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       if (!session) {
+        // Don't redirect mock users — AuthGuard checkSession handles routing
+        const mockUser = localStorage.getItem('tradepad_mock_user');
+        if (mockUser) return;
+
         setUserId(null);
-        navigate('/auth', { replace: true });
+        navigate('/auth' + window.location.search, { replace: true });
       } else {
         setUserId(session.user.id);
       }

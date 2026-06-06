@@ -633,17 +633,45 @@ export default function Home() {
         <p className="text-[13px] text-[#9CA3AF] mt-1.5">
           {formatShortDate(today)} · Free day
         </p>
+        <div className="flex gap-2 mt-5">
+          <button
+            onClick={() => navigate('/quote')}
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            + New Quote
+          </button>
+          <button
+            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            Log Missed Call
+          </button>
+        </div>
       </div>
     </div>
   );
 
   const renderAllClear = () => (
     <div className="px-4 mt-6">
-      <div className="border border-dashed border-[#D1D5DB] rounded-[10px] p-10 text-center">
+      <div className="border border-dashed border-[#D1D5DB] rounded-[10px] p-8 text-center">
         <p className="text-[16px] font-semibold text-[#111827]">All clear</p>
         <p className="text-[13px] text-[#9CA3AF] mt-1.5">
           Nothing needs your attention today
         </p>
+        <div className="flex gap-2 mt-5">
+          <button
+            onClick={() => navigate('/quote')}
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            + New Quote
+          </button>
+          <button
+            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+          >
+            Log Missed Call
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -805,14 +833,16 @@ export default function Home() {
             {todayLabel} · {subLabel}
           </span>
         </div>
-        <div className="text-right">
-          <span className="text-[22px] font-extrabold text-[#111827] block">
-            £{Number(totalOwed).toFixed(2)}
-          </span>
-          <span className="text-[11px] text-[#9CA3AF] block mt-0.5">
-            owed to you
-          </span>
-        </div>
+        {totalOwed > 0 && (
+          <div className="text-right">
+            <span className="text-[22px] font-extrabold text-[#111827] block">
+              £{Number(totalOwed).toFixed(2)}
+            </span>
+            <span className="text-[11px] text-[#9CA3AF] block mt-0.5">
+              owed to you
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Sync indicator */}
@@ -849,23 +879,25 @@ export default function Home() {
       {/* Tasks tab content */}
       {activeTab === 'tasks' && renderTasks()}
 
-      {/* Footer */}
-      <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
-        <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
-          <button
-            onClick={() => navigate('/quote')}
-            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
-          >
-            + New Quote
-          </button>
-          <button
-            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
-          >
-            Log Missed Call
-          </button>
+      {/* Footer — only show when jobs exist; otherwise buttons are in empty state cards */}
+      {jobs.length > 0 && (
+        <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
+          <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
+            <button
+              onClick={() => navigate('/quote')}
+              className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+            >
+              + New Quote
+            </button>
+            <button
+              onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
+              className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
+            >
+              Log Missed Call
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tab bar */}
       <TabBar activeTab="home" onNavigate={handleNavigate} />
