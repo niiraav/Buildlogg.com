@@ -8,6 +8,7 @@ import { JobCard } from '../../components/JobCard';
 import { ActiveBar } from '../../components/ActiveBar';
 import { TodayStrip } from '../../components/TodayStrip';
 import { TabBar } from '../../components/TabBar';
+import SyncIndicator from '../../components/SyncIndicator';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { TaskCard } from '../../components/TaskCard';
@@ -809,6 +810,11 @@ export default function Home() {
             owed to you
           </span>
         </div>
+      </div>
+
+      {/* Sync indicator */}
+      <div className="px-4 flex justify-end -mt-1 mb-1">
+        <SyncIndicator />
       </div>
 
       {/* Tab switcher */}

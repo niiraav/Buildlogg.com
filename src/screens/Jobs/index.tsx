@@ -4,6 +4,7 @@ import { Search, ChevronRight, ClipboardList } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { TabBar } from '../../components/TabBar';
+import SyncIndicator from '../../components/SyncIndicator';
 import { Button } from '../../components/Button';
 
 /* ─── helpers ─── */
@@ -358,6 +359,11 @@ export default function Jobs() {
         >
           <Search size={18} />
         </button>
+      </div>
+
+      {/* Sync indicator */}
+      <div className="px-4 flex justify-end -mt-1 mb-1">
+        <SyncIndicator />
       </div>
 
       {/* Filter chips */}

@@ -10,6 +10,8 @@ import {
 import { supabase } from './lib/supabase';
 import { db } from './lib/db';
 import { useAppStore } from './store/useAppStore';
+import { syncWorker } from './lib/sync';
+import { initialSync } from './lib/initialSync';
 import DesktopNudge from './components/DesktopNudge';
 import Auth from './screens/Auth';
 import Onboarding from './screens/Onboarding';
@@ -23,10 +25,13 @@ import Activity from './screens/Activity';
 function AuthGuard() {
   const navigate = useNavigate();
   const setUserId = useAppStore((s) => s.setUserId);
+  const setOnline = useAppStore((s) => s.setOnline);
+  const setSyncStatus = useAppStore((s) => s.setSyncStatus);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+    let syncInterval: ReturnType<typeof setInterval> | null = null;
 
     async function checkSession() {
       const {
@@ -52,10 +57,56 @@ function AuthGuard() {
         return;
       }
 
+      // Run initial sync (pull from Supabase) if online
+      if (navigator.onLine) {
+        try {
+          setSyncStatus('syncing');
+          await initialSync(session.user.id);
+          setSyncStatus('synced');
+        } catch {
+          setSyncStatus('error');
+        }
+        // Run sync worker to push any pending local changes
+        await syncWorker();
+      }
+
       setChecking(false);
     }
 
     checkSession();
+
+    // Online/offline listeners
+    const handleOnline = () => {
+      setOnline(true);
+      setSyncStatus('syncing');
+      syncWorker().then(() => {
+        setSyncStatus('synced');
+      }).catch(() => {
+        setSyncStatus('error');
+      });
+    };
+
+    const handleOffline = () => {
+      setOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Sync on window focus (user returns to app)
+    const handleFocus = () => {
+      if (navigator.onLine) {
+        syncWorker().catch(() => {});
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // Periodic sync every 30s
+    syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        syncWorker().catch(() => {});
+      }
+    }, 30000);
 
     const {
       data: { subscription },
@@ -72,8 +123,12 @@ function AuthGuard() {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('focus', handleFocus);
+      if (syncInterval) clearInterval(syncInterval);
     };
-  }, [navigate, setUserId]);
+  }, [navigate, setUserId, setOnline, setSyncStatus]);
 
   if (checking) {
     return (

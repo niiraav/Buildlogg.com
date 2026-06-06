@@ -8,6 +8,7 @@ import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { TabBar } from '../../components/TabBar';
 import { InlineEditRow } from '../../components/InlineEditRow';
+import SyncIndicator from '../../components/SyncIndicator';
 
 const TRADE_OPTIONS: Array<{ value: Profile['trade']; label: string }> = [
   { value: 'plumber', label: 'Plumber' },
@@ -102,7 +103,10 @@ export default function Settings() {
     <div className="flex flex-col h-full bg-[#F9FAFB]">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 bg-white border-b border-[#F3F4F6] flex-shrink-0">
-        <h1 className="text-[26px] font-extrabold text-[#111827]">Settings</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[26px] font-extrabold text-[#111827]">Settings</h1>
+          <SyncIndicator />
+        </div>
       </div>
 
       {/* Scrollable body */}
