@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ChevronLeft, X, Plus, Calendar, Clock } from 'lucide-react';
-import { db, type Customer } from '../../lib/db';
+import { db, type Customer, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { Button } from '../../components/Button';
@@ -40,6 +40,19 @@ const PAYMENT_OPTIONS = [
 
 const DEPOSIT_PRESETS = [10, 20, 25, 50];
 
+/* Quick-add items by trade type */
+const QUICK_ADD_ITEMS: Record<string, string[]> = {
+  plumber: ['Pipes', 'Fittings', 'Boiler', 'Radiator', 'Valves'],
+  electrician: ['Cable', 'Sockets', 'Switches', 'Consumer unit', 'Light fittings'],
+  builder: ['Bricks', 'Cement', 'Timber', 'Plaster', 'Tiles'],
+  other: ['Materials', 'Parts', 'Tools'],
+};
+
+function getQuickAddItems(profile: Profile | null): string[] {
+  if (!profile?.trade) return QUICK_ADD_ITEMS.other;
+  return QUICK_ADD_ITEMS[profile.trade] || QUICK_ADD_ITEMS.other;
+}
+
 /* ─── types ─── */
 
 interface EditableItem {
@@ -70,11 +83,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [notes, setNotes] = useState('');
   const [items, setItems] = useState<EditableItem[]>([]);
   const [paymentTerms, setPaymentTerms] = useState<'on_completion' | 'deposit' | 'invoice'>('on_completion');
   const [depositPct, setDepositPct] = useState<number>(20);
   const [depositCustom, setDepositCustom] = useState<string | null>(null);
   const [titleFocused, setTitleFocused] = useState(false);
+
+  const [profile, setProfile] = useState<Profile | null>(null);
   const depositSectionRef = useRef<HTMLDivElement>(null);
 
   /* load customer and job */
@@ -84,11 +100,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     const load = async () => {
       const c = await db.customers.get(customerId);
       setCustomer(c || null);
+      const p = await db.profiles.get(userId);
+      setProfile(p || null);
 
       if (currentJobId) {
         const job = await db.jobs.get(currentJobId);
         if (job) {
           setTitle(job.title || '');
+          setNotes(job.notes || '');
           setDate(formatDateForInput(job.scheduled_start));
           setStartTime(formatTimeForInput(job.scheduled_start));
           setEndTime(formatTimeForInput(job.scheduled_end));
@@ -114,11 +133,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             );
           } else {
             // Auto-fill default labour charge from profile (only if enabled in onboarding)
-            const profile = await db.profiles.get(userId);
-            if (profile && profile.default_labour_charge > 0) {
+            if (p && p.default_labour_charge > 0) {
               const itemId = crypto.randomUUID();
-              const desc = profile.default_labour_description || 'Labour';
-              const amt = profile.default_labour_charge;
+              const desc = p.default_labour_description || 'Labour';
+              const amt = p.default_labour_charge;
               const itemNow = now();
               setItems([{
                 id: itemId,
@@ -182,11 +200,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         setCurrentJobId(newJobId);
 
         // Auto-fill default labour charge from profile (only if enabled in onboarding)
-        const profile = await db.profiles.get(userId);
-        if (profile && profile.default_labour_charge > 0) {
+        if (p && p.default_labour_charge > 0) {
           const itemId = crypto.randomUUID();
-          const desc = profile.default_labour_description || 'Labour';
-          const amt = profile.default_labour_charge;
+          const desc = p.default_labour_description || 'Labour';
+          const amt = p.default_labour_charge;
           setItems([{
             id: itemId,
             description: desc,
@@ -245,6 +262,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
       scheduled_end: scheduledEnd,
       payment_terms: paymentTerms,
       deposit_pct: paymentTerms === 'deposit' ? depositPct : undefined,
+      notes: notes.trim() || undefined,
       updated_at: n,
       _sync_status: 'pending',
     });
@@ -259,12 +277,13 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         scheduled_end: scheduledEnd,
         payment_terms: paymentTerms,
         deposit_pct: paymentTerms === 'deposit' ? depositPct : undefined,
+        notes: notes.trim() || undefined,
         updated_at: n,
       },
       created_at: n,
       retry_count: 0,
     });
-  }, [currentJobId, userId, title, date, startTime, endTime, paymentTerms, depositPct]);
+  }, [currentJobId, userId, title, date, startTime, endTime, notes, paymentTerms, depositPct]);
 
   const saveItems = useCallback(async () => {
     if (!currentJobId || !userId) return;
@@ -323,6 +342,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   const handleDateBlur = () => saveJob();
   const handleStartTimeBlur = () => saveJob();
   const handleEndTimeBlur = () => saveJob();
+  const handleNotesBlur = () => saveJob();
+  const handleNotesChange = (val: string) => setNotes(val);
 
   const handlePaymentTermsChange = async (val: string) => {
     const terms = val as 'on_completion' | 'deposit' | 'invoice';
@@ -407,6 +428,18 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     ]);
   };
 
+  const addQuickItem = (description: string) => {
+    const itemId = crypto.randomUUID();
+    setItems((prev) => [
+      ...prev,
+      { id: itemId, description, amount: '', amountNum: 0 },
+    ]);
+  };
+
+  const handleRemoveEmptyItems = () => {
+    setItems((prev) => prev.filter((i) => i.description.trim() || i.amountNum > 0));
+  };
+
   const updateItemDesc = (id: string, desc: string) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, description: desc } : i)));
   };
@@ -426,15 +459,18 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const saveItemBlur = useCallback(() => {
+  const saveItemBlur = () => {
+    handleRemoveEmptyItems();
     saveItems();
-  }, [saveItems]);
+  };
 
   const handlePreview = async () => {
     await saveItems();
     await saveJob();
     onPreview();
   };
+
+  const quickAdds = getQuickAddItems(profile);
 
   /* auto-scroll to deposit section on select */
   useEffect(() => {
@@ -521,8 +557,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 onBlur={handleDateBlur}
-                className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white"
-                style={{ colorScheme: 'light', WebkitAppearance: 'none' }}
+                className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
               />
               <Calendar size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -539,8 +574,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   onBlur={handleStartTimeBlur}
-                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white"
-                  style={{ colorScheme: 'light', WebkitAppearance: 'none' }}
+                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
                 />
                 <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -555,8 +589,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   onBlur={handleEndTimeBlur}
-                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white"
-                  style={{ colorScheme: 'light', WebkitAppearance: 'none' }}
+                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
                 />
                 <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -617,6 +650,22 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             Add item
           </button>
 
+          {/* Quick-add chips */}
+          {quickAdds.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {quickAdds.map((desc) => (
+                <button
+                  key={desc}
+                  onClick={() => addQuickItem(desc)}
+                  className="inline-flex items-center gap-1 h-[32px] px-3 rounded-full bg-[#F3F4F6] text-[12px] font-medium text-[#374151] cursor-pointer border border-[#E5E7EB] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors"
+                >
+                  <Plus size={12} color="#9CA3AF" />
+                  {desc}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Total bar */}
           {items.length > 0 && (
             <div className="flex justify-between items-center mt-3 py-3 px-3.5 border-t-[1.5px] border-[#111827]">
@@ -626,6 +675,21 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               </span>
             </div>
           )}
+        </div>
+
+        {/* Notes / What's included */}
+        <div className="mb-5">
+          <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+            Notes <span className="normal-case font-normal tracking-0">(optional)</span>
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            onBlur={handleNotesBlur}
+            placeholder="e.g. Includes all parts, labour, and disposal of old unit"
+            rows={3}
+            className="w-full min-h-[80px] px-3.5 py-2.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none focus:border-[#111827] resize-none leading-relaxed"
+          />
         </div>
 
         {/* Payment terms */}

@@ -14,6 +14,7 @@ export interface QuotePreviewCardProps {
   quoteSentDate?: Date;
   scheduledStart?: string;
   scheduledEnd?: string;
+  notes?: string;
 }
 
 export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
@@ -29,6 +30,7 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
     quoteSentDate,
     scheduledStart,
     scheduledEnd,
+    notes,
   } = props;
 
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
@@ -118,6 +120,13 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
           </div>
         ))}
       </div>
+
+      {/* Notes */}
+      {notes && (
+        <div className="px-4 py-2.5 border-t border-[#F9FAFB]">
+          <p className="text-[12px] text-[#6B7280] leading-relaxed whitespace-pre-line">{notes}</p>
+        </div>
+      )}
 
       {/* Total row */}
       <div className="flex justify-between items-center px-4 py-3 border-t-[1.5px] border-[#111827] mt-0">

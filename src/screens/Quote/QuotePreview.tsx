@@ -101,6 +101,11 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       lines.push(`• ${item.description} — £${item.amount.toFixed(2)}`);
     });
 
+    if (job.notes) {
+      lines.push('');
+      lines.push(`Includes: ${job.notes}`);
+    }
+
     lines.push('');
     lines.push(`Total: £${total.toFixed(2)}`);
 
