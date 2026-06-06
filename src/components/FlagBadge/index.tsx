@@ -8,11 +8,11 @@ export interface FlagBadgeProps {
 }
 
 const flagClasses: Record<FlagType, { bg: string; text: string; border: string }> = {
-  urgent_new: { bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', border: 'border-[#BFDBFE]' },
-  chase:      { bg: 'bg-[#FFFBEB]', text: 'text-[#B45309]', border: 'border-[#FDE68A]' },
-  overdue:    { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FECACA]' },
-  stale:      { bg: 'bg-[#F9FAFB]', text: 'text-[#6B7280]', border: 'border-[#E5E7EB]' },
-  no_show:    { bg: 'bg-[#FEF3C7]', text: 'text-[#92400E]', border: 'border-[#FCD34D]' },
+  urgent_new: { bg: 'bg-status-blueBg', text: 'text-status-blue', border: 'border-blue-200' },
+  chase:      { bg: 'bg-status-amberBg', text: 'text-status-amber', border: 'border-amber-200' },
+  overdue:    { bg: 'bg-status-redBg', text: 'text-status-red', border: 'border-red-200' },
+  stale:      { bg: 'bg-brand-surface', text: 'text-brand-mid', border: 'border-brand-border' },
+  no_show:    { bg: 'bg-status-amberMid', text: 'text-status-amberDark', border: 'border-amber-300' },
 };
 
 const flagLabels: Record<FlagType, (days?: number) => string> = {
@@ -29,7 +29,7 @@ export const FlagBadge: React.FC<FlagBadgeProps> = ({ type, days }) => {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${classes.bg} ${classes.text} ${classes.border}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-label font-semibold border ${classes.bg} ${classes.text} ${classes.border}`}
     >
       {label}
     </span>

@@ -32,13 +32,13 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
     return (
       <div
         onClick={handleClick}
-        className="h-[120px] rounded-[10px] flex flex-col items-center justify-center cursor-pointer overflow-hidden relative bg-[radial-gradient(circle,#E5E7EB_1px,transparent_1px)] bg-[length:12px_12px]"
+        className="h-[120px] rounded-lg flex flex-col items-center justify-center cursor-pointer overflow-hidden relative bg-[radial-gradient(circle,#E5E7EB_1px,transparent_1px)] bg-[length:12px_12px]"
       >
         <MapPin size={28} color="#9CA3AF" />
-        <p className="text-[13px] text-[#6B7280] mt-1 px-4 text-center truncate w-full">
+        <p className="text-xs text-brand-mid mt-1 px-4 text-center truncate w-full">
           {address}
         </p>
-        <div className="absolute bottom-1.5 right-2 flex items-center gap-1 text-[11px] text-[#9CA3AF]">
+        <div className="absolute bottom-1.5 right-2 flex items-center gap-1 text-label text-brand-muted">
           <ExternalLink size={10} />
           Open in Maps
         </div>
@@ -47,13 +47,13 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
   }
 
   return (
-    <div className="relative rounded-[10px] overflow-hidden h-[140px] group">
+    <div className="relative rounded-lg overflow-hidden h-[140px] group">
       {/* Real map iframe */}
       <iframe
         src={embedUrl}
         width="100%"
         height="140"
-        style={{ border: 0, pointerEvents: 'none' }}
+        className="border-0 pointer-events-none"
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         onError={() => setError(true)}
@@ -69,7 +69,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
 
       {/* Address label */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
-        <p className="text-[12px] text-white font-medium truncate drop-shadow">
+        <p className="text-xxs text-white font-medium truncate drop-shadow">
           {address}
         </p>
       </div>
@@ -77,7 +77,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
       {/* Directions button */}
       <button
         onClick={handleDirections}
-        className="absolute top-2 right-2 w-[36px] h-[36px] rounded-full bg-white shadow-md flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+        className="absolute top-2 right-2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
         aria-label="Get directions"
       >
         <Navigation size={16} color="#111827" />

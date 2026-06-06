@@ -11,10 +11,10 @@ export default {
           black:       '#111827',
           dark:        '#374151',
           mid:         '#6B7280',
-          muted:       '#898989',
+          muted:       '#9CA3AF',
           border:      '#E5E7EB',
           borderLight: '#F3F4F6',
-          surface:     '#F8F9FA',
+          surface:     '#F9FAFB',
           surfaceCard: '#F5F5F5',
           darkBg:      '#101010',
         },
@@ -40,6 +40,10 @@ export default {
         'title': ['20px', { lineHeight: '1.3',  fontWeight: '700' }],
         'label': ['11px', { lineHeight: '1',    fontWeight: '700', letterSpacing: '0.5px' }],
         'micro': ['10px', { lineHeight: '1',    fontWeight: '700', letterSpacing: '0.7px' }],
+        'xxs':   ['12px', { lineHeight: '1.3',  fontWeight: '500' }],
+        'xs':    ['13px', { lineHeight: '1.4',  fontWeight: '400' }],
+        'md':    ['15px', { lineHeight: '1.5',  fontWeight: '400' }],
+        'lg':    ['22px', { lineHeight: '1.2',  fontWeight: '800' }],
       },
       borderRadius: {
         'xs':   '4px',
@@ -57,6 +61,7 @@ export default {
       },
       spacing: {
         '11': '44px',
+        '11.5': '46px',
         '13': '52px',
         '14': '56px',
       }

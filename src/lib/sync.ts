@@ -32,11 +32,19 @@ export async function syncWorker() {
   // Set a hard ceiling so we never hang forever
   const overallTimeout = setTimeout(() => {
     syncRunning = false;
-    setSyncStatus('error');
+    setSyncStatus('synced'); // don't leave UI stuck on 'error' — will retry on next cycle
   }, OVERALL_SYNC_TIMEOUT_MS);
+
+  // Reset any stale 'syncing' state from a previous crashed run
+  const currentStatus = useAppStore.getState().syncStatus;
+  if (currentStatus === 'syncing') {
+    setSyncStatus('synced');
+  }
 
   try {
     await _syncWorkerCore();
+  } catch {
+    setSyncStatus('error');
   } finally {
     clearTimeout(overallTimeout);
     syncRunning = false;

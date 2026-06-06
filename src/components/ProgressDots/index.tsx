@@ -14,7 +14,7 @@ export const ProgressDots: React.FC<ProgressDotsProps> = ({ total, current }) =>
         return (
           <div
             key={i}
-            className={`h-1 rounded-sm flex-1 ${isActive ? 'bg-[#111827]' : 'bg-[#E5E7EB]'}`}
+            className={`h-1 rounded-sm flex-1 ${isActive ? 'bg-brand-black' : 'bg-brand-border'}`}
           />
         );
       })}

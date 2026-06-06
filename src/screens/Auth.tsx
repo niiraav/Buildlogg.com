@@ -94,9 +94,13 @@ export default function Auth() {
 
       const profile = await db.profiles.get(mockUserId);
       if (profile) {
-        navigate('/');
+        window.location.replace('/');
+        setLoading(false);
+        return;
       } else {
-        navigate('/onboarding');
+        window.location.replace('/onboarding');
+        setLoading(false);
+        return;
       }
     } catch (err) {
       setError('Mock sign-in failed: ' + (err as Error).message);
@@ -116,33 +120,33 @@ export default function Auth() {
   return (
     <div className="flex flex-col items-center px-6 pt-12 pb-8 min-h-[100svh]">
       {/* Logo / Wordmark */}
-      <div className="text-[28px] font-extrabold text-[#111827] mb-8">
+      <div className="text-hero font-extrabold text-brand-black mb-8">
         TradePad
       </div>
 
       <div className="w-full flex flex-col gap-4">
         <div>
-          <h1 className="text-[22px] font-bold text-[#111827]">
+          <h1 className="text-xl font-bold text-brand-black">
             {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h1>
-          <p className="text-sm text-[#9CA3AF] mt-1">
+          <p className="text-sm text-brand-muted mt-1">
             {mode === 'signin' ? 'Enter your details' : 'Get started with TradePad'}
           </p>
         </div>
 
         {/* Email input */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF]">
+          <label className="text-label font-bold uppercase tracking-[0.4px] text-brand-muted">
             Email
           </label>
-          <div className={`flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-[#E5E7EB]'}`}>
+          <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-brand-border'}`}>
             <input
               type="email"
               inputMode="email"
               placeholder="you@example.com"
               value={email}
               onChange={handleEmailChange}
-              className="flex-1 text-base text-[#111827] outline-none min-h-[48px] px-4 bg-transparent"
+              className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
               autoFocus
             />
           </div>
@@ -150,22 +154,22 @@ export default function Auth() {
 
         {/* Password input */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF]">
+          <label className="text-label font-bold uppercase tracking-[0.4px] text-brand-muted">
             Password
           </label>
-          <div className={`flex items-center border-[1.5px] rounded-xl min-h-[48px] overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-[#E5E7EB]'}`}>
+          <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-brand-border'}`}>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={handlePasswordChange}
-              className="flex-1 text-base text-[#111827] outline-none min-h-[48px] px-4 bg-transparent"
+              className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
             />
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-[#DC2626]">{error}</p>
+          <p className="text-sm text-status-red">{error}</p>
         )}
 
         <div className="mt-2">
@@ -182,15 +186,15 @@ export default function Auth() {
         <div className="text-center mt-2">
           <button
             onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }}
-            className="text-sm font-medium text-[#6B7280] min-h-[44px] px-4 cursor-pointer"
+            className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer"
           >
             {mode === 'signin' ? 'No account? Create one' : 'Already have an account? Sign in'}
           </button>
         </div>
 
         {/* Dev-only test tools */}
-        <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-[#E5E7EB]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#9CA3AF] text-center">Dev testing</p>
+        <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
+          <p className="text-label font-bold uppercase tracking-[0.4px] text-brand-muted text-center">Dev testing</p>
           <Button
             variant="secondary"
             onClick={handleMockSignIn}
@@ -201,13 +205,13 @@ export default function Auth() {
           </Button>
           <button
             onClick={() => { setEmail('test@test.com'); setPassword('password123'); }}
-            className="h-[40px] w-full rounded-lg text-[13px] font-medium text-[#6B7280] cursor-pointer"
+            className="h-11 w-full rounded-lg text-xs font-medium text-brand-mid cursor-pointer"
           >
             Fill test credentials
           </button>
           <button
             onClick={handleResetDevData}
-            className="h-[40px] w-full rounded-lg text-[13px] font-medium text-[#DC2626] cursor-pointer"
+            className="h-11 w-full rounded-lg text-xs font-medium text-status-red cursor-pointer"
           >
             Reset all local data
           </button>

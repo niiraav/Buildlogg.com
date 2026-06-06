@@ -4,6 +4,15 @@ import { clientsClaim } from 'workbox-core';
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Always skip waiting so new SW activates immediately
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // Precache all assets injected by VitePWA build
 precacheAndRoute(self.__WB_MANIFEST);
 

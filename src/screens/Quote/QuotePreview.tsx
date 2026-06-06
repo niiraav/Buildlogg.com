@@ -171,7 +171,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     return (
       <div className="flex flex-col min-h-[100svh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#111827] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -180,7 +180,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   if (!job || !customer) {
     return (
       <div className="flex flex-col min-h-[100svh] items-center justify-center px-4">
-        <p className="text-[15px] text-[#9CA3AF]">Quote not found</p>
+        <p className="text-md text-brand-muted">Quote not found</p>
       </div>
     );
   }
@@ -188,18 +188,18 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   return (
     <div className="flex flex-col min-h-[100svh]">
       {/* Header */}
-      <div className="px-4 pt-2 pb-3 border-b border-[#F3F4F6] shrink-0 flex items-center justify-between">
+      <div className="px-4 pt-2 pb-3 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1 min-h-[44px] pr-4 text-[14px] font-medium text-[#6B7280] cursor-pointer"
+          className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
           Back
         </button>
-        <span className="text-[16px] font-bold text-[#111827]">Preview</span>
+        <span className="text-base font-bold text-brand-black text-center">Preview</span>
         <button
           onClick={onBack}
-          className="min-h-[44px] flex items-center text-[14px] text-[#6B7280] cursor-pointer underline underline-offset-2"
+          className="min-h-11 flex items-center text-sm text-brand-mid cursor-pointer underline underline-offset-2 justify-self-end"
         >
           Edit
         </button>
@@ -209,16 +209,16 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
         {/* Business name nudge */}
         {!hasBusinessName && (
-          <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[10px] px-3.5 py-2.5 mb-4 flex items-center gap-2">
+          <div className="bg-status-amberMid border border-amber-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
             <AlertTriangle size={16} color="#92400E" className="shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-[#92400E]">
+              <p className="text-xs font-medium text-status-amberDark">
                 Add your business name before sending
               </p>
             </div>
             <button
               onClick={handleGoSettings}
-              className="text-[13px] font-medium text-[#92400E] underline underline-offset-2 cursor-pointer shrink-0"
+              className="text-xs font-medium text-status-amberDark underline underline-offset-2 cursor-pointer shrink-0"
             >
               Settings →
             </button>
@@ -254,7 +254,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         </Button>
         <button
           onClick={handleSaveDraft}
-          className="w-full text-[13px] text-[#6B7280] font-medium underline underline-offset-2 cursor-pointer min-h-[44px]"
+          className="w-full text-xs text-brand-mid font-medium underline underline-offset-2 cursor-pointer min-h-11"
         >
           Save as draft
         </button>
@@ -274,17 +274,17 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
               onChange={(e) => setMessageText(e.target.value)}
               onBlur={() => setEditingMessage(false)}
               autoFocus
-              className="w-full min-h-[120px] p-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] text-[13px] text-[#374151] font-normal leading-relaxed outline-none focus:border-[#111827]"
+              className="w-full min-h-[120px] p-3 bg-brand-surface border border-brand-border rounded-lg text-xs text-brand-dark font-normal leading-relaxed outline-none focus:border-brand-black"
             />
           ) : (
             <div
               onClick={() => setEditingMessage(true)}
-              className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] p-3 cursor-text"
+              className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
             >
-              <p className="text-[13px] text-[#374151] leading-relaxed whitespace-pre-line">
+              <p className="text-xs text-brand-dark leading-relaxed whitespace-pre-line">
                 {messageText}
               </p>
-              <p className="text-[11px] text-[#9CA3AF] mt-1 italic">
+              <p className="text-label text-brand-muted mt-1 italic">
                 Tap to edit before sending
               </p>
             </div>
@@ -310,14 +310,14 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
           </Button>
           <button
             onClick={() => handleSend('copy')}
-            className="flex items-center justify-center gap-2 w-full min-h-[44px] text-[13px] font-medium text-[#6B7280] cursor-pointer underline underline-offset-2"
+            className="flex items-center justify-center gap-2 w-full min-h-11 text-xs font-medium text-brand-mid cursor-pointer underline underline-offset-2"
           >
             <Clipboard size={16} />
             Copy message
           </button>
           <button
             onClick={handleSheetDraft}
-            className="flex items-center justify-center gap-2 w-full min-h-[44px] text-[13px] font-medium text-[#9CA3AF] cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full min-h-11 text-xs font-medium text-brand-muted cursor-pointer"
           >
             Save as draft
           </button>

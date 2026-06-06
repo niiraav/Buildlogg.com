@@ -13,14 +13,14 @@ export default function DesktopNudge() {
   if (dismissed) return null;
 
   return (
-    <div className="bg-[#111827] text-white px-4 py-3 text-[13px] flex items-center justify-between gap-3">
+    <div className="bg-brand-black text-white px-4 py-3 text-xs flex items-center justify-between gap-3">
       <span>TradePad is designed for your phone — for the best experience, open it on mobile.</span>
       <button
         onClick={() => {
           localStorage.setItem('tp_desktop_nudge_dismissed', '1');
           setDismissed(true);
         }}
-        className="bg-transparent border-none text-[#9CA3AF] cursor-pointer text-[18px] leading-none min-w-[28px] min-h-[28px] flex items-center justify-center p-0"
+        className="bg-transparent border-none text-brand-muted cursor-pointer text-lg leading-none min-w-7 min-h-7 flex items-center justify-center p-0"
         aria-label="Dismiss desktop nudge"
       >
         <X size={18} />

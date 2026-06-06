@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { syncWorker } from '../../lib/sync';
@@ -8,8 +8,8 @@ export default function SyncIndicator() {
   const syncStatus = useAppStore((s) => s.syncStatus);
   const [hasPending, setHasPending] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [syncStartedAt, setSyncStartedAt] = useState<number | null>(null);
-  const prevStatusRef = useRef(syncStatus);
+  const [visible, setVisible] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -17,17 +17,26 @@ export default function SyncIndicator() {
     async function checkStatus() {
       if (!mounted) return;
 
-      // Check for pending records
+      // Check if there's a Supabase session (don't show for mock users)
+      const { supabase } = await import('../../lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      setHasSession(!!data?.session);
+
+      // Only check sync_queue for pending operations (not table _sync_status)
+      const pendingQueueCount = await db.sync_queue
+        .where('retry_count')
+        .below(5)
+        .count();
+
+      // Also check if any table records have error status
       const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles];
-      let pendingFound = false;
       let errorFound = false;
       for (const table of tables) {
-        const pendingCount = await table.where('_sync_status').equals('pending').count();
-        if (pendingCount > 0) pendingFound = true;
         const errorCount = await table.where('_sync_status').equals('error').count();
         if (errorCount > 0) errorFound = true;
       }
-      setHasPending(pendingFound);
+
+      setHasPending(pendingQueueCount > 0);
       setHasError(errorFound);
     }
 
@@ -39,69 +48,54 @@ export default function SyncIndicator() {
     };
   }, []);
 
-  // Track when sync started so we can detect stuck syncs
+  // Only show "Syncing…" after 2s to avoid flickering for quick syncs
   useEffect(() => {
-    if (syncStatus === 'syncing' && prevStatusRef.current !== 'syncing') {
-      setSyncStartedAt(Date.now());
+    if (syncStatus === 'syncing') {
+      const timer = setTimeout(() => setVisible(true), 2000);
+      // Safety cap: never show "Syncing…" for more than 10s even if syncStatus is stuck
+      const safety = setTimeout(() => setVisible(false), 10000);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(safety);
+      };
+    } else {
+      setVisible(false);
     }
-    if (syncStatus !== 'syncing') {
-      setSyncStartedAt(null);
-    }
-    prevStatusRef.current = syncStatus;
   }, [syncStatus]);
 
-  const isStuck = syncStatus === 'syncing' && syncStartedAt !== null && (Date.now() - syncStartedAt > 15000);
+  // Don't show anything for mock users (no Supabase session)
+  if (!hasSession) return null;
 
-  // Offline with pending changes
+  // Offline with pending sync_queue items
   if (!isOnline && hasPending) {
     return (
-      <span className="text-[10px] font-medium text-[#9CA3AF]">
+      <span className="text-micro font-medium text-brand-muted">
         Offline
       </span>
     );
   }
 
-  // Stuck sync — show as error with retry
-  if (isStuck) {
-    return (
-      <button
-        onClick={() => syncWorker()}
-        className="text-[10px] font-medium text-[#D97706]"
-      >
-        Sync stuck · Tap to retry
-      </button>
-    );
-  }
-
-  // Actively syncing
-  if (syncStatus === 'syncing') {
-    return (
-      <span className="text-[10px] font-medium text-[#9CA3AF]">
-        Syncing…
-      </span>
-    );
-  }
-
   // Sync error (failed after retries) — allow retry
-  if (syncStatus === 'error' && hasError) {
+  if ((syncStatus === 'error' || (syncStatus === 'syncing' && visible)) && hasError) {
     return (
       <button
         onClick={() => syncWorker()}
-        className="text-[10px] font-medium text-[#D97706]"
+        className="text-micro font-medium text-amber-600"
       >
         Sync error · Tap to retry
       </button>
     );
   }
 
-  // Pending records but sync idle (will run on next interval)
-  if (hasPending) {
+  // Actively syncing (visible only after 2s delay)
+  if (syncStatus === 'syncing' && visible && hasPending) {
     return (
-      <span className="text-[10px] font-medium text-[#9CA3AF]">
-        Will sync
+      <span className="text-micro font-medium text-brand-muted">
+        Syncing…
       </span>
     );
   }
 
+  // Default: nothing — pending records are normal offline-first behavior
   return null;
 }

@@ -29,14 +29,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             />
           </Dialog.Overlay>
           <div className="relative z-[51] bg-white rounded-t-2xl shadow-sheet transition-transform duration-300 ease-in-out translate-y-0">
-            <div className="w-9 h-1 bg-[#E5E7EB] rounded-sm mx-auto mt-3 mb-5" />
+            <div className="w-9 h-1 bg-brand-border rounded-sm mx-auto mt-3 mb-5" />
             {title && (
               <Dialog.Title asChild>
-                <h2 className="text-[15px] font-bold text-[#111827] px-6">{title}</h2>
+                <h2 className="text-md font-bold text-brand-black px-6">{title}</h2>
               </Dialog.Title>
             )}
             {subtitle && (
-              <p className="text-sm text-[#6B7280] mt-1 px-6">{subtitle}</p>
+              <p className="text-sm text-brand-mid mt-1 px-6">{subtitle}</p>
             )}
             <div className="px-6 pb-10 pt-2">
               {children}
@@ -65,19 +65,19 @@ export const SheetRow: React.FC<SheetRowProps> = ({
   variant = 'default',
   isLast = false,
 }) => {
-  const labelClass = variant === 'destructive' ? 'text-[#DC2626]' : 'text-[#111827]';
+  const labelClass = variant === 'destructive' ? 'text-status-red' : 'text-brand-black';
 
   return (
     <div
       onClick={onTap}
-      className={`flex items-center gap-3.5 min-h-[56px] cursor-pointer ${
-        isLast ? '' : 'border-t border-[#F3F4F6]'
+      className={`flex items-center gap-3.5 min-h-14 cursor-pointer ${
+        isLast ? '' : 'border-t border-brand-borderLight'
       }`}
     >
       {icon}
       <div className="flex flex-col">
-        <span className={`text-[15px] font-medium ${labelClass}`}>{label}</span>
-        {sublabel && <span className="text-xs text-[#9CA3AF]">{sublabel}</span>}
+        <span className={`text-md font-medium ${labelClass}`}>{label}</span>
+        {sublabel && <span className="text-xs text-brand-muted">{sublabel}</span>}
       </div>
     </div>
   );

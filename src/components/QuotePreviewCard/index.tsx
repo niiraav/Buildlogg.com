@@ -72,37 +72,37 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
     : customerName;
 
   return (
-    <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+    <div className="border border-brand-border rounded-xl overflow-hidden">
       {/* Header — white bg, ref + status badge */}
-      <div className="px-4 pt-3.5 pb-2.5 border-b border-[#F3F4F6]">
+      <div className="px-4 pt-3.5 pb-2.5 border-b border-brand-borderLight">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[12px] font-medium text-[#9CA3AF]">
+          <span className="text-xxs font-medium text-brand-muted">
             {quoteNumber ? `Quote #${quoteNumber}` : 'Quote'}
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-md bg-[#EFF6FF] text-[#1D4ED8] text-[10px] font-bold uppercase tracking-[0.4px]">
-            <span className="w-[5px] h-[5px] rounded-full bg-[#1D4ED8]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full bg-status-blueBg text-status-blue text-micro font-bold uppercase tracking-[0.4px]">
+            <span className="w-[5px] h-[5px] rounded-full bg-status-blue" />
             Quoted
           </span>
         </div>
-        <div className="text-[18px] font-bold text-[#111827]">{jobTitle}</div>
-        <div className="text-[13px] text-[#6B7280] mt-0.5">{customerDisplay}</div>
+        <div className="text-lg font-bold text-brand-black">{jobTitle}</div>
+        <div className="text-xs text-brand-mid mt-0.5">{customerDisplay}</div>
       </div>
 
       {/* Info rows */}
-      <div className="border-b border-[#F3F4F6]">
-        <div className="flex justify-between items-center px-4 py-2.5 border-b border-[#F9FAFB]">
-          <span className="text-[13px] text-[#9CA3AF]">Date &amp; time</span>
-          <span className="text-[13px] font-medium text-[#111827] text-right">
+      <div className="border-b border-brand-borderLight">
+        <div className="flex justify-between items-center px-4 py-2.5 border-b border-brand-surface">
+          <span className="text-xs text-brand-muted">Date &amp; time</span>
+          <span className="text-xs font-medium text-brand-black text-right">
             {formatDateTime(scheduledStart, scheduledEnd)}
           </span>
         </div>
-        <div className="flex justify-between items-center px-4 py-2.5 border-b border-[#F9FAFB]">
-          <span className="text-[13px] text-[#9CA3AF]">Payment</span>
-          <span className="text-[13px] font-medium text-[#111827] text-right">{termsLabel}</span>
+        <div className="flex justify-between items-center px-4 py-2.5 border-b border-brand-surface">
+          <span className="text-xs text-brand-muted">Payment</span>
+          <span className="text-xs font-medium text-brand-black text-right">{termsLabel}</span>
         </div>
         <div className="flex justify-between items-center px-4 py-2.5">
-          <span className="text-[13px] text-[#9CA3AF]">Valid until</span>
-          <span className="text-[13px] font-medium text-[#111827] text-right">{validUntil()}</span>
+          <span className="text-xs text-brand-muted">Valid until</span>
+          <span className="text-xs font-medium text-brand-black text-right">{validUntil()}</span>
         </div>
       </div>
 
@@ -111,31 +111,31 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
         {lineItems.map((item, idx) => (
           <div
             key={item.id}
-            className={`flex justify-between py-1.5 text-[13px] text-[#374151] ${
-              idx < lineItems.length - 1 ? 'border-b border-[#F9FAFB]' : ''
+            className={`flex justify-between py-1.5 text-xs text-brand-dark ${
+              idx < lineItems.length - 1 ? 'border-b border-brand-surface' : ''
             }`}
           >
             <span>{item.description}</span>
-            <span className="font-medium text-[#111827]">£{item.amount.toFixed(2)}</span>
+            <span className="font-medium text-brand-black">£{item.amount.toFixed(2)}</span>
           </div>
         ))}
       </div>
 
       {/* Notes */}
       {notes && (
-        <div className="px-4 py-2.5 border-t border-[#F9FAFB]">
-          <p className="text-[12px] text-[#6B7280] leading-relaxed whitespace-pre-line">{notes}</p>
+        <div className="px-4 py-2.5 border-t border-brand-surface">
+          <p className="text-xxs text-brand-mid leading-relaxed whitespace-pre-line">{notes}</p>
         </div>
       )}
 
       {/* Total row */}
-      <div className="flex justify-between items-center px-4 py-3 border-t-[1.5px] border-[#111827] mt-0">
-        <span className="text-[16px] font-bold text-[#111827]">Total</span>
-        <span className="text-[20px] font-extrabold text-[#111827]">£{total.toFixed(2)}</span>
+      <div className="flex justify-between items-center px-4 py-3 border-t-[1.5px] border-brand-black mt-0">
+        <span className="text-base font-bold text-brand-black">Total</span>
+        <span className="text-title font-extrabold text-brand-black">£{total.toFixed(2)}</span>
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-[#F3F4F6] text-[12px] text-[#9CA3AF] leading-relaxed">
+      <div className="px-4 py-3 border-t border-brand-borderLight text-xxs text-brand-muted leading-relaxed">
         {businessName}
       </div>
     </div>

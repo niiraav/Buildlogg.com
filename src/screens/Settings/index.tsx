@@ -45,6 +45,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
+  const [tradeOtherMode, setTradeOtherMode] = useState(false);
+  const [tradeOtherInput, setTradeOtherInput] = useState('');
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [nudgeDismissed] = useState(false);
 
@@ -103,20 +105,20 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-[100svh] bg-[#F9FAFB]">
+      <div className="flex flex-col min-h-[100svh] bg-brand-surface">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-[14px] text-[#9CA3AF]">Loading…</div>
+          <div className="text-sm text-brand-muted">Loading…</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-[100svh] bg-[#F9FAFB]">
+    <div className="flex flex-col min-h-[100svh] bg-brand-surface">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 bg-white border-b border-[#F3F4F6] flex-shrink-0">
+      <div className="px-4 pt-4 pb-3 bg-white border-b border-brand-borderLight flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h1 className="text-[26px] font-extrabold text-[#111827]">Settings</h1>
+          <h1 className="text-xl font-extrabold text-brand-black">Settings</h1>
           <SyncIndicator />
         </div>
       </div>
@@ -125,20 +127,20 @@ export default function Settings() {
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 min-h-0">
         {/* Nudge banner */}
         {showNudge && (
-          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[10px] p-3 mb-4 flex items-start gap-2.5">
-            <AlertTriangle size={16} className="text-[#DC2626] flex-shrink-0 mt-0.5" />
-            <div className="text-[13px] text-[#374151] leading-relaxed">
-              <strong className="text-[#DC2626]">Add your business name</strong> — it appears on every quote you send. Tap Business name below to add it.
+          <div className="bg-status-redBg border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2.5">
+            <AlertTriangle size={16} className="text-status-red flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-brand-dark leading-relaxed">
+              <strong className="text-status-red">Add your business name</strong> — it appears on every quote you send. Tap Business name below to add it.
             </div>
           </div>
         )}
 
         {/* Business profile */}
         <div className="mb-6">
-          <div className="text-[10px] font-bold uppercase tracking-[0.7px] text-[#9CA3AF] mb-2 px-0.5">
+          <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
             Business profile
           </div>
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div className="px-4">
               <InlineEditRow
                 label="Your name"
@@ -150,16 +152,16 @@ export default function Settings() {
                 placeholder="Your name"
               />
             </div>
-            <div className={`px-4 ${businessNameEmpty ? 'bg-[#FFF5F5]' : ''}`}>
+            <div className={`px-4 ${businessNameEmpty ? 'bg-red-50' : ''}`}>
               <div
-                className={`min-h-[52px] flex items-center justify-between border-b border-[#F3F4F6] ${
-                  businessNameEmpty ? 'border-[#FECACA]' : ''
+                className={`min-h-13 flex items-center justify-between border-b border-brand-borderLight ${
+                  businessNameEmpty ? 'border-red-200' : ''
                 }`}
                 onClick={() => {
                   if (editingField !== 'business_name') setEditingField('business_name');
                 }}
               >
-                <span className={`text-sm font-medium ${businessNameEmpty ? 'text-[#DC2626]' : 'text-[#374151]'}`}>
+                <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-red' : 'text-brand-dark'}`}>
                   Business name
                 </span>
                 <div className="flex items-center gap-2">
@@ -170,7 +172,7 @@ export default function Settings() {
                         type="text"
                         defaultValue={businessName}
                         placeholder="Enter business name"
-                        className="text-base text-[#111827] text-right min-w-[120px] bg-transparent border-none outline-none p-0"
+                        className="text-base text-brand-black text-right min-w-[120px] bg-transparent border-none outline-none p-0"
                         onBlur={(e) => {
                           saveField('business_name', e.target.value);
                           setEditingField(null);
@@ -184,17 +186,17 @@ export default function Settings() {
                       />
                       <button
                         onClick={() => setEditingField(null)}
-                        className="text-[13px] font-semibold text-[#111827] underline underline-offset-2"
+                        className="text-xs font-semibold text-brand-black underline underline-offset-2"
                       >
                         Done
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className={`text-sm font-medium ${businessNameEmpty ? 'text-[#EF4444] italic' : 'text-[#111827]'}`}>
+                      <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-error italic' : 'text-brand-black'}`}>
                         {businessNameEmpty ? 'Tap to add ›' : businessName}
                       </span>
-                      <ChevronRight size={14} className="text-[#D1D5DB]" />
+                      <ChevronRight size={14} className="text-gray-300" />
                     </>
                   )}
                 </div>
@@ -215,19 +217,19 @@ export default function Settings() {
               />
             </div>
             <div
-              className="px-4 min-h-[52px] flex items-center justify-between cursor-pointer"
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer"
               onClick={() => setTradeSheetOpen(true)}
             >
-              <span className="text-sm font-medium text-[#374151]">Trade</span>
+              <span className="text-sm font-medium text-brand-dark">Trade</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[#111827]">
+                <span className="text-sm font-medium text-brand-black">
                   {trade
                     ? trade === 'other' && profile?.trade_other
                       ? profile.trade_other
                       : TRADE_OPTIONS.find((t) => t.value === trade)?.label || trade
                     : '—'}
                 </span>
-                <ChevronRight size={14} className="text-[#D1D5DB]" />
+                <ChevronRight size={14} className="text-gray-300" />
               </div>
             </div>
           </div>
@@ -235,20 +237,20 @@ export default function Settings() {
 
         {/* Quote defaults */}
         <div className="mb-6">
-          <div className="text-[10px] font-bold uppercase tracking-[0.7px] text-[#9CA3AF] mb-2 px-0.5">
+          <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
             Quote defaults
           </div>
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
-              className="px-4 min-h-[52px] flex items-center justify-between border-b border-[#F3F4F6] cursor-pointer"
+              className="px-4 min-h-13 flex items-center justify-between border-b border-brand-borderLight cursor-pointer"
               onClick={() => setPaymentSheetOpen(true)}
             >
-              <span className="text-sm font-medium text-[#374151]">Payment terms</span>
+              <span className="text-sm font-medium text-brand-dark">Payment terms</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[#111827]">
+                <span className="text-sm font-medium text-brand-black">
                   {PAYMENT_OPTIONS.find((p) => p.value === paymentTerms)?.label || paymentTerms}
                 </span>
-                <ChevronRight size={14} className="text-[#D1D5DB]" />
+                <ChevronRight size={14} className="text-gray-300" />
               </div>
             </div>
             <div className="px-4">
@@ -256,7 +258,8 @@ export default function Settings() {
                 label="Valid for"
                 value={String(quoteValidDays)}
                 onSave={(v) => {
-                  const num = parseInt(v, 10);
+                  const cleaned = v.replace(/days?/i, '').trim();
+                  const num = parseInt(cleaned, 10);
                   if (!isNaN(num) && num > 0) saveField('quote_valid_days', num);
                 }}
                 isEditing={editingField === 'quote_valid_days'}
@@ -265,6 +268,7 @@ export default function Settings() {
                 inputType="number"
                 inputMode="numeric"
                 placeholder="30"
+                suffix="days"
               />
             </div>
           </div>
@@ -272,16 +276,16 @@ export default function Settings() {
 
         {/* Job defaults */}
         <div className="mb-6">
-          <div className="text-[10px] font-bold uppercase tracking-[0.7px] text-[#9CA3AF] mb-2 px-0.5">
+          <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
             Job defaults
           </div>
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div className="px-4">
               <InlineEditRow
                 label="Callout charge"
                 value={String(calloutCharge)}
                 onSave={(v) => {
-                  const num = parseFloat(v);
+                  const num = parseFloat(v.trim());
                   if (!isNaN(num) && num >= 0) saveField('callout_charge', num);
                 }}
                 isEditing={editingField === 'callout_charge'}
@@ -290,6 +294,7 @@ export default function Settings() {
                 inputType="number"
                 inputMode="decimal"
                 placeholder="75"
+                prefix="£"
               />
             </div>
           </div>
@@ -297,56 +302,90 @@ export default function Settings() {
 
         {/* About */}
         <div className="mb-6">
-          <div className="text-[10px] font-bold uppercase tracking-[0.7px] text-[#9CA3AF] mb-2 px-0.5">
+          <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
             About
           </div>
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-            <div className="min-h-[52px] flex items-center justify-between px-4 border-b border-[#F9FAFB]">
-              <span className="text-sm text-[#374151]">Version</span>
-              <span className="text-sm text-[#9CA3AF]">1.0.0</span>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface">
+              <span className="text-sm text-brand-dark">Version</span>
+              <span className="text-sm text-brand-muted">1.0.0</span>
             </div>
             <div
-              className="min-h-[52px] flex items-center justify-between px-4 border-b border-[#F9FAFB] cursor-pointer"
+              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
               onClick={() => window.open('https://tradepad.app/privacy', '_blank')}
             >
-              <span className="text-sm text-[#374151]">Privacy policy</span>
+              <span className="text-sm text-brand-dark">Privacy policy</span>
               <div className="flex items-center gap-2">
-                <ExternalLink size={14} className="text-[#D1D5DB]" />
+                <ExternalLink size={14} className="text-gray-300" />
               </div>
             </div>
             <div
-              className="min-h-[52px] flex items-center justify-between px-4 border-b border-[#F9FAFB] cursor-pointer"
+              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
               onClick={() => window.open('https://tradepad.app/terms', '_blank')}
             >
-              <span className="text-sm text-[#374151]">Terms of service</span>
+              <span className="text-sm text-brand-dark">Terms of service</span>
               <div className="flex items-center gap-2">
-                <ExternalLink size={14} className="text-[#D1D5DB]" />
+                <ExternalLink size={14} className="text-gray-300" />
               </div>
             </div>
             <div
-              className="min-h-[52px] flex items-center justify-between px-4 cursor-pointer"
+              className="min-h-13 flex items-center justify-between px-4 cursor-pointer"
               onClick={handleLogout}
             >
-              <span className="text-sm text-[#EF4444]">Log out</span>
+              <span className="text-sm text-status-error">Log out</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Trade BottomSheet */}
-      <BottomSheet isOpen={tradeSheetOpen} onClose={() => setTradeSheetOpen(false)} title="Select trade">
+      <BottomSheet isOpen={tradeSheetOpen} onClose={() => { setTradeSheetOpen(false); setTradeOtherMode(false); setTradeOtherInput(''); }} title="Select trade">
         <div className="flex flex-col">
           {TRADE_OPTIONS.map((opt, idx) => (
             <SheetRow
               key={opt.value}
               label={opt.label}
               onTap={() => {
-                saveField('trade', opt.value!);
-                setTradeSheetOpen(false);
+                if (opt.value === 'other') {
+                  setTradeOtherMode(true);
+                  setTradeOtherInput(profile?.trade_other || '');
+                } else {
+                  saveField('trade', opt.value!);
+                  setTradeSheetOpen(false);
+                }
               }}
               isLast={idx === TRADE_OPTIONS.length - 1}
             />
           ))}
+          {tradeOtherMode && (
+            <div className="mt-4 pt-4 border-t border-brand-borderLight">
+              <label className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 block">
+                Your trade
+              </label>
+              <input
+                type="text"
+                value={tradeOtherInput}
+                onChange={(e) => setTradeOtherInput(e.target.value)}
+                placeholder="e.g. Roofer, Tiler, Glazier"
+                className="w-full h-12 px-4 text-base font-medium text-brand-black border border-brand-border rounded-xl outline-none focus:border-brand-black bg-white"
+                autoFocus
+              />
+              <button
+                onClick={() => {
+                  if (tradeOtherInput.trim()) {
+                    saveField('trade', 'other');
+                    saveField('trade_other', tradeOtherInput.trim());
+                  }
+                  setTradeSheetOpen(false);
+                  setTradeOtherMode(false);
+                  setTradeOtherInput('');
+                }}
+                className="mt-3 w-full h-13 bg-brand-black text-white rounded-xl text-base font-semibold cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          )}
         </div>
       </BottomSheet>
 
@@ -368,6 +407,11 @@ export default function Settings() {
           />
         </div>
       </BottomSheet>
+
+      {/* Footer spacer — matches Jobs/Home so content clears the TabBar */}
+      <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+        <div className="h-3" />
+      </div>
 
       {/* Tab bar */}
       <TabBar activeTab="settings" onNavigate={handleNavigate} />

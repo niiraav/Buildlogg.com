@@ -22,6 +22,14 @@ function formatTimeForInput(iso?: string): string {
   return d.toTimeString().slice(0, 5);
 }
 
+function addTwoHours(timeStr: string): string {
+  if (!timeStr) return '10:00';
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h + 2, m, 0, 0);
+  return d.toTimeString().slice(0, 5);
+}
+
 function combineDateTime(dateStr: string, timeStr: string): string | undefined {
   if (!dateStr) return undefined;
   const time = timeStr || '00:00';
@@ -324,8 +332,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           description: i.description.trim(),
           amount: i.amountNum,
           sort_order: idx,
-          added_on_site: false,
-          created_at: n,
+          added_on_site: false, created_at: n,
         },
         created_at: n,
         retry_count: 0,
@@ -485,7 +492,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     return (
       <div className="flex flex-col min-h-[100svh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#111827] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -494,30 +501,30 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   return (
     <div className="flex flex-col min-h-[100svh]">
       {/* Header */}
-      <div className="px-4 pt-2 pb-3 border-b border-[#F3F4F6] shrink-0 flex items-center justify-between">
+      <div className="px-4 pt-2 pb-3 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1 min-h-[44px] pr-4 text-[14px] font-medium text-[#6B7280] cursor-pointer"
+          className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
           Back
         </button>
-        <span className="text-[16px] font-bold text-[#111827]">Quote details</span>
-        <div className="min-h-[44px] w-[44px]" aria-hidden="true" />
+        <span className="text-base font-bold text-brand-black text-center">Quote details</span>
+        <div className="min-h-11 w-11" aria-hidden="true" />
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
         {/* Customer strip */}
         {customer && (
-          <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">
+          <div className="bg-brand-surface border border-brand-border rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold text-[#111827] truncate">{customer.name || 'Unknown'}</div>
-              <div className="text-[12px] text-[#9CA3AF] mt-px">{customer.phone}</div>
+              <div className="text-sm font-semibold text-brand-black truncate">{customer.name || 'Unknown'}</div>
+              <div className="text-xxs text-brand-muted mt-px">{customer.phone}</div>
             </div>
             <button
               onClick={onBack}
-              className="text-[12px] text-[#6B7280] underline underline-offset-2 cursor-pointer shrink-0"
+              className="text-xxs text-brand-mid underline underline-offset-2 cursor-pointer shrink-0"
             >
               Edit
             </button>
@@ -526,12 +533,12 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
         {/* Job details */}
         <div className="mb-5">
-          <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px] mb-2.5">
+          <div className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px] mb-2.5">
             Job
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
               Job title
             </label>
             <input
@@ -541,14 +548,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               onFocus={() => setTitleFocused(true)}
               onBlur={handleTitleBlur}
               placeholder="e.g. New boiler installation"
-              className={`w-full min-h-[48px] px-3.5 border-[1.5px] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none ${
-                titleFocused ? 'border-[#111827]' : 'border-[#E5E7EB]'
+              className={`w-full min-h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none ${
+                titleFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
               Date <span className="normal-case font-normal tracking-0">(optional)</span>
             </label>
             <div className="relative">
@@ -557,7 +564,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 onBlur={handleDateBlur}
-                className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
+                className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
               />
               <Calendar size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -565,7 +572,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
           <div className="flex gap-2.5">
             <div className="flex-1">
-              <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+              <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
                 Start <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
               <div className="relative">
@@ -574,40 +581,61 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   onBlur={handleStartTimeBlur}
-                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
+                  className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
                 />
                 <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
             <div className="flex-1">
-              <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+              <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
                 End <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
-              <div className="relative">
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  onBlur={handleEndTimeBlur}
-                  className="w-full min-h-[48px] px-3.5 pr-10 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] outline-none focus:border-[#111827] bg-white appearance-none"
-                />
-                <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              {/* End time: show "Add end time" button when empty, time input when set */}
+              {!endTime ? (
+                <button
+                  onClick={() => {
+                    const defaultEnd = addTwoHours(startTime);
+                    setEndTime(defaultEnd);
+                    saveJob();
+                  }}
+                  className="w-full h-12 px-3.5 border-2 border-brand-border border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
+                >
+                  <Plus size={14} color="#9CA3AF" />
+                  Add end time
+                </button>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    onBlur={handleEndTimeBlur}
+                    className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+                  />
+                  <button
+                    onClick={() => { setEndTime(''); saveJob(); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
+                    aria-label="Clear end time"
+                  >
+                    <X size={12} color="#9CA3AF" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Line items */}
         <div className="mb-5">
-          <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px] mb-2.5">
+          <div className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px] mb-2.5">
             Items
           </div>
 
-          <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-2">
+          <div className="border border-brand-border rounded-lg overflow-hidden mb-2">
             {items.map((item, idx) => (
               <div
                 key={item.id}
-                className={`flex items-center gap-2 px-3.5 py-2.5 ${idx < items.length - 1 ? 'border-b border-[#F3F4F6]' : ''}`}
+                className={`flex items-center gap-2 px-3.5 py-2.5 ${idx < items.length - 1 ? 'border-b border-brand-borderLight' : ''}`}
               >
                 <input
                   type="text"
@@ -615,10 +643,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   onChange={(e) => updateItemDesc(item.id, e.target.value)}
                   onBlur={saveItemBlur}
                   placeholder="Item description"
-                  className="flex-1 min-h-[48px] px-2 border-[1.5px] border-[#E5E7EB] rounded-lg text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none focus:border-[#111827]"
+                  className="flex-1 min-h-12 px-2 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none focus:border-brand-black"
                 />
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[14px] text-[#6B7280]">£</span>
+                  <span className="text-sm text-brand-mid">£</span>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -626,14 +654,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                     onChange={(e) => updateItemAmount(item.id, e.target.value)}
                     onBlur={saveItemBlur}
                     placeholder="0.00"
-                    className={`w-[80px] min-h-[48px] px-2 border-[1.5px] rounded-lg text-[16px] font-medium text-[#111827] text-right outline-none focus:border-[#111827] placeholder:text-[#D1D5DB] ${
-                      (item.amount === '' || item.amountNum === 0) ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
+                    className={`w-20 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black text-right outline-none focus:border-brand-black placeholder:text-gray-300 ${
+                      (item.amount === '' || item.amountNum === 0) ? 'border-status-error' : 'border-brand-border'
                     }`}
                   />
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="w-7 h-7 rounded-full border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center shrink-0 cursor-pointer"
+                  className="w-7 h-7 rounded-full border border-brand-border bg-brand-surface flex items-center justify-center shrink-0 cursor-pointer"
                   aria-label="Remove item"
                 >
                   <X size={14} color="#9CA3AF" />
@@ -644,7 +672,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
           <button
             onClick={addItem}
-            className="inline-flex items-center gap-1 text-[13px] font-medium text-[#6B7280] underline underline-offset-2 cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-mid underline underline-offset-2 cursor-pointer"
           >
             <Plus size={14} />
             Add item
@@ -657,7 +685,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 <button
                   key={desc}
                   onClick={() => addQuickItem(desc)}
-                  className="inline-flex items-center gap-1 h-[32px] px-3 rounded-full bg-[#F3F4F6] text-[12px] font-medium text-[#374151] cursor-pointer border border-[#E5E7EB] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors"
+                  className="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-brand-borderLight text-xxs font-medium text-brand-dark cursor-pointer border border-brand-border hover:bg-brand-border active:bg-gray-300 transition-colors"
                 >
                   <Plus size={12} color="#9CA3AF" />
                   {desc}
@@ -668,9 +696,9 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
           {/* Total bar */}
           {items.length > 0 && (
-            <div className="flex justify-between items-center mt-3 py-3 px-3.5 border-t-[1.5px] border-[#111827]">
-              <span className="text-[15px] font-bold text-[#111827]">Total</span>
-              <span className="text-[24px] font-extrabold text-[#111827] tracking-tight">
+            <div className="flex justify-between items-center mt-3 py-3 px-3.5 border-t-[1.5px] border-brand-black">
+              <span className="text-md font-bold text-brand-black">Total</span>
+              <span className="text-[24px] font-extrabold text-brand-black tracking-tight">
                 £{formatAmountDisplay(total)}
               </span>
             </div>
@@ -679,7 +707,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
         {/* Notes / What's included */}
         <div className="mb-5">
-          <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+          <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
             Notes <span className="normal-case font-normal tracking-0">(optional)</span>
           </label>
           <textarea
@@ -688,13 +716,13 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             onBlur={handleNotesBlur}
             placeholder="e.g. Includes all parts, labour, and disposal of old unit"
             rows={3}
-            className="w-full min-h-[80px] px-3.5 py-2.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none focus:border-[#111827] resize-none leading-relaxed"
+            className="w-full min-h-20 px-3.5 py-2.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none focus:border-brand-black resize-none leading-relaxed"
           />
         </div>
 
         {/* Payment terms */}
         <div className="mb-5">
-          <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px] mb-2.5">
+          <div className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px] mb-2.5">
             Payment
           </div>
           <SegmentedControl
@@ -702,13 +730,32 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             value={paymentTerms}
             onChange={handlePaymentTermsChange}
           />
+          <div className="mt-2.5 bg-brand-surface border border-brand-border rounded-lg p-3">
+            <p className="text-xxs text-brand-dark leading-relaxed">
+              {paymentTerms === 'on_completion' && (
+                <>
+                  <span className="font-semibold text-brand-black">What happens at the end:</span> Customer pays the full amount in cash, by card, or bank transfer once the job is complete. You mark it as paid and they get a receipt.
+                </>
+              )}
+              {paymentTerms === 'deposit' && (
+                <>
+                  <span className="font-semibold text-brand-black">What happens at the end:</span> Customer pays a deposit now (e.g. 20%). The balance is collected on completion. You can send a reminder if it is overdue.
+                </>
+              )}
+              {paymentTerms === 'invoice' && (
+                <>
+                  <span className="font-semibold text-brand-black">What happens at the end:</span> You send an invoice after the job. Customer pays within the agreed terms (usually 7–14 days). The app tracks who has paid and who needs chasing.
+                </>
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Deposit section */}
         {paymentTerms === 'deposit' && (
           <div ref={depositSectionRef} className="mb-5">
-            <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] p-3.5">
-              <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px] mb-2.5">
+            <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
+              <div className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px] mb-2.5">
                 Deposit amount
               </div>
               <div className="flex gap-2 mb-3">
@@ -716,10 +763,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 <button
                   key={pct}
                   onClick={() => handleDepositPctChange(pct)}
-                  className={`flex-1 h-[44px] rounded-lg text-[13px] font-semibold cursor-pointer border-[1.5px] ${
+                  className={`flex-1 h-11 rounded-lg text-xs font-semibold cursor-pointer border-2 ${
                     depositPct === pct && depositCustom === null
-                      ? 'bg-white text-[#111827] border-[#111827]'
-                      : 'bg-white text-[#6B7280] border-[#E5E7EB]'
+                      ? 'bg-white text-brand-black border-brand-black'
+                      : 'bg-white text-brand-mid border-brand-border'
                   }`}
                 >
                   {pct}%
@@ -727,10 +774,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               ))}
               <button
                 onClick={() => setDepositCustom('')}
-                className={`flex-1 h-[44px] rounded-lg text-[13px] font-semibold cursor-pointer border-[1.5px] ${
+                className={`flex-1 h-11 rounded-lg text-xs font-semibold cursor-pointer border-2 ${
                   depositCustom !== null
-                    ? 'bg-white text-[#111827] border-[#111827]'
-                    : 'bg-white text-[#6B7280] border-[#E5E7EB]'
+                    ? 'bg-white text-brand-black border-brand-black'
+                    : 'bg-white text-brand-mid border-brand-border'
                 }`}
               >
                 Custom
@@ -746,15 +793,15 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   onChange={(e) => setDepositCustom(e.target.value)}
                   onBlur={handleDepositCustomBlur}
                   placeholder="e.g. 15"
-                  className="w-full min-h-[48px] px-3.5 border-[1.5px] border-[#E5E7EB] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none focus:border-[#111827]"
+                  className="w-full min-h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none focus:border-brand-black"
                 />
               </div>
             )}
 
-              <div className="text-[13px] text-[#6B7280] text-center leading-relaxed">
-                Deposit: <span className="font-bold text-[#111827]">£{formatAmountDisplay(depositAmount)}</span>
+              <div className="text-xs text-brand-mid text-center leading-relaxed">
+                Deposit: <span className="font-bold text-brand-black">£{formatAmountDisplay(depositAmount)}</span>
                 <br />
-                Balance on completion: <span className="font-bold text-[#111827]">£{formatAmountDisplay(balance)}</span>
+                Balance on completion: <span className="font-bold text-brand-black">£{formatAmountDisplay(balance)}</span>
               </div>
             </div>
           </div>
@@ -768,7 +815,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         </Button>
         <button
           onClick={onSaveDraft}
-          className="w-full h-[46px] flex items-center justify-center text-[14px] font-medium text-[#9CA3AF] cursor-pointer underline underline-offset-2"
+          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer underline underline-offset-2"
         >
           Save draft
         </button>

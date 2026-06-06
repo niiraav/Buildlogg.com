@@ -99,7 +99,6 @@ export default function Home() {
   /* tabs — read initialTab from route state */
   const routeState = (location.state as { initialTab?: Tab } | null) || {};
   const [activeTab, setActiveTab] = useState<Tab>(routeState.initialTab || 'today');
-  const [tick, setTick] = useState(0); // forces recompute of timeAgo strings
 
   /* data */
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -116,6 +115,7 @@ export default function Home() {
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [tick, setTick] = useState(0);
 
   /* --- fetch data --- */
   const refresh = useCallback(async () => {
@@ -561,8 +561,8 @@ export default function Home() {
         />
         {showNotify && (
           <div className="mt-2 flex items-center gap-1.5">
-            <Check size={12} strokeWidth={2.5} className="text-status-green" />
-            <span className="text-xs text-status-green">
+            <Check size={12} strokeWidth={2.5} className="text-[#15803D]" />
+            <span className="text-xs text-[#15803D]">
               Customer notified · {lastNotify?.description.split(' · ')[1] || 'just now'}
             </span>
           </div>
@@ -630,21 +630,21 @@ export default function Home() {
 
   const renderNoJobsToday = () => (
     <div className="px-4 mt-6">
-      <div className="bg-brand-surface border border-brand-border rounded-lg p-9 text-center">
-        <p className="text-title font-bold text-brand-black">No jobs today</p>
-        <p className="text-xs text-brand-muted mt-1.5">
+      <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] p-9 text-center">
+        <p className="text-[20px] font-bold text-[#111827]">No jobs today</p>
+        <p className="text-[13px] text-[#9CA3AF] mt-1.5">
           {formatShortDate(today)} · Free day
         </p>
         <div className="flex gap-2 mt-5">
           <button
             onClick={() => navigate('/quote')}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
           >
             + New Quote
           </button>
           <button
             onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
           >
             Log Missed Call
           </button>
@@ -655,21 +655,21 @@ export default function Home() {
 
   const renderAllClear = () => (
     <div className="px-4 mt-6">
-      <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
-        <p className="text-base font-semibold text-brand-black">All clear</p>
-        <p className="text-xs text-brand-muted mt-1.5">
+      <div className="border border-dashed border-[#D1D5DB] rounded-[10px] p-8 text-center">
+        <p className="text-[16px] font-semibold text-[#111827]">All clear</p>
+        <p className="text-[13px] text-[#9CA3AF] mt-1.5">
           Nothing needs your attention today
         </p>
         <div className="flex gap-2 mt-5">
           <button
             onClick={() => navigate('/quote')}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
           >
             + New Quote
           </button>
           <button
             onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+            className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
           >
             Log Missed Call
           </button>
@@ -685,37 +685,37 @@ export default function Home() {
         {l2Tasks.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">
                 Can't ignore
               </span>
             </div>
-            <div className="border border-gray-300 rounded-lg overflow-hidden mb-5">
+            <div className="border border-[#D1D5DB] rounded-[10px] overflow-hidden mb-5">
               {l2Tasks.map((task) => (
                 <div
                   key={task.id}
                   onClick={() => navigate(`/jobs/${task.jobId}`)}
-                  className="flex items-center px-4 py-3 gap-2.5 border-b border-brand-borderLight cursor-pointer min-h-14 last:border-b-0"
+                  className="flex items-center px-4 py-3 gap-2.5 border-b border-[#F3F4F6] cursor-pointer min-h-[56px] last:border-b-0"
                 >
                   <span className={`
-                    text-micro font-bold uppercase tracking-wide whitespace-nowrap shrink-0
-                    inline-flex items-center gap-1.5 px-2 py-1 rounded-full
-                    ${task.type === 'no_show' ? 'bg-status-amberMid text-status-amberDark' :
-                      task.type === 'overdue' ? 'bg-status-amberBg text-status-amber' :
-                      task.type === 'urgent_new' ? 'bg-status-blueBg text-status-blue' :
-                      'bg-brand-borderLight text-brand-black'}
+                    text-[10px] font-bold uppercase tracking-wide whitespace-nowrap shrink-0
+                    inline-flex items-center gap-1.5 px-2 py-1 rounded-md
+                    ${task.type === 'no_show' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                      task.type === 'overdue' ? 'bg-[#FFFBEB] text-[#B45309]' :
+                      task.type === 'urgent_new' ? 'bg-[#EFF6FF] text-[#1D4ED8]' :
+                      'bg-[#F3F4F6] text-[#111827]'}
                   `}>
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      task.type === 'no_show' ? 'bg-orange-500' :
-                      task.type === 'overdue' ? 'bg-status-warning' :
-                      task.type === 'urgent_new' ? 'bg-blue-500' :
-                      'bg-brand-muted'
+                      task.type === 'no_show' ? 'bg-[#F97316]' :
+                      task.type === 'overdue' ? 'bg-[#F59E0B]' :
+                      task.type === 'urgent_new' ? 'bg-[#3B82F6]' :
+                      'bg-[#9CA3AF]'
                     }`} />
                     {task.tag}
                   </span>
-                  <span className="text-sm font-semibold text-brand-black flex-1 min-w-0 truncate">
+                  <span className="text-[14px] font-semibold text-[#111827] flex-1 min-w-0 truncate">
                     {task.customerName} · {task.jobTitle}
                   </span>
-                  <span className="text-xs text-brand-mid whitespace-nowrap shrink-0">
+                  <span className="text-[13px] text-[#6B7280] whitespace-nowrap shrink-0">
                     {task.amount}
                   </span>
                   <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
@@ -729,7 +729,7 @@ export default function Home() {
         {missedCallTasks.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">
                 When you get a minute
               </span>
             </div>
@@ -775,32 +775,32 @@ export default function Home() {
         {l3ListTasks.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">
                 When you get a minute
               </span>
               {missedCallTasks.length === 0 && (
                 <button
                   onClick={() => navigate('/jobs')}
-                  className="text-xxs text-brand-mid cursor-pointer"
+                  className="text-[12px] text-[#6B7280] cursor-pointer"
                 >
                   See all
                 </button>
               )}
             </div>
-            <div className="border border-brand-border rounded-lg overflow-hidden mb-5">
+            <div className="border border-[#E5E7EB] rounded-[10px] overflow-hidden mb-5">
               {l3ListTasks.map((task) => (
                 <div
                   key={task.id}
                   onClick={() => navigate(`/jobs/${task.jobId}`)}
-                  className="flex items-center px-4 py-2.5 gap-2.5 border-b border-brand-borderLight cursor-pointer min-h-14 last:border-b-0"
+                  className="flex items-center px-4 py-2.5 gap-2.5 border-b border-[#F3F4F6] cursor-pointer min-h-[56px] last:border-b-0"
                 >
-                  <span className="text-micro font-semibold text-brand-muted bg-brand-surface border border-brand-border px-[7px] py-0.5 rounded-xs uppercase whitespace-nowrap shrink-0">
+                  <span className="text-[10px] font-semibold text-[#9CA3AF] bg-[#F9FAFB] border border-[#E5E7EB] px-[7px] py-[2px] rounded-[4px] uppercase whitespace-nowrap shrink-0">
                     {task.tag}
                   </span>
-                  <span className="text-xs font-medium text-brand-dark flex-1 min-w-0 truncate">
+                  <span className="text-[13px] font-medium text-[#374151] flex-1 min-w-0 truncate">
                     {task.customerName} · {task.jobTitle}
                   </span>
-                  <span className="text-xxs text-brand-muted whitespace-nowrap shrink-0">
+                  <span className="text-[12px] text-[#9CA3AF] whitespace-nowrap shrink-0">
                     {task.amount}
                   </span>
                   <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
@@ -811,19 +811,8 @@ export default function Home() {
         )}
 
         {tasks.length === 0 && (
-          <div className="px-4 mt-6">
-            <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <p className="text-base font-semibold text-brand-black">All clear</p>
-              <p className="text-xs text-brand-muted mt-1.5">Nothing needs your attention</p>
-              <div className="flex gap-2 mt-5">
-                <button onClick={() => navigate('/quote')} className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer">
-                  + New Quote
-                </button>
-                <button onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer">
-                  Log Missed Call
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center justify-center h-40">
+            <p className="text-[15px] text-[#9CA3AF]">Nothing needs your attention</p>
           </div>
         )}
       </div>
@@ -839,7 +828,7 @@ export default function Home() {
     return (
       <div className="flex flex-col min-h-[100svh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#111827] rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -848,21 +837,21 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-[100svh] relative">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 flex items-start justify-between border-b border-brand-borderLight">
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between border-b border-[#F3F4F6]">
         <div>
-          <span className="text-lg font-bold text-brand-black block">
+          <span className="text-[18px] font-bold text-[#111827] block">
             {getGreeting()}, {firstName}
           </span>
-          <span className="text-xxs text-brand-muted block mt-0.5">
+          <span className="text-[12px] text-[#9CA3AF] block mt-0.5">
             {todayLabel} · {subLabel}
           </span>
         </div>
         {totalOwed > 0 && (
           <div className="text-right">
-            <span className="text-xl font-extrabold text-brand-black block">
+            <span className="text-[22px] font-extrabold text-[#111827] block">
               £{Number(totalOwed).toFixed(2)}
             </span>
-            <span className="text-label text-brand-muted block mt-0.5">
+            <span className="text-[11px] text-[#9CA3AF] block mt-0.5">
               owed to you
             </span>
           </div>
@@ -903,19 +892,19 @@ export default function Home() {
       {/* Tasks tab content */}
       {activeTab === 'tasks' && renderTasks()}
 
-      {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
-      {((activeTab === 'today' && todayState !== 'all_clear') || (activeTab === 'tasks' && tasks.length > 0)) && (
-        <div className="sticky bottom-0 z-30 bg-white border-t border-brand-borderLight shadow-sheet">
+      {/* Footer — only show when jobs exist; otherwise buttons are in empty state cards */}
+      {jobs.length > 0 && (
+        <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
           <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
             <button
               onClick={() => navigate('/quote')}
-              className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+              className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
             >
               + New Quote
             </button>
             <button
               onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-              className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
+              className="flex-1 h-[46px] bg-white border border-[#D1D5DB] rounded-lg text-[13px] font-semibold text-[#111827] cursor-pointer"
             >
               Log Missed Call
             </button>
@@ -932,11 +921,11 @@ export default function Home() {
         onClose={() => setSheet(null)}
         title={`Running late to ${selectedCustomer?.name || 'the customer'}?`}
       >
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-4">
+        <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg p-3 mb-4">
           <textarea
             value={lateMsg}
             onChange={(e) => setLateMsg(e.target.value)}
-            className="w-full text-xs text-brand-dark italic leading-relaxed bg-transparent border-none outline-none resize-none p-0"
+            className="w-full text-[13px] text-[#374151] italic leading-relaxed bg-transparent border-none outline-none resize-none p-0"
             rows={3}
           />
         </div>

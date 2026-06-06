@@ -13,11 +13,11 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   onChange,
   size = 'md',
 }) => {
-  const height = 'min-h-[44px]';
-  const fontSize = size === 'sm' ? 'text-xs' : 'text-[13px]';
+  const height = 'min-h-11';
+  const fontSize = size === 'sm' ? 'text-xs' : 'text-xs';
 
   return (
-    <div className="flex bg-[#F3F4F6] rounded-lg p-[3px]">
+    <div className="flex bg-brand-borderLight rounded-lg p-[3px]">
       {options.map((opt) => {
         const isActive = opt.value === value;
         return (
@@ -26,8 +26,8 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             onClick={() => onChange(opt.value)}
             className={`flex-1 ${height} ${fontSize} flex items-center justify-center rounded-md transition-all font-medium cursor-pointer ${
               isActive
-                ? 'bg-white text-[#111827] font-bold shadow-seg'
-                : 'text-[#6B7280]'
+                ? 'bg-white text-brand-black font-bold shadow-seg'
+                : 'text-brand-mid'
             }`}
           >
             {opt.label}

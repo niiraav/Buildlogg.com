@@ -102,21 +102,21 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     return (
       <div className="flex flex-col min-h-[100svh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#111827] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
       </div>
     );
   }
 
   const customerStrip = customerId && (name || phone) ? (
-    <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">
+    <div className="bg-brand-surface border border-brand-border rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold text-[#111827] truncate">{name || 'Unknown'}</div>
-        <div className="text-[12px] text-[#9CA3AF] mt-px">{phone}</div>
+        <div className="text-sm font-semibold text-brand-black truncate">{name || 'Unknown'}</div>
+        <div className="text-xxs text-brand-muted mt-px">{phone}</div>
       </div>
       <button
         onClick={handleEdit}
-        className="text-[12px] text-[#6B7280] underline underline-offset-2 cursor-pointer shrink-0"
+        className="text-xxs text-brand-mid underline underline-offset-2 cursor-pointer shrink-0"
       >
         Edit
       </button>
@@ -126,18 +126,18 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   return (
     <div className="flex flex-col min-h-[100svh]">
       {/* Header */}
-      <div className="px-4 pt-2 pb-3 border-b border-[#F3F4F6] shrink-0 flex items-center justify-between">
+      <div className="px-4 pt-2 pb-3 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onCancel}
-          className="inline-flex items-center gap-1 min-h-[44px] pr-4 text-[14px] font-medium text-[#6B7280] cursor-pointer"
+          className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
           Back
         </button>
-        <span className="text-[16px] font-bold text-[#111827]">New quote</span>
+        <span className="text-base font-bold text-brand-black text-center">New quote</span>
         <button
           onClick={onCancel}
-          className="min-h-[44px] flex items-center text-[14px] text-[#9CA3AF] cursor-pointer"
+          className="min-h-11 flex items-center text-sm text-brand-muted cursor-pointer justify-self-end"
         >
           <X size={18} />
         </button>
@@ -148,12 +148,12 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
         {customerStrip}
 
         <div className="mb-5">
-          <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px] mb-2.5">
+          <div className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px] mb-2.5">
             Customer
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
               Name
             </label>
             <input
@@ -164,14 +164,14 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               onFocus={() => setNameFocused(true)}
               onBlur={() => setNameFocused(false)}
               placeholder="e.g. Richards"
-              className={`w-full h-[48px] px-3.5 border-[1.5px] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none ${
-                nameFocused ? 'border-[#111827]' : 'border-[#E5E7EB]'
+              className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none ${
+                nameFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
               Phone number
             </label>
             <input
@@ -183,18 +183,18 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               onFocus={() => setPhoneFocused(true)}
               onBlur={() => setPhoneFocused(false)}
               placeholder="e.g. 07700 900123"
-              className={`w-full h-[48px] px-3.5 border-[1.5px] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none ${
-                phoneError ? 'border-[#EF4444]' : phoneFocused ? 'border-[#111827]' : 'border-[#E5E7EB]'
+              className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none ${
+                phoneError ? 'border-status-error' : phoneFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
             {phoneError && (
-              <p className="text-[12px] text-[#EF4444] mt-1">Enter a valid UK mobile number</p>
+              <p className="text-xxs text-status-error mt-1">Enter a valid UK mobile number</p>
             )}
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.3px] mb-1">
-              Address <span className="text-[11px] text-[#9CA3AF] font-normal normal-case tracking-0 ml-1">(optional · used for navigation)</span>
+            <label className="block text-label font-semibold text-brand-muted uppercase tracking-[0.3px] mb-1">
+              Address <span className="text-label text-brand-muted font-normal normal-case tracking-0 ml-1">(optional · used for navigation)</span>
             </label>
             <input
               type="text"
@@ -203,8 +203,8 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               onFocus={() => setAddressFocused(true)}
               onBlur={() => setAddressFocused(false)}
               placeholder="e.g. 14 Birch Lane, Holmfirth"
-              className={`w-full h-[48px] px-3.5 border-[1.5px] rounded-[10px] text-[16px] font-medium text-[#111827] placeholder:text-[#D1D5DB] placeholder:italic outline-none ${
-                addressFocused ? 'border-[#111827]' : 'border-[#E5E7EB]'
+              className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-gray-300 placeholder:italic outline-none ${
+                addressFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
           </div>
@@ -212,7 +212,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       </div>
 
       {/* Footer */}
-      <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
+      <div className="sticky bottom-0 z-30 bg-white border-t border-brand-borderLight shadow-sheet">
         <div className="px-4 py-3 pb-[calc(32px_+_env(safe-area-inset-bottom))]">
           <Button
             variant="primary"

@@ -15,13 +15,13 @@ export const TodayStrip: React.FC<TodayStripProps> = ({ jobs, onTap }) => {
   return (
     <div
       onClick={onTap}
-      className="h-[44px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg flex items-center px-3 cursor-pointer"
+      className="h-11 bg-brand-surface border border-brand-border rounded-lg flex items-center px-3 cursor-pointer"
     >
-      <span className="text-[13px] text-[#374151] truncate flex-1">
+      <span className="text-xs text-brand-dark truncate flex-1">
         {first.time} · {first.customerName} · {first.jobTitle}
       </span>
       {remaining > 0 && (
-        <span className="text-[11px] text-[#9CA3AF] flex items-center gap-0.5 shrink-0 ml-1.5">
+        <span className="text-label text-brand-muted flex items-center gap-0.5 shrink-0 ml-1.5">
           +{remaining} more <ChevronRight size={11} color="#9CA3AF" />
         </span>
       )}

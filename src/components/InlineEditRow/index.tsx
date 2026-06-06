@@ -9,6 +9,8 @@ export interface InlineEditRowProps {
   inputType?: 'text' | 'tel' | 'number';
   inputMode?: 'text' | 'numeric' | 'decimal' | 'tel';
   placeholder?: string;
+  prefix?: string;
+  suffix?: string;
   isEditing?: boolean;
   onEditStart?: () => void;
   onEditEnd?: () => void;
@@ -21,6 +23,8 @@ export const InlineEditRow: React.FC<InlineEditRowProps> = ({
   inputType = 'text',
   inputMode,
   placeholder,
+  prefix,
+  suffix,
   isEditing: controlledIsEditing,
   onEditStart,
   onEditEnd,
@@ -84,34 +88,38 @@ export const InlineEditRow: React.FC<InlineEditRowProps> = ({
 
   return (
     <div
-      className="min-h-[52px] flex items-center justify-between border-b border-[#F3F4F6]"
+      className="min-h-13 flex items-center justify-between border-b border-brand-borderLight"
       onClick={!isEditing ? startEdit : undefined}
     >
-      <span className="text-sm font-medium text-[#374151]">{label}</span>
+      <span className="text-sm font-medium text-brand-dark">{label}</span>
       <div className="flex items-center gap-2">
         {isEditing ? (
           <>
-            <input
-              ref={inputRef}
-              type={inputType}
-              inputMode={inputMode}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onBlur={handleBlur}
-              placeholder={placeholder}
-              className={`text-base text-right min-w-[120px] bg-transparent border-none outline-none p-0 ${error ? 'text-[#DC2626]' : 'text-[#111827]'}`}
-            />
+            <div className="flex items-center">
+              {prefix && <span className="text-base text-brand-mid mr-1">{prefix}</span>}
+              <input
+                ref={inputRef}
+                type={inputType}
+                inputMode={inputMode}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onBlur={handleBlur}
+                placeholder={placeholder}
+                className={`text-base text-right min-w-20 bg-transparent border-none outline-none p-0 ${error ? 'text-status-red' : 'text-brand-black'}`}
+              />
+              {suffix && <span className="text-base text-brand-mid ml-1">{suffix}</span>}
+            </div>
             <button
               onClick={handleDone}
-              className={`text-[13px] font-semibold underline underline-offset-2 ${error ? 'text-[#DC2626]' : 'text-[#111827]'}`}
+              className={`text-xs font-semibold underline underline-offset-2 ${error ? 'text-status-red' : 'text-brand-black'}`}
             >
               {error ? 'Invalid' : 'Done'}
             </button>
-            {error && <span className="text-[11px] text-[#DC2626] ml-1">{error}</span>}
+            {error && <span className="text-label text-status-red ml-1">{error}</span>}
           </>
         ) : (
           <>
-            <span className="text-base font-medium text-[#111827]">{value}</span>
+            <span className="text-base font-medium text-brand-black">{prefix}{value}{suffix}</span>
             <Pencil size={14} color="#9CA3AF" />
           </>
         )}

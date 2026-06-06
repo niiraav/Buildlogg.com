@@ -58,7 +58,12 @@ function AuthGuard() {
           const mock = JSON.parse(mockUser);
           setUserId(mock.id);
           // Check if profile exists in Dexie for mock user
-          const profile = await db.profiles.get(mock.id);
+          let profile = null;
+          try {
+            profile = await db.profiles.get(mock.id);
+          } catch {
+            profile = null;
+          }
           if (!profile) {
             navigate('/onboarding', { replace: true });
             setChecking(false);
@@ -156,7 +161,7 @@ function AuthGuard() {
   if (checking) {
     return (
       <div className="flex items-center justify-center min-h-[100svh]">
-        <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#111827] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }

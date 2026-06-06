@@ -22,10 +22,10 @@ export const Button: React.FC<ButtonProps> = ({
   const disabledClasses = disabled ? 'opacity-50 pointer-events-none' : '';
 
   const variantClasses: Record<string, string> = {
-    primary: 'h-[52px] bg-[#111827] text-white font-bold text-base',
-    secondary: 'h-[46px] bg-[#F9FAFB] text-[#111827] font-semibold text-sm border border-[#D1D5DB]',
-    destructive: 'h-[46px] bg-[#FEF2F2] text-[#DC2626] font-semibold text-sm border border-[#FECACA]',
-    ghost: 'min-h-[44px] bg-transparent text-[#6B7280] font-medium text-sm underline underline-offset-2',
+    primary: 'h-13 bg-brand-black text-white font-bold text-base',
+    secondary: 'h-11.5 bg-brand-surface text-brand-black font-semibold text-sm border border-gray-300',
+    destructive: 'h-11.5 bg-status-redBg text-status-red font-semibold text-sm border border-red-200',
+    ghost: 'min-h-11 bg-transparent text-brand-mid font-medium text-sm underline underline-offset-2',
   };
 
   return (

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { MapPin, Clock } from 'lucide-react';
 import type { Job, Customer } from '../../lib/db';
+import { StatusBadge } from '../StatusBadge';
 
 export interface ActiveBarProps {
   customer: Customer;
@@ -16,6 +18,15 @@ function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   if (hours === 0) return `${minutes}m`;
   return `${hours}h ${minutes}m`;
+}
+
+function formatStartTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-GB', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).toLowerCase();
 }
 
 export const ActiveBar: React.FC<ActiveBarProps> = ({
@@ -38,31 +49,56 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
   return (
     <div
       onClick={onTap}
-      className="h-11 flex items-center px-4 gap-2.5 cursor-pointer border-[1.5px] border-[#111827] rounded-[10px] bg-white mx-4 mt-3"
+      className="bg-white border-2 border-brand-black rounded-lg mx-4 mt-3 cursor-pointer overflow-hidden"
     >
-      <span
-        className="w-2 h-2 rounded-full bg-[#111827] shrink-0"
-      />
-      <div className="flex-1 min-w-0">
-        <span className="text-[13px] font-semibold text-[#111827] truncate block">
+      {/* Row 1: status badge + elapsed time + Done */}
+      <div className="flex items-center justify-between px-4 py-2.5 gap-2.5">
+        <StatusBadge status="in_progress" size="sm" />
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-medium text-brand-mid flex items-center gap-1">
+            <Clock size={12} color="#6B7280" />
+            {job.is_multi_day && dayNumber !== undefined
+              ? `Day ${dayNumber}`
+              : displayTime}
+          </span>
+          {onDone && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDone();
+              }}
+              className="h-11 px-4 bg-brand-black text-white rounded-xl text-xs font-bold tracking-wide shrink-0 cursor-pointer"
+            >
+              Done
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2: customer name + job title (wireframe l1-title: 16px/700) */}
+      <div className="px-4 pb-1">
+        <span className="text-base font-bold text-brand-black truncate block">
           {customer.name} · {job.title}
         </span>
       </div>
-      <span className="text-xs font-medium text-[#6B7280] shrink-0">
-        {job.is_multi_day && dayNumber !== undefined
-          ? `Day ${dayNumber}`
-          : displayTime}
-      </span>
-      {onDone && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDone();
-          }}
-          className="h-[30px] px-3 bg-[#111827] text-white rounded-md text-[11px] font-bold tracking-wide shrink-0 cursor-pointer"
-        >
-          Done
-        </button>
+
+      {/* Row 3: address + start time */}
+      {(customer.address || job.actual_start) && (
+        <div className="flex items-center gap-4 px-4 pb-2.5 pt-0">
+          {customer.address && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin size={12} color="#9CA3AF" className="shrink-0" />
+              <span className="text-label text-brand-mid truncate">
+                {customer.address}
+              </span>
+            </div>
+          )}
+          {job.actual_start && (
+            <span className="text-label text-brand-muted shrink-0">
+              Started {formatStartTime(job.actual_start)}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

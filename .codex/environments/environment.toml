@@ -4,3 +4,8 @@ name = "TradePad"
 
 [setup]
 script = ""
+
+[[actions]]
+name = "Run dev"
+icon = "tool"
+command = "npm run dev"

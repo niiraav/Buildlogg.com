@@ -14,8 +14,8 @@ export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
   ];
 
   return (
-    <div className="shrink-0 bg-white border-t border-[#E5E7EB] pb-[env(safe-area-inset-bottom)]">
-      <div className="h-[56px] flex w-full flex-shrink-0">
+    <div className="shrink-0 bg-white border-t border-brand-border pb-[env(safe-area-inset-bottom)]">
+      <div className="h-14 flex w-full flex-shrink-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -23,10 +23,10 @@ export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
             <button
               key={tab.key}
               onClick={() => onNavigate(tab.key)}
-              className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 cursor-pointer ${isActive ? 'text-[#111827]' : 'text-[#9CA3AF]'}`}
+              className={`flex-1 min-h-11 flex flex-col items-center justify-center gap-0.5 cursor-pointer ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}
             >
               <Icon size={22} color={isActive ? '#111827' : '#9CA3AF'} />
-              <span className={`text-[10px] font-medium ${isActive ? 'text-[#111827]' : 'text-[#9CA3AF]'}`}>
+              <span className={`text-micro font-medium ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}>
                 {tab.label}
               </span>
             </button>

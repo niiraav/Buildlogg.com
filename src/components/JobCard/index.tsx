@@ -42,8 +42,8 @@ export const JobCard: React.FC<JobCardProps> = ({
     : null;
 
   const cardBorderClass = isNextUp
-    ? 'border-[1.5px] border-[#111827]'
-    : 'border border-[#E5E7EB]';
+    ? 'border-2 border-brand-black'
+    : 'border border-brand-border';
 
   return (
     <div
@@ -53,7 +53,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Eyebrow row */}
       <div className="flex items-center gap-2">
         {isNextUp && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#111827] px-2.5 py-[2px] rounded-[4px]">
+          <span className="text-micro font-bold uppercase tracking-wider text-white bg-brand-black px-2.5 py-0.5 rounded-xs">
             NEXT UP
           </span>
         )}
@@ -62,8 +62,8 @@ export const JobCard: React.FC<JobCardProps> = ({
 
       {/* Customer row */}
       <div className="mt-2">
-        <h3 className="text-[18px] font-extrabold text-[#111827] truncate">{customer.name}</h3>
-        <p className="text-[13px] text-[#6B7280] mt-0.5 truncate">{job.title}</p>
+        <h3 className="text-lg font-extrabold text-brand-black truncate">{customer.name}</h3>
+        <p className="text-xs text-brand-mid mt-0.5 truncate">{job.title}</p>
       </div>
 
       {/* Meta row */}
@@ -71,29 +71,29 @@ export const JobCard: React.FC<JobCardProps> = ({
         {showAddress && customer.address && (
           <div className="flex items-center gap-2">
             <MapPin size={14} color="#9CA3AF" />
-            <span className="text-[13px] text-[#6B7280]">{customer.address}</span>
+            <span className="text-xs text-brand-mid">{customer.address}</span>
           </div>
         )}
         {showAddress && !customer.address && (
           <div className="flex items-center gap-2">
             <MapPin size={14} color="#9CA3AF" />
-            <span className="text-[13px] text-[#6B7280]">No address</span>
+            <span className="text-xs text-brand-mid">No address</span>
           </div>
         )}
         {formattedTime && (
           <div className="flex items-center gap-2">
             <Clock size={14} color="#9CA3AF" />
-            <span className="text-[13px] text-[#6B7280]">{formattedTime}</span>
+            <span className="text-xs text-brand-mid">{formattedTime}</span>
           </div>
         )}
       </div>
 
       {/* Amount row */}
       <div className="mt-2.5 flex items-center justify-between">
-        <span className="text-[15px] font-bold text-[#111827]">
+        <span className="text-md font-bold text-brand-black">
           £{lineItemsTotal.toFixed(2)}
         </span>
-        <span className="text-[13px] text-[#9CA3AF]">
+        <span className="text-xs text-brand-muted">
           {job.payment_terms === 'on_completion' ? 'On completion'
             : job.payment_terms === 'deposit' ? 'Deposit'
             : 'Invoice'}
@@ -128,7 +128,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               e.stopPropagation();
               onNotHome();
             }}
-            className="text-[12px] text-[#9CA3AF] underline underline-offset-2 cursor-pointer"
+            className="text-xxs text-brand-muted underline underline-offset-2 cursor-pointer"
           >
             Customer not home?
           </button>

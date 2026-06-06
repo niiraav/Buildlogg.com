@@ -65,23 +65,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     ].filter(Boolean) as Array<{ label: string; onClick: () => void }>;
 
     return (
-      <div className="bg-white border border-[#D1D5DB] rounded-[10px] overflow-hidden mb-5">
+      <div className="bg-white border border-gray-300 rounded-lg overflow-hidden mb-5">
         {/* Header row */}
         <div className="flex items-center gap-2.5 px-3.5 py-3">
-          <Phone size={18} className="text-[#6B7280] shrink-0" />
+          <Phone size={18} className="text-brand-mid shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-semibold text-[#111827] truncate">
+            <div className="text-sm font-semibold text-brand-black truncate">
               {callerPhone || 'Missed call'}
             </div>
             {subText && (
-              <div className="text-[11px] text-[#9CA3AF] mt-0.5">{subText}</div>
+              <div className="text-label text-brand-muted mt-0.5">{subText}</div>
             )}
           </div>
         </div>
 
         {/* Action row with border separators */}
         {actions.length > 0 && (
-          <div className="flex border-t border-[#F3F4F6]">
+          <div className="flex border-t border-brand-borderLight">
             {actions.map((action, i) => {
               const isPrimary = i === 0 || i === 1;
               const isMuted = i === 2;
@@ -90,11 +90,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   key={i}
                   onClick={action.onClick}
                   className={`
-                    flex-1 h-[46px] flex items-center justify-center
-                    text-[13px] font-semibold cursor-pointer
-                    border-r border-[#F3F4F6] last:border-r-0
-                    ${isPrimary ? 'text-[#111827]' : ''}
-                    ${isMuted ? 'text-[#9CA3AF] font-normal' : ''}
+                    flex-1 h-11.5 flex items-center justify-center
+                    text-xs font-semibold cursor-pointer
+                    border-r border-brand-borderLight last:border-r-0
+                    ${isPrimary ? 'text-brand-black' : ''}
+                    ${isMuted ? 'text-brand-muted font-normal' : ''}
                   `}
                 >
                   {action.label}
@@ -114,7 +114,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   }>;
 
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl px-4 py-3.5">
+    <div className="bg-white border border-brand-border rounded-xl px-4 py-3.5">
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           {flag && (
@@ -122,11 +122,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <FlagBadge type={flag} days={flagDays} />
             </div>
           )}
-          <div className="text-sm font-semibold text-[#111827] truncate">
+          <div className="text-sm font-semibold text-brand-black truncate">
             {contextText}
           </div>
           {subText && (
-            <div className="text-xs text-[#9CA3AF] mt-1">{subText}</div>
+            <div className="text-xs text-brand-muted mt-1">{subText}</div>
           )}
         </div>
       </div>
@@ -137,7 +137,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <button
               key={i}
               onClick={action.onClick}
-              className="h-[46px] px-4 rounded-lg border border-[#D1D5DB] text-[13px] font-semibold text-[#111827] bg-white cursor-pointer"
+              className="h-11.5 px-4 rounded-lg border border-gray-300 text-xs font-semibold text-brand-black bg-white cursor-pointer"
             >
               {action.label}
             </button>

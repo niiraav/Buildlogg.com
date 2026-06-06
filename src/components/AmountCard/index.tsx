@@ -15,14 +15,14 @@ export const AmountCard: React.FC<AmountCardProps> = ({
   customerName,
 }) => {
   return (
-    <div className="border border-[#E5E7EB] rounded-xl p-4">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+    <div className="border border-brand-border rounded-xl p-4">
+      <span className="text-label font-bold uppercase tracking-wider text-brand-muted">
         {label}
       </span>
-      <div className="mt-1 text-[28px] font-extrabold text-[#111827] tracking-tight">
+      <div className="mt-1 text-hero font-extrabold text-brand-black tracking-tight">
         £{amount.toFixed(2)}
       </div>
-      <p className="mt-1.5 text-[13px] text-[#6B7280]">
+      <p className="mt-1.5 text-xs text-brand-mid">
         for {customerName}
       </p>
       {daysOverdue !== undefined && (
