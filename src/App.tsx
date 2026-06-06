@@ -12,6 +12,7 @@ import { db } from './lib/db';
 import { useAppStore } from './store/useAppStore';
 import { syncWorker } from './lib/sync';
 import { initialSync } from './lib/initialSync';
+import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
 import Auth from './screens/Auth';
 import Onboarding from './screens/Onboarding';
@@ -142,6 +143,16 @@ function AuthGuard() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Run once immediately on mount (after 6pm it will check)
+    checkEndOfDay().catch(() => {});
+    // Hourly check
+    const interval = setInterval(() => {
+      checkEndOfDay().catch(() => {});
+    }, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div id="app-shell">
       <DesktopNudge />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, ChevronRight, ClipboardList } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -96,7 +96,11 @@ export default function Jobs() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
 
-  const [filter, setFilter] = useState<Filter>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filter, setFilter] = useState<Filter>(() => {
+    const urlFilter = searchParams.get('filter') as Filter;
+    return urlFilter && ['all', 'active', 'unpaid'].includes(urlFilter) ? urlFilter : 'all';
+  });
   const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customers, setCustomers] = useState<Record<string, Customer>>({});
@@ -373,7 +377,7 @@ export default function Jobs() {
           return (
             <button
               key={f.key}
-              onClick={() => setFilter(f.key)}
+              onClick={() => { setFilter(f.key); setSearchParams(f.key === 'all' ? {} : { filter: f.key }); }}
               className={`
                 h-8 px-3.5 rounded-2xl flex items-center text-[13px] font-semibold whitespace-nowrap cursor-pointer shrink-0 border-[1.5px]
                 transition-colors

@@ -14,6 +14,7 @@ import { Button } from '../../components/Button';
 import { TaskCard } from '../../components/TaskCard';
 
 /* --- helpers --- */
+import { requestNotificationPermission } from '../../lib/notifications';
 
 const now = () => new Date().toISOString();
 
@@ -148,6 +149,8 @@ export default function Home() {
 
   useEffect(() => {
     refresh();
+    // Request notification permission on first home visit (after onboarding)
+    requestNotificationPermission();
   }, [refresh]);
 
   /* tick for elapsed timer */
