@@ -43,6 +43,7 @@ export default function Onboarding() {
   const [quoteValidDays, setQuoteValidDays] = useState('30');
   const [defaultLabourDesc, setDefaultLabourDesc] = useState('Labour');
   const [defaultLabourCharge, setDefaultLabourCharge] = useState('150');
+  const [autoFillDefault, setAutoFillDefault] = useState(true);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
 
   // Get user on mount
@@ -95,7 +96,7 @@ export default function Onboarding() {
       callout_charge: parseFloat(calloutCharge) || 75,
       payment_terms: paymentTerms,
       default_labour_description: defaultLabourDesc.trim() || 'Labour',
-      default_labour_charge: parseFloat(defaultLabourCharge) || 0,
+      default_labour_charge: autoFillDefault ? (parseFloat(defaultLabourCharge) || 0) : 0,
       quote_valid_days: parseInt(quoteValidDays, 10) || 30,
       created_at: now,
       updated_at: now,
@@ -126,7 +127,7 @@ export default function Onboarding() {
       created_at: now,
       retry_count: 0,
     });
-  }, [userId, fullName, phone, businessName, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, quoteValidDays]);
+  }, [userId, fullName, phone, businessName, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
 
   const nextStep = () => setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
   const skip = () => nextStep();
@@ -363,8 +364,30 @@ export default function Onboarding() {
                     className="flex-1 text-base text-[#111827] outline-none min-h-[52px] bg-transparent px-4"
                   />
                 </div>
-                <p className="text-[12px] text-[#9CA3AF] mt-1.5 leading-relaxed">
-                  Automatically added to every new quote. Edit or remove per quote.
+                {/* Toggle */}
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={() => setAutoFillDefault(!autoFillDefault)}
+                    className={`relative h-7 w-12 rounded-full transition-colors cursor-pointer ${
+                      autoFillDefault ? 'bg-[#111827]' : 'bg-[#E5E7EB]'
+                    }`}
+                    aria-label={autoFillDefault ? 'Auto-fill enabled' : 'Auto-fill disabled'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                        autoFillDefault ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-[13px] text-[#6B7280]">
+                    Auto-fill on new quotes
+                  </span>
+                </div>
+
+                <p className="text-[12px] text-[#9CA3AF] mt-2 leading-relaxed">
+                  {autoFillDefault
+                    ? "Automatically added to every new quote. Edit or remove per quote."
+                    : "You can always add items manually when building a quote."}
                 </p>
               </div>
 

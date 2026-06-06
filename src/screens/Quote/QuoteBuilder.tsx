@@ -113,7 +113,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               }))
             );
           } else {
-            // Auto-fill default labour charge from profile
+            // Auto-fill default labour charge from profile (only if enabled in onboarding)
             const profile = await db.profiles.get(userId);
             if (profile && profile.default_labour_charge > 0) {
               const itemId = crypto.randomUUID();
@@ -181,7 +181,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         });
         setCurrentJobId(newJobId);
 
-        // Auto-fill default labour charge from profile
+        // Auto-fill default labour charge from profile (only if enabled in onboarding)
         const profile = await db.profiles.get(userId);
         if (profile && profile.default_labour_charge > 0) {
           const itemId = crypto.randomUUID();
