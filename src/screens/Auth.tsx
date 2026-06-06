@@ -94,11 +94,11 @@ export default function Auth() {
 
       const profile = await db.profiles.get(mockUserId);
       if (profile) {
-        window.location.replace('/');
+        navigate('/', { replace: true });
         setLoading(false);
         return;
       } else {
-        window.location.replace('/onboarding');
+        navigate('/onboarding', { replace: true });
         setLoading(false);
         return;
       }
@@ -111,8 +111,10 @@ export default function Auth() {
   const handleResetDevData = () => {
     localStorage.removeItem('tradepad_mock_user');
     db.delete().then(() => {
+      navigate('/auth', { replace: true });
       window.location.reload();
     }).catch(() => {
+      navigate('/auth', { replace: true });
       window.location.reload();
     });
   };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../lib/supabase';
 import { db } from '../../lib/db';
@@ -34,6 +35,7 @@ const PAYMENT_TERMS: Array<{ value: PaymentTerms; label: string; description: st
 
 export default function Onboarding() {
   const [step, setStep] = useState<Step>(1);
+  const navigate = useNavigate();
   const setUserId = useAppStore((s) => s.setUserId);
   const [userId, setLocalUserId] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
@@ -146,7 +148,7 @@ export default function Onboarding() {
   const handleContinueS4 = async () => {
     const resolvedUserId = await handleWriteProfile();
     if (resolvedUserId) setUserId(resolvedUserId);
-    window.location.replace('/');
+    navigate('/', { replace: true });
   };
 
   const firstName = fullName.trim().split(' ')[0] || 'there';
