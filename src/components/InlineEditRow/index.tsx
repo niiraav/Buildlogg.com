@@ -86,44 +86,49 @@ export const InlineEditRow: React.FC<InlineEditRowProps> = ({
     onEditStart?.();
   };
 
+  const displayValue = `${prefix || ''}${value}${suffix ? ' ' + suffix : ''}`;
+
   return (
-    <div
-      className="min-h-13 flex items-center justify-between border-b border-brand-borderLight"
-      onClick={!isEditing ? startEdit : undefined}
-    >
-      <span className="text-sm font-medium text-brand-dark">{label}</span>
-      <div className="flex items-center gap-2">
-        {isEditing ? (
-          <>
-            <div className="flex items-center">
-              {prefix && <span className="text-base text-brand-mid mr-1">{prefix}</span>}
-              <input
-                ref={inputRef}
-                type={inputType}
-                inputMode={inputMode}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onBlur={handleBlur}
-                placeholder={placeholder}
-                className={`text-base text-right min-w-20 bg-transparent border-none outline-none p-0 ${error ? 'text-status-red' : 'text-brand-black'}`}
-              />
-              {suffix && <span className="text-base text-brand-mid ml-1">{suffix}</span>}
-            </div>
-            <button
-              onClick={handleDone}
-              className={`text-xs font-semibold underline underline-offset-2 ${error ? 'text-status-red' : 'text-brand-black'}`}
-            >
-              {error ? 'Invalid' : 'Done'}
-            </button>
-            {error && <span className="text-label text-status-red ml-1">{error}</span>}
-          </>
-        ) : (
-          <>
-            <span className="text-base font-medium text-brand-black">{prefix}{value}{suffix}</span>
-            <Pencil size={14} color="#9CA3AF" />
-          </>
-        )}
+    <div className="border-b border-brand-borderLight" onClick={!isEditing ? startEdit : undefined}>
+      <div className="min-h-13 flex items-center justify-between">
+        <span className="text-sm font-medium text-brand-dark">{label}</span>
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <div className="flex items-center">
+                {prefix && <span className="text-base text-brand-mid mr-1">{prefix}</span>}
+                <input
+                  ref={inputRef}
+                  type={inputType}
+                  inputMode={inputMode}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onBlur={handleBlur}
+                  placeholder={placeholder}
+                  className={`text-base text-right min-w-20 bg-transparent border-none outline-none p-0 ${error ? 'text-status-red' : 'text-brand-black'}`}
+                />
+                {suffix && <span className="text-base text-brand-mid ml-1">{suffix}</span>}
+              </div>
+              <button
+                onClick={handleDone}
+                className={`text-xs font-semibold underline underline-offset-2 ${error ? 'text-status-red' : 'text-brand-black'}`}
+              >
+                {error ? 'Invalid' : 'Done'}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-base font-medium text-brand-black">{displayValue}</span>
+              <Pencil size={14} color="#9CA3AF" />
+            </>
+          )}
+        </div>
       </div>
+      {error && (
+        <div className="pb-2">
+          <span className="text-label text-status-red block text-right">{error}</span>
+        </div>
+      )}
     </div>
   );
 };
