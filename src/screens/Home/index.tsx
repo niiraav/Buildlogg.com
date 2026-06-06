@@ -680,11 +680,11 @@ export default function Home() {
 
   const renderTasks = () => {
     return (
-      <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
+      <div className="flex-1 pt-4 pb-4 overflow-y-auto">
         {/* L2 list rows */}
         {l2Tasks.length > 0 && (
           <>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 px-4">
               <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
                 Can't ignore
               </span>
@@ -728,12 +728,12 @@ export default function Home() {
         {/* L3: Missed call TaskCards */}
         {missedCallTasks.length > 0 && (
           <>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 px-4">
               <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
                 When you get a minute
               </span>
             </div>
-            <div className="flex flex-col gap-4 mb-5">
+            <div className="flex flex-col gap-4 mb-5 px-4">
               {missedCallTasks.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -774,7 +774,7 @@ export default function Home() {
         {/* L3 list rows (non-missed-call) */}
         {l3ListTasks.length > 0 && (
           <>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 px-4">
               <span className="text-micro font-bold text-brand-mid uppercase tracking-[0.7px]">
                 When you get a minute
               </span>
