@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../lib/supabase';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
-import { SegmentedControl } from '../../components/SegmentedControl';
 import { TabBar } from '../../components/TabBar';
 import { InlineEditRow } from '../../components/InlineEditRow';
 import SyncIndicator from '../../components/SyncIndicator';
@@ -17,10 +16,10 @@ const TRADE_OPTIONS: Array<{ value: Profile['trade']; label: string }> = [
   { value: 'other', label: 'Other' },
 ];
 
-const PAYMENT_OPTIONS = [
-  { value: 'on_completion', label: 'On completion' },
-  { value: 'deposit', label: 'Deposit' },
-  { value: 'invoice', label: 'Invoice' },
+const PAYMENT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
+  { value: 'on_completion', label: 'On completion', description: 'Customer pays after the job is finished' },
+  { value: 'deposit', label: 'Deposit', description: 'Ask for a deposit upfront, then balance on completion' },
+  { value: 'invoice', label: 'Invoice', description: 'Send an invoice after the job is done' },
 ];
 
 function validateUKPhone(value: string): string | null {
@@ -49,6 +48,7 @@ export default function Settings() {
   const [tradeOtherInput, setTradeOtherInput] = useState('');
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [nudgeDismissed] = useState(false);
+  const [showTermsHelp, setShowTermsHelp] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -396,15 +396,41 @@ export default function Settings() {
         title="Payment terms"
         subtitle="Default for new quotes"
       >
-        <div className="py-3">
-          <SegmentedControl
-            options={PAYMENT_OPTIONS}
-            value={paymentTerms}
-            onChange={(val) => {
-              saveField('payment_terms', val);
-              setPaymentSheetOpen(false);
-            }}
-          />
+        <div className="py-3 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTermsHelp(!showTermsHelp)}
+              className="w-5 h-5 rounded-full bg-brand-borderLight flex items-center justify-center text-brand-mid"
+              aria-label="What are payment terms?"
+            >
+              <HelpCircle size={12} />
+            </button>
+            <span className="text-xs text-brand-muted">What are payment terms?</span>
+          </div>
+
+          {showTermsHelp && (
+            <div className="bg-sky-50 rounded-lg p-3 border border-sky-200">
+              <p className="text-xs text-sky-700 leading-relaxed">
+                This is the default way you ask to be paid. It appears on every quote you send. You can change it for any individual job.
+              </p>
+            </div>
+          )}
+
+          {PAYMENT_OPTIONS.map((opt) => {
+            const isSelected = paymentTerms === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => { saveField('payment_terms', opt.value); setPaymentSheetOpen(false); }}
+                className={`flex flex-col gap-0.5 min-h-13 rounded-xl border-2 px-4 py-2.5 transition-all cursor-pointer text-left ${
+                  isSelected ? 'border-brand-black bg-brand-surface' : 'border-brand-border bg-white'
+                }`}
+              >
+                <span className={`font-semibold text-sm ${isSelected ? 'text-brand-black' : 'text-brand-mid'}`}>{opt.label}</span>
+                <span className={`text-xxs leading-relaxed ${isSelected ? 'text-brand-black' : 'text-brand-muted'}`}>{opt.description}</span>
+              </button>
+            );
+          })}
         </div>
       </BottomSheet>
 
