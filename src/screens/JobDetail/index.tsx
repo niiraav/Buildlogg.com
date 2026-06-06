@@ -191,11 +191,6 @@ export default function JobDetail() {
     });
   };
 
-  const handleRemoveItem = async (itemId: string) => {
-    await db.line_items.delete(itemId);
-    await addToSyncQueue('line_items', itemId, { _deleted: true });
-    refresh();
-  };
 
   const handleAddCharge = async () => {
     const amount = parseFloat(chargeAmount);
@@ -800,20 +795,6 @@ export default function JobDetail() {
         <div className="mb-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.7px]">Work log</span>
-            <div className="flex gap-3.5">
-              <button
-                onClick={() => setSheet('add_note')}
-                className="text-[12px] text-[#6B7280] cursor-pointer underline underline-offset-2"
-              >
-                + Add note
-              </button>
-              <button
-                onClick={() => setSheet('add_charge')}
-                className="text-[12px] text-[#6B7280] cursor-pointer underline underline-offset-2"
-              >
-                + Add charge
-              </button>
-            </div>
           </div>
           {workLog.length === 0 ? (
             <p className="text-[13px] text-[#9CA3AF] italic py-2">No work logged yet</p>
@@ -847,11 +828,25 @@ export default function JobDetail() {
             <InvoiceItemRow
               key={item.id}
               item={item}
-              showRemove={true}
-              isAddedOnSite={item.added_on_site}
-              onRemove={() => handleRemoveItem(item.id)}
+              showRemove={false}
             />
           ))}
+          {/* Inline add note */}
+          <div
+            onClick={() => setSheet('add_note')}
+            className="min-h-[52px] flex items-center gap-2 px-3.5 border-t border-[#F3F4F6] cursor-pointer"
+          >
+            <span className="text-[13px] font-semibold text-[#6B7280]">+ Add note</span>
+            <span className="text-[11px] text-[#9CA3AF]">Private</span>
+          </div>
+          {/* Inline add charge */}
+          <div
+            onClick={() => setSheet('add_charge')}
+            className="min-h-[52px] flex items-center gap-2 px-3.5 border-t border-[#F3F4F6] cursor-pointer"
+          >
+            <span className="text-[13px] font-semibold text-[#6B7280]">+ Add charge</span>
+            <span className="text-[11px] text-[#9CA3AF]">Added to invoice</span>
+          </div>
           <InvoiceTotalRow total={total} />
         </div>
       </div>
