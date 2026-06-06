@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../lib/supabase';
 import { db } from '../../lib/db';
 import type { Profile } from '../../lib/db';
@@ -28,7 +29,8 @@ const PAYMENT_TERMS: Array<{ value: PaymentTerms; label: string; description: st
 export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
-  const [userId, setUserId] = useState<string | null>(null);
+  const setUserId = useAppStore((s) => s.setUserId);
+  const [userId, setLocalUserId] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
 
   // Form data
@@ -48,7 +50,7 @@ export default function Onboarding() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          setUserId(user.id);
+          setLocalUserId(user.id);
           const phoneFromAuth = user.phone || user.user_metadata?.phone || '';
           setPhone(phoneFromAuth);
           return;
@@ -60,7 +62,7 @@ export default function Onboarding() {
       const mockUser = localStorage.getItem('tradepad_mock_user');
       if (mockUser) {
         const mock = JSON.parse(mockUser);
-        setUserId(mock.id);
+        setLocalUserId(mock.id);
         setPhone(mock.phone || mock.email || '');
       }
     }
@@ -133,6 +135,7 @@ export default function Onboarding() {
 
   const handleContinueS4 = async () => {
     await handleWriteProfile();
+    if (userId) setUserId(userId);
     navigate('/');
   };
 
