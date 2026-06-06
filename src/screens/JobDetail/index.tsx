@@ -813,12 +813,15 @@ export default function JobDetail() {
   const renderBookedFooter = () => (
     <div className="sticky bottom-0 z-30 bg-white border-t border-[#F3F4F6] shadow-sheet">
       <div className="flex flex-col gap-2 px-4 py-3 pb-[calc(32px_+_env(safe-area-inset-bottom))]">
+        <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
+          Go Home
+        </Button>
         <Button variant="secondary" onClick={() => { /* Edit details — placeholder for later milestone */ }}>
           Edit details
         </Button>
         <button
           onClick={() => setSheet('cancel')}
-          className="w-full h-[46px] rounded-xl text-[14px] font-semibold cursor-pointer border border-[#FCA5A5] bg-[#FFF5F5] text-[#EF4444]"
+          className="min-h-[44px] text-[13px] text-[#EF4444] cursor-pointer underline underline-offset-2 text-center"
         >
           Cancel job
         </button>
