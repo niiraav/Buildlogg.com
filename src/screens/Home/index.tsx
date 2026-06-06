@@ -879,7 +879,7 @@ export default function Home() {
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="flex-1 pb-4 overflow-y-auto">
+        <div className="flex-1 pt-4 pb-4 overflow-y-auto">
           {/* Active bar */}
           {(todayState === 'in_progress' || todayState === 'multi_day') && renderActiveBar()}
 

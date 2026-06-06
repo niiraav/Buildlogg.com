@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -44,6 +44,37 @@ function jobTotal(items: LineItem[]): number {
 
 function formatLogTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+}
+
+function toDateValue(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeValue(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function addTwoHours(timeStr: string): string {
+  if (!timeStr) return '10:00';
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h + 2, m, 0, 0);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function combineDateTime(dateStr: string, timeStr: string): string | undefined {
+  if (!dateStr) return undefined;
+  const time = timeStr || '00:00';
+  return new Date(`${dateStr}T${time}`).toISOString();
 }
 
 /* ─── types ─── */
@@ -97,8 +128,9 @@ export default function JobDetail() {
   const [calloutAmount, setCalloutAmount] = useState('');
   const [workLogExpanded, setWorkLogExpanded] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const [editStart, setEditStart] = useState('');
-  const [editEnd, setEditEnd] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [updateMessage, setUpdateMessage] = useState('');
   const [bookingMessage, setBookingMessage] = useState('');
@@ -421,23 +453,25 @@ export default function JobDetail() {
   const handleEditDetails = async () => {
     if (!job) return;
     const n = now();
+    const combinedStart = combineDateTime(editDate, editStartTime);
+    const combinedEnd = editEndTime ? combineDateTime(editDate, editEndTime) : undefined;
     const changes: string[] = [];
     if (editTitle.trim() && editTitle.trim() !== job.title) changes.push('title');
-    if (editStart !== (job.scheduled_start || '')) changes.push('date/time');
+    if (combinedStart !== job.scheduled_start) changes.push('date/time');
     if (editNotes.trim() !== (job.notes || '')) changes.push('notes');
 
     await db.jobs.update(job.id, {
       title: editTitle.trim() || job.title,
-      scheduled_start: editStart || undefined,
-      scheduled_end: editEnd || undefined,
+      scheduled_start: combinedStart,
+      scheduled_end: combinedEnd,
       notes: editNotes.trim() || undefined,
       updated_at: n,
       _sync_status: 'pending',
     });
     await addToSyncQueue('jobs', job.id, {
       title: editTitle.trim() || job.title,
-      scheduled_start: editStart || undefined,
-      scheduled_end: editEnd || undefined,
+      scheduled_start: combinedStart,
+      scheduled_end: combinedEnd,
       notes: editNotes.trim() || undefined,
       updated_at: n,
     });
@@ -454,8 +488,8 @@ export default function JobDetail() {
       // Generate update message for customer
       const customerFirstName = customer?.name.split(' ')[0] || 'there';
       const business = profile?.business_name || 'Your tradesperson';
-      const changeText = changes.includes('date/time') && editStart
-        ? `Your job is now scheduled for ${formatShortDate(new Date(editStart))} · ${formatTime(new Date(editStart))}.`
+      const changeText = changes.includes('date/time') && combinedStart
+        ? `Your job is now scheduled for ${formatShortDate(new Date(combinedStart))} · ${formatTime(new Date(combinedStart))}.`
         : 'There are some updates to your job details.';
       const msg = `Hi ${customerFirstName}, ${changeText} ${job.title}. — ${business}`;
       setUpdateMessage(msg);
@@ -1015,8 +1049,9 @@ export default function JobDetail() {
           onClick={() => {
             if (job) {
               setEditTitle(job.title);
-              setEditStart(job.scheduled_start || '');
-              setEditEnd(job.scheduled_end || '');
+              setEditDate(toDateValue(job.scheduled_start));
+              setEditStartTime(toTimeValue(job.scheduled_start));
+              setEditEndTime(toTimeValue(job.scheduled_end));
               setEditNotes(job.notes || '');
               setSheet('edit_details');
             }
@@ -1645,28 +1680,62 @@ export default function JobDetail() {
       </div>
       <div className="mb-3">
         <label className="block text-micro font-bold uppercase tracking-[0.4px] text-brand-muted mb-1">
-          Date &amp; time
+          Date
         </label>
-        <input
-          type="datetime-local"
-          value={editStart}
-          onChange={(e) => setEditStart(e.target.value)}
-          className="w-full h-12 px-3.5 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black"
-        />
-      </div>
-      {editStart && (
-        <div className="mb-3">
-          <label className="block text-micro font-bold uppercase tracking-[0.4px] text-brand-muted mb-1">
-            End time (optional)
-          </label>
+        <div className="relative">
           <input
-            type="datetime-local"
-            value={editEnd}
-            onChange={(e) => setEditEnd(e.target.value)}
-            className="w-full h-12 px-3.5 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black"
+            type="date"
+            value={editDate}
+            onChange={(e) => setEditDate(e.target.value)}
+            className="w-full h-12 px-3.5 pr-10 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
           />
+          <Calendar size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
-      )}
+      </div>
+      <div className="mb-3">
+        <label className="block text-micro font-bold uppercase tracking-[0.4px] text-brand-muted mb-1">
+          Start time
+        </label>
+        <div className="relative">
+          <input
+            type="time"
+            value={editStartTime}
+            onChange={(e) => setEditStartTime(e.target.value)}
+            className="w-full h-12 px-3.5 pr-10 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+          />
+          <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+      </div>
+      <div className="mb-3">
+        <label className="block text-micro font-bold uppercase tracking-[0.4px] text-brand-muted mb-1">
+          End time <span className="normal-case font-normal tracking-0">(optional)</span>
+        </label>
+        {!editEndTime ? (
+          <button
+            onClick={() => setEditEndTime(addTwoHours(editStartTime))}
+            className="w-full h-12 px-3.5 border-2 border-gray-300 border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
+          >
+            <Plus size={14} color="#9CA3AF" />
+            Add end time
+          </button>
+        ) : (
+          <div className="relative">
+            <input
+              type="time"
+              value={editEndTime}
+              onChange={(e) => setEditEndTime(e.target.value)}
+              className="w-full h-12 px-3.5 pr-10 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+            />
+            <button
+              onClick={() => setEditEndTime('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
+              aria-label="Clear end time"
+            >
+              <X size={12} color="#9CA3AF" />
+            </button>
+          </div>
+        )}
+      </div>
       <div className="mb-4">
         <label className="block text-micro font-bold uppercase tracking-[0.4px] text-brand-muted mb-1">
           Notes (private)
