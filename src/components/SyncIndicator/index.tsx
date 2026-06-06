@@ -9,8 +9,9 @@ export default function SyncIndicator() {
   const [hasPending, setHasPending] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
   const [isMockUser, setIsMockUser] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -18,51 +19,58 @@ export default function SyncIndicator() {
     async function checkStatus() {
       if (!mounted) return;
 
-      // Never show sync indicator for mock users
-      const mockUser = localStorage.getItem('tradepad_mock_user');
-      setIsMockUser(!!mockUser);
+      // Synchronous mock check first for immediate hide
+      const mockUser = !!localStorage.getItem('tradepad_mock_user');
+      setIsMockUser(mockUser);
       if (mockUser) {
         setHasSession(false);
+        setHasPending(false);
+        setHasError(false);
+        setChecked(true);
         return;
       }
 
-      // Check if there's a Supabase session (don't show for mock users)
-      const { supabase } = await import('../../lib/supabase');
-      const { data } = await supabase.auth.getSession();
-      setHasSession(!!data?.session);
+      // Check Supabase session
+      try {
+        const { supabase } = await import('../../lib/supabase');
+        const { data } = await supabase.auth.getSession();
+        setHasSession(!!data?.session);
+      } catch {
+        setHasSession(false);
+      }
 
-      // Only check sync_queue for pending operations (not table _sync_status)
+      // Check for pending operations
       const pendingQueueCount = await db.sync_queue
         .where('retry_count')
         .below(5)
         .count();
 
-      // Also check if any table records have error status
+      // Check for error status on tables
       const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles];
       let errorFound = false;
       for (const table of tables) {
         const errorCount = await table.where('_sync_status').equals('error').count();
-        if (errorCount > 0) errorFound = true;
+        if (errorCount > 0) { errorFound = true; break; }
       }
 
       setHasPending(pendingQueueCount > 0);
       setHasError(errorFound);
+      setChecked(true);
     }
 
     checkStatus();
-    const interval = setInterval(checkStatus, 5000);
+    const interval = setInterval(checkStatus, 10000);
     return () => {
       mounted = false;
       clearInterval(interval);
     };
   }, []);
 
-  // Only show "Syncing…" after 2s to avoid flickering for quick syncs
+  // Only show "Syncing…" after 3s to avoid flickering for quick syncs
   useEffect(() => {
-    if (syncStatus === 'syncing') {
-      const timer = setTimeout(() => setVisible(true), 2000);
-      // Safety cap: never show "Syncing…" for more than 10s even if syncStatus is stuck
-      const safety = setTimeout(() => setVisible(false), 10000);
+    if (syncStatus === 'syncing' && hasPending) {
+      const timer = setTimeout(() => setVisible(true), 3000);
+      const safety = setTimeout(() => setVisible(false), 15000);
       return () => {
         clearTimeout(timer);
         clearTimeout(safety);
@@ -70,7 +78,10 @@ export default function SyncIndicator() {
     } else {
       setVisible(false);
     }
-  }, [syncStatus]);
+  }, [syncStatus, hasPending]);
+
+  // Don't show anything until we've checked
+  if (!checked) return null;
 
   // Don't show anything for mock users or users without a session
   if (isMockUser || !hasSession) return null;
@@ -84,7 +95,7 @@ export default function SyncIndicator() {
     );
   }
 
-  // Sync error (failed after retries) — allow retry
+  // Sync error (failed after retries)
   if ((syncStatus === 'error' || (syncStatus === 'syncing' && visible)) && hasError) {
     return (
       <button
@@ -96,7 +107,7 @@ export default function SyncIndicator() {
     );
   }
 
-  // Actively syncing (visible only after 2s delay)
+  // Actively syncing (visible only after 3s delay and with pending items)
   if (syncStatus === 'syncing' && visible && hasPending) {
     return (
       <span className="text-micro font-medium text-brand-muted">
@@ -105,6 +116,5 @@ export default function SyncIndicator() {
     );
   }
 
-  // Default: nothing — pending records are normal offline-first behavior
   return null;
 }

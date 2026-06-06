@@ -51,13 +51,16 @@ function getDayName(d: Date): string {
 }
 
 function formatShortDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
 function timeAgo(minutes: number): string {
   if (minutes < 1) return 'Just now';
+  if (minutes === 1) return '1 min ago';
   if (minutes < 60) return `${minutes} min ago`;
-  return `${Math.floor(minutes / 60)}h ago`;
+  const h = Math.floor(minutes / 60);
+  if (h === 1) return '1h ago';
+  return `${h}h ago`;
 }
 
 /* --- types --- */
@@ -157,7 +160,7 @@ export default function Home() {
 
   /* tick for elapsed timer */
   useEffect(() => {
-    timerRef.current = setInterval(() => setTick((t) => t + 1), 15000);
+    timerRef.current = setInterval(() => setTick((t) => t + 1), 5000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -631,23 +634,21 @@ export default function Home() {
   const renderNoJobsToday = () => (
     <div className="px-4 mt-6">
       <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
-        <p className="text-title font-bold text-brand-black">No jobs today</p>
+        <p className="text-base font-semibold text-brand-black">No jobs today</p>
         <p className="text-xs text-brand-muted mt-1.5">
           {formatShortDate(today)} · Free day
         </p>
         <div className="flex gap-2 mt-5">
-          <button
-            onClick={() => navigate('/quote')}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-          >
-            + New Quote
-          </button>
-          <button
-            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-          >
-            Log Missed Call
-          </button>
+          <div className="flex-1">
+            <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+              + New Quote
+            </Button>
+          </div>
+          <div className="flex-1">
+            <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
+              Log Missed Call
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -661,18 +662,16 @@ export default function Home() {
           Nothing needs your attention today
         </p>
         <div className="flex gap-2 mt-5">
-          <button
-            onClick={() => navigate('/quote')}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-          >
-            + New Quote
-          </button>
-          <button
-            onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-            className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-          >
-            Log Missed Call
-          </button>
+          <div className="flex-1">
+            <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+              + New Quote
+            </Button>
+          </div>
+          <div className="flex-1">
+            <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
+              Log Missed Call
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -718,7 +717,7 @@ export default function Home() {
                   <span className="text-xs text-brand-mid whitespace-nowrap shrink-0">
                     {task.amount}
                   </span>
-                  <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+                  <ChevronRight size={16} className="text-brand-muted shrink-0" />
                 </div>
               ))}
             </div>
@@ -803,7 +802,7 @@ export default function Home() {
                   <span className="text-xxs text-brand-muted whitespace-nowrap shrink-0">
                     {task.amount}
                   </span>
-                  <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+                  <ChevronRight size={16} className="text-brand-muted shrink-0" />
                 </div>
               ))}
             </div>
@@ -816,12 +815,8 @@ export default function Home() {
               <p className="text-base font-semibold text-brand-black">All clear</p>
               <p className="text-xs text-brand-muted mt-1.5">Nothing needs your attention</p>
               <div className="flex gap-2 mt-5">
-                <button onClick={() => navigate('/quote')} className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer">
-                  + New Quote
-                </button>
-                <button onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer">
-                  Log Missed Call
-                </button>
+                <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
+                <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
               </div>
             </div>
           </div>
@@ -907,18 +902,8 @@ export default function Home() {
       {((activeTab === 'today' && todayState !== 'all_clear') || (activeTab === 'tasks' && tasks.length > 0)) && (
         <div className="sticky bottom-0 z-30 bg-white border-t border-brand-borderLight shadow-sheet">
           <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
-            <button
-              onClick={() => navigate('/quote')}
-              className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-            >
-              + New Quote
-            </button>
-            <button
-              onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })}
-              className="flex-1 h-11.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-brand-black cursor-pointer"
-            >
-              Log Missed Call
-            </button>
+            <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
+            <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
           </div>
         </div>
       )}
@@ -975,22 +960,22 @@ export default function Home() {
       >
         <div className="flex flex-col">
           <SheetRow
-            icon={<Banknote size={18} color="#374151" />}
+            icon={<Banknote size={18} className="text-brand-dark" />}
             label="Cash"
             onTap={() => handlePayment('cash')}
           />
           <SheetRow
-            icon={<CreditCard size={18} color="#374151" />}
+            icon={<CreditCard size={18} className="text-brand-dark" />}
             label="Terminal"
             onTap={() => handlePayment('terminal')}
           />
           <SheetRow
-            icon={<CreditCard size={18} color="#374151" />}
+            icon={<CreditCard size={18} className="text-brand-dark" />}
             label="Bank Transfer"
             onTap={() => handlePayment('bank_transfer')}
           />
           <SheetRow
-            icon={<AlertTriangle size={18} color="#DC2626" />}
+            icon={<AlertTriangle size={18} className="text-status-red" />}
             label="Not yet"
             sublabel="Chase later"
             onTap={() => handlePayment('not_yet')}
@@ -1024,17 +1009,17 @@ export default function Home() {
       >
         <div className="flex flex-col">
           <SheetRow
-            icon={<CreditCard size={18} color="#374151" />}
+            icon={<CreditCard size={18} className="text-brand-dark" />}
             label="Terminal"
             onTap={() => handlePayment('terminal')}
           />
           <SheetRow
-            icon={<Banknote size={18} color="#374151" />}
+            icon={<Banknote size={18} className="text-brand-dark" />}
             label="Cash"
             onTap={() => handlePayment('cash')}
           />
           <SheetRow
-            icon={<AlertTriangle size={18} color="#DC2626" />}
+            icon={<AlertTriangle size={18} className="text-status-red" />}
             label="Not yet"
             sublabel="Chase later"
             onTap={() => handlePayment('not_yet')}

@@ -23,7 +23,7 @@ export const InvoiceItemRow: React.FC<InvoiceItemRowProps> = ({
           className="w-7 h-7 rounded-full border border-brand-border bg-brand-surface flex items-center justify-center shrink-0"
           aria-label="Remove item"
         >
-          <X size={14} color="#9CA3AF" />
+          <X size={14} className="text-brand-muted" />
         </button>
       )}
       <span className="flex-1 text-xs font-medium truncate text-brand-dark">

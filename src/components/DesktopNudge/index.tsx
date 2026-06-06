@@ -13,7 +13,7 @@ export default function DesktopNudge() {
   if (dismissed) return null;
 
   return (
-    <div className="bg-brand-black text-white px-4 py-3 text-xs flex items-center justify-between gap-3">
+    <div className="bg-brand-black text-brand-surface px-4 py-3 text-xs flex items-center justify-between gap-3">
       <span>TradePad is designed for your phone — for the best experience, open it on mobile.</span>
       <button
         onClick={() => {

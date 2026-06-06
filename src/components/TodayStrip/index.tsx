@@ -22,7 +22,7 @@ export const TodayStrip: React.FC<TodayStripProps> = ({ jobs, onTap }) => {
       </span>
       {remaining > 0 && (
         <span className="text-label text-brand-muted flex items-center gap-0.5 shrink-0 ml-1.5">
-          +{remaining} more <ChevronRight size={11} color="#9CA3AF" />
+          +{remaining} more <ChevronRight size={11} className="text-brand-muted" />
         </span>
       )}
     </div>

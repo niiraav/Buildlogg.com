@@ -119,7 +119,7 @@ export const InlineEditRow: React.FC<InlineEditRowProps> = ({
           ) : (
             <>
               <span className="text-base font-medium text-brand-black">{displayValue}</span>
-              <Pencil size={14} color="#9CA3AF" />
+              <Pencil size={14} className="text-brand-muted" />
             </>
           )}
         </div>

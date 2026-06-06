@@ -25,7 +25,7 @@ export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
               onClick={() => onNavigate(tab.key)}
               className={`flex-1 min-h-11 flex flex-col items-center justify-center gap-0.5 cursor-pointer ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}
             >
-              <Icon size={22} color={isActive ? '#111827' : '#9CA3AF'} />
+              <Icon size={22} className={isActive ? "text-brand-black" : "text-brand-muted"} />
               <span className={`text-micro font-medium ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}>
                 {tab.label}
               </span>

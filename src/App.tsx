@@ -14,6 +14,7 @@ import { syncWorker } from './lib/sync';
 import { initialSync } from './lib/initialSync';
 import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
+import { isDarkModeEnabled } from './hooks/useTheme';
 import Auth from './screens/Auth';
 import Onboarding from './screens/Onboarding';
 import Home from './screens/Home';
@@ -22,6 +23,9 @@ import JobDetail from './screens/JobDetail';
 import Quote from './screens/Quote';
 import Settings from './screens/Settings';
 import Activity from './screens/Activity';
+
+// Initialise theme before first paint
+if (isDarkModeEnabled()) document.documentElement.classList.add('dark');
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([

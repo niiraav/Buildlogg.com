@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, Moon, Sun } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
+import { useTheme } from '../../hooks/useTheme';
 import { supabase } from '../../lib/supabase';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { TabBar } from '../../components/TabBar';
@@ -49,6 +50,7 @@ export default function Settings() {
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [nudgeDismissed] = useState(false);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
+  const { isDark, toggle } = useTheme();
 
   useEffect(() => {
     if (!userId) return;
@@ -300,6 +302,38 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Appearance */}
+        <div className="mb-6">
+          <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+            Appearance
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div
+              className="min-h-13 flex items-center justify-between px-4 cursor-pointer"
+              onClick={toggle}
+            >
+              <div className="flex items-center gap-2">
+                {isDark ? (
+                  <Moon size={16} className="text-brand-mid" />
+                ) : (
+                  <Sun size={16} className="text-brand-mid" />
+                )}
+                <span className="text-sm font-medium text-brand-dark">Dark mode</span>
+              </div>
+              <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors duration-200">
+                <div
+                  className={`switch-knob inline-flex h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    isDark ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+                <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${
+                  isDark ? 'bg-brand-black' : 'bg-gray-200'
+                }`} />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* About */}
         <div className="mb-6">
           <div className="text-micro font-bold uppercase tracking-[0.7px] text-brand-muted mb-2 px-0.5">
@@ -380,7 +414,7 @@ export default function Settings() {
                   setTradeOtherMode(false);
                   setTradeOtherInput('');
                 }}
-                className="mt-3 w-full h-13 bg-brand-black text-white rounded-xl text-base font-semibold cursor-pointer"
+                className="mt-3 w-full h-13 bg-brand-black text-brand-surface rounded-xl text-base font-semibold cursor-pointer"
               >
                 Done
               </button>

@@ -131,7 +131,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
           onClick={onCancel}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
-          <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
+          <ChevronLeft size={22} className="-mt-px text-brand-muted" />
           Back
         </button>
         <span className="text-base font-bold text-brand-black text-center">New quote</span>

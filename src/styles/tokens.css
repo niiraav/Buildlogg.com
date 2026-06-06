@@ -1,11 +1,22 @@
 :root {
-  --color-black:        #111827;
-  --color-dark:         #374151;
-  --color-mid:          #6B7280;
-  --color-muted:        #9CA3AF;
-  --color-border:       #E5E7EB;
-  --color-border-light: #F3F4F6;
-  --color-surface:      #F9FAFB;
+  /* ── Brand colours (light) ─────────────────── */
+  --brand-black:        #111827;
+  --brand-dark:         #374151;
+  --brand-mid:          #6B7280;
+  --brand-muted:        #9CA3AF;
+  --brand-border:       #E5E7EB;
+  --brand-border-light: #F3F4F6;
+  --brand-surface:      #F9FAFB;
+  --brand-surface-card: #F5F5F5;
+  --brand-dark-bg:      #101010;
+
+  --color-black:        var(--brand-black);
+  --color-dark:         var(--brand-dark);
+  --color-mid:          var(--brand-mid);
+  --color-muted:        var(--brand-muted);
+  --color-border:       var(--brand-border);
+  --color-border-light: var(--brand-border-light);
+  --color-surface:      var(--brand-surface);
 
   --color-green:        #15803D;
   --color-green-bg:     #F0FDF4;
@@ -15,6 +26,12 @@
   --color-red-bg:       #FEF2F2;
   --color-blue:         #1D4ED8;
   --color-blue-bg:      #EFF6FF;
+
+  --app-bg:             #F3F4F6;
+  --app-shell-bg:       #FFFFFF;
+  --app-text:           var(--brand-black);
+  --app-text-secondary: var(--brand-dark);
+  --app-text-muted:     var(--brand-mid);
 
   --touch-primary:      52px;
   --touch-secondary:    46px;
@@ -28,4 +45,31 @@
 
   --shadow-sheet:       0 -4px 12px rgba(0,0,0,.06);
   --shadow-seg:         0 1px 3px rgba(0,0,0,.10);
+}
+
+/* ── Dark mode ─────────────────────────────────── */
+.dark {
+  --brand-black:        #F9FAFB;
+  --brand-dark:         #E5E7EB;
+  --brand-mid:          #9CA3AF;
+  --brand-muted:        #6B7280;
+  --brand-border:       #374151;
+  --brand-border-light: #1F2937;
+  --brand-surface:      #1F2937;
+  --brand-surface-card: #111827;
+  --brand-dark-bg:      #030712;
+
+  --app-bg:             #030712;
+  --app-shell-bg:       #111827;
+  --app-text:           #F9FAFB;
+  --app-text-secondary: #E5E7EB;
+  --app-text-muted:     #9CA3AF;
+
+  --color-green-bg:     #064E3B;
+  --color-amber-bg:     #451A03;
+  --color-red-bg:       #450A0A;
+  --color-blue-bg:      #1E3A8A;
+
+  --shadow-sheet:       0 -4px 12px rgba(0,0,0,.40);
+  --shadow-seg:         0 1px 3px rgba(0,0,0,.30);
 }

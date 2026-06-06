@@ -506,7 +506,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
-          <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
+          <ChevronLeft size={22} className="-mt-px text-brand-muted" />
           Back
         </button>
         <span className="text-base font-bold text-brand-black text-center">Quote details</span>
@@ -566,7 +566,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 onBlur={handleDateBlur}
                 className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
               />
-              <Calendar size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Calendar size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
             </div>
           </div>
 
@@ -583,7 +583,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   onBlur={handleStartTimeBlur}
                   className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
                 />
-                <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
               </div>
             </div>
             <div className="flex-1">
@@ -600,8 +600,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   }}
                   className="w-full h-12 px-3.5 border-2 border-brand-border border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
                 >
-                  <Plus size={14} color="#9CA3AF" />
-                  Add end time
+                  <Plus size={14} className="text-brand-muted" />
+  Add end time
                 </button>
               ) : (
                 <div className="relative">
@@ -617,8 +617,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
                     aria-label="Clear end time"
                   >
-                    <X size={12} color="#9CA3AF" />
-                  </button>
+                    <X size={12} className="text-brand-muted" />                  </button>
                 </div>
               )}
             </div>
@@ -664,8 +663,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   className="w-7 h-7 rounded-full border border-brand-border bg-brand-surface flex items-center justify-center shrink-0 cursor-pointer"
                   aria-label="Remove item"
                 >
-                  <X size={14} color="#9CA3AF" />
-                </button>
+                  <X size={14} className="text-brand-muted" />                </button>
               </div>
             ))}
           </div>
@@ -687,8 +685,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   onClick={() => addQuickItem(desc)}
                   className="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-brand-borderLight text-xxs font-medium text-brand-dark cursor-pointer border border-brand-border hover:bg-brand-border active:bg-gray-300 transition-colors"
                 >
-                  <Plus size={12} color="#9CA3AF" />
-                  {desc}
+                  <Plus size={12} className="text-brand-muted" />
+  {desc}
                 </button>
               ))}
             </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X, MoreVertical,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -16,7 +16,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 function now() { return new Date().toISOString(); }
 
 function formatShortDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
 function formatTime(d: Date): string {
@@ -82,6 +82,7 @@ function combineDateTime(dateStr: string, timeStr: string): string | undefined {
 type SheetState =
   | null
   | 'cancel'
+  | 'more_options'
   | 'add_charge'
   | 'mark_done'
   | 'add_note'
@@ -773,17 +774,17 @@ export default function JobDetail() {
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer"
         >
-          <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
+          <ChevronLeft size={22} className="-mt-px text-brand-muted" />
           Back
         </button>
         <div className="flex items-center gap-2">
-          {(job?.status === 'booked' || job?.status === 'no_show') && (
+          {(job?.status === 'booked' || job?.status === 'no_show' || job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
             <button
-              onClick={() => setSheet('cancel')}
-              className="text-sm font-medium text-brand-muted cursor-pointer py-1 px-2 hover:bg-brand-surface rounded-md transition-colors"
-              aria-label="Cancel job"
+              onClick={() => setSheet('more_options')}
+              className="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer text-brand-muted hover:bg-brand-surface transition-colors"
+              aria-label="More options"
             >
-              Cancel
+              <MoreVertical size={20} />
             </button>
           )}
         </div>
@@ -804,14 +805,14 @@ export default function JobDetail() {
               className="w-10 h-10 border border-brand-border rounded-lg bg-brand-surface flex items-center justify-center cursor-pointer active:bg-brand-borderLight"
               aria-label="Call customer"
             >
-              <Phone size={18} color="#374151" />
+              <Phone size={18} className="text-brand-dark" />
             </button>
             <button
               onClick={handleMessage}
               className="w-10 h-10 border border-brand-border rounded-lg bg-brand-surface flex items-center justify-center cursor-pointer active:bg-brand-borderLight"
               aria-label="Message customer"
             >
-              <MessageCircle size={18} color="#374151" />
+              <MessageCircle size={18} className="text-brand-dark" />
             </button>
           </div>
         )}
@@ -1366,6 +1367,31 @@ export default function JobDetail() {
 
   /* ─── sheets ─── */
 
+  const renderMoreOptionsSheet = () => (
+    <BottomSheet
+      isOpen={sheet === 'more_options'}
+      onClose={() => setSheet(null)}
+      title="More options"
+    >
+      {(job?.status === 'booked' || job?.status === 'no_show') && (
+        <SheetRow
+          label="Cancel job"
+          onTap={() => { setSheet('cancel'); }}
+          variant="destructive"
+        />
+      )}
+      <SheetRow
+        label="Edit details"
+        onTap={() => { setSheet('edit_details'); setEditTitle(job?.title || ''); setEditDate(toDateValue(job?.scheduled_start)); setEditStartTime(toTimeValue(job?.scheduled_start)); setEditEndTime(toTimeValue(job?.scheduled_end)); setEditNotes(job?.notes || ''); }}
+      />
+      <SheetRow
+        label="Close"
+        onTap={() => setSheet(null)}
+        isLast
+      />
+    </BottomSheet>
+  );
+
   const renderCancelSheet = () => (
     <BottomSheet
       isOpen={sheet === 'cancel'}
@@ -1469,23 +1495,23 @@ export default function JobDetail() {
       subtitle={job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined}
     >
       <SheetRow
-        icon={<Banknote size={18} color="#374151" />}
+        icon={<Banknote size={18} className="text-brand-dark" />}
         label="Cash"
         onTap={() => handleMarkDone('cash')}
       />
       <SheetRow
-        icon={<Building2 size={18} color="#374151" />}
+        icon={<Building2 size={18} className="text-brand-dark" />}
         label="Bank Transfer"
         onTap={() => handleMarkDone('bank_transfer')}
       />
       <SheetRow
-        icon={<Pencil size={18} color="#374151" />}
+        icon={<Pencil size={18} className="text-brand-dark" />}
         label="Other"
         sublabel="Entered manually"
         onTap={() => handleMarkDone('other')}
       />
       <SheetRow
-        icon={<Clock size={18} color="#9CA3AF" />}
+        icon={<Clock size={18} className="text-brand-muted" />}
         label="Not yet"
         sublabel="Chase later"
         onTap={() => handleMarkDone('not_yet')}
@@ -1506,17 +1532,17 @@ export default function JobDetail() {
       subtitle={job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined}
     >
       <SheetRow
-        icon={<Banknote size={18} color="#374151" />}
+        icon={<Banknote size={18} className="text-brand-dark" />}
         label="Cash"
         onTap={() => handleMarkAsPaid('cash')}
       />
       <SheetRow
-        icon={<Building2 size={18} color="#374151" />}
+        icon={<Building2 size={18} className="text-brand-dark" />}
         label="Bank Transfer"
         onTap={() => handleMarkAsPaid('bank_transfer')}
       />
       <SheetRow
-        icon={<Pencil size={18} color="#374151" />}
+        icon={<Pencil size={18} className="text-brand-dark" />}
         label="Other"
         sublabel="Entered manually"
         onTap={() => handleMarkAsPaid('other')}
@@ -1545,12 +1571,12 @@ export default function JobDetail() {
           <p className="text-micro text-brand-muted text-right mt-1">Tap to edit before sending</p>
         </div>
         <SheetRow
-          icon={<MessageCircle size={18} color="#374151" />}
+          icon={<MessageCircle size={18} className="text-brand-dark" />}
           label="Send via WhatsApp"
           onTap={() => handleSendReminder('whatsapp')}
         />
         <SheetRow
-          icon={<MessageSquare size={18} color="#374151" />}
+          icon={<MessageSquare size={18} className="text-brand-dark" />}
           label="Send via SMS"
           onTap={() => handleSendReminder('sms')}
           isLast
@@ -1692,7 +1718,7 @@ export default function JobDetail() {
             onChange={(e) => setEditDate(e.target.value)}
             className="w-full h-12 px-3.5 pr-10 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
           />
-          <Calendar size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Calendar size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
         </div>
       </div>
       <div className="mb-3">
@@ -1706,7 +1732,7 @@ export default function JobDetail() {
             onChange={(e) => setEditStartTime(e.target.value)}
             className="w-full h-12 px-3.5 pr-10 border-2 border-gray-300 rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
           />
-          <Clock size={18} color="#9CA3AF" className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
         </div>
       </div>
       <div className="mb-3">
@@ -1718,8 +1744,8 @@ export default function JobDetail() {
             onClick={() => setEditEndTime(addTwoHours(editStartTime))}
             className="w-full h-12 px-3.5 border-2 border-gray-300 border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
           >
-            <Plus size={14} color="#9CA3AF" />
-            Add end time
+            <Plus size={14} className="text-brand-muted" />
+  Add end time
           </button>
         ) : (
           <div className="relative">
@@ -1734,8 +1760,7 @@ export default function JobDetail() {
               className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
               aria-label="Clear end time"
             >
-              <X size={12} color="#9CA3AF" />
-            </button>
+              <X size={12} className="text-brand-muted" />            </button>
           </div>
         )}
       </div>
@@ -1832,6 +1857,7 @@ export default function JobDetail() {
       {job.status === 'written_off' && renderTerminalFooter()}
 
       {renderCancelSheet()}
+      {renderMoreOptionsSheet()}
       {renderAddChargeSheet()}
       {renderAddNoteSheet()}
       {renderMarkDoneSheet()}

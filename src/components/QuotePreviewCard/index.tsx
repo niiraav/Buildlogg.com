@@ -48,7 +48,7 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
   const formatDateTime = (start?: string, end?: string): string => {
     if (!start) return 'TBC';
     const s = new Date(start);
-    const startStr = s.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    const startStr = s.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
     const startTime = formatTime(s);
     if (!end) return `${startStr} · ${startTime}`;
     const e = new Date(end);

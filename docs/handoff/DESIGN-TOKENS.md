@@ -556,3 +556,56 @@ Add to `src/styles/tokens.css`, imported at top of `src/main.tsx`:
 ---
 
 *End of DESIGN-TOKENS.md — Version 1.0*
+
+---
+
+## 10. Dark Mode
+
+### Architecture
+- **Strategy**: Tailwind `darkMode: 'class'` — toggled by adding/removing `class="dark"` on `<html>`
+- **Persistence**: `localStorage` key `tradepad_dark_mode` + system `prefers-color-scheme` as fallback
+- **Hook**: `src/hooks/useTheme.ts` — `useTheme()` returns `{ isDark, toggle, setDark }`
+- **No class duplication**: all brand colours are backed by CSS variables; Tailwind config references `var(--brand-*)` instead of hardcoded hex values. Dark mode swaps variables, components need zero `dark:` prefixes for brand colours
+
+### Light / Dark Variable Map
+
+| Token | Light (`:root`) | Dark (`.dark`) | Usage |
+|---|---|---|---|
+| `--brand-black` | `#111827` | `#F9FAFB` | Primary text, headings, button bg |
+| `--brand-dark` | `#374151` | `#E5E7EB` | Body text, secondary |
+| `--brand-mid` | `#6B7280` | `#9CA3AF` | Muted icons, labels |
+| `--brand-muted` | `#9CA3AF` | `#6B7280` | Placeholders, disabled |
+| `--brand-border` | `#E5E7EB` | `#374151` | Dividers, card borders |
+| `--brand-border-light` | `#F3F4F6` | `#1F2937` | Subtle separators |
+| `--brand-surface` | `#F9FAFB` | `#1F2937` | Card backgrounds, secondary surfaces |
+| `--brand-surface-card` | `#F5F5F5` | `#111827` | Alternate card surface |
+| `--brand-dark-bg` | `#101010` | `#030712` | Desktop shell / dark bg |
+| `--app-bg` | `#F3F4F6` | `#030712` | Body background |
+| `--app-shell-bg` | `#FFFFFF` | `#111827` | App shell (phone frame) |
+| `--app-text` | `#111827` | `#F9FAFB` | Default text on shell |
+| `--color-green-bg` | `#F0FDF4` | `#064E3B` | Success tint background |
+| `--color-amber-bg` | `#FFFBEB` | `#451A03` | Warning tint background |
+| `--color-red-bg` | `#FEF2F2` | `#450A0A` | Error tint background |
+| `--color-blue-bg` | `#EFF6FF` | `#1E3A8A` | Info tint background |
+| `--shadow-sheet` | `0 -4px 12px rgba(0,0,0,.06)` | `0 -4px 12px rgba(0,0,0,.40)` | Bottom sheet / footer shadow |
+| `--shadow-seg` | `0 1px 3px rgba(0,0,0,.10)` | `0 1px 3px rgba(0,0,0,.30)` | Segmented control shadow |
+
+### Hardcoded Tailwind overrides
+`globals.css` remaps common hardcoded utility classes in dark mode so existing components don't require `dark:` prefixes everywhere:
+
+```css
+.dark .bg-white       { background-color: var(--app-shell-bg); }
+.dark .bg-gray-50     { background-color: var(--brand-surface); }
+.dark .bg-gray-200    { background-color: var(--brand-surface); }
+.dark .text-gray-300  { color: var(--brand-muted); }
+.dark .border-gray-200{ border-color: var(--brand-border); }
+.dark .bg-red-50      { background-color: var(--color-red-bg); }
+```
+
+Elements that must stay white in dark mode (e.g. toggle knobs) use a `.switch-knob` class with `!important` or inline `style={{ backgroundColor: '#fff' }}`.
+
+### Status badge dark mode tints
+Status badge backgrounds auto-swap via `var(--color-*-bg)` CSS variables. Text colours remain semantic (e.g. `text-green-800` maps to light green on dark). If Tailwind's `text-*-800` classes look too dark, add a targeted `dark:text-green-400` override in the component.
+
+### Toggle location
+Settings → **Appearance** section → "Dark mode" row with icon (Sun/Moon) and switch.

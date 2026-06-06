@@ -193,7 +193,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
-          <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />
+          <ChevronLeft size={22} className="-mt-px text-brand-muted" />
           Back
         </button>
         <span className="text-base font-bold text-brand-black text-center">Preview</span>
@@ -210,7 +210,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         {/* Business name nudge */}
         {!hasBusinessName && (
           <div className="bg-status-amberMid border border-amber-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
-            <AlertTriangle size={16} color="#92400E" className="shrink-0" />
+            <AlertTriangle size={16} className="shrink-0 text-status-amber" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-status-amberDark">
                 Add your business name before sending

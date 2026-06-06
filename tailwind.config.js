@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -8,30 +9,30 @@ export default {
       },
       colors: {
         brand: {
-          black:       '#111827',
-          dark:        '#374151',
-          mid:         '#6B7280',
-          muted:       '#9CA3AF',
-          border:      '#E5E7EB',
-          borderLight: '#F3F4F6',
-          surface:     '#F9FAFB',
-          surfaceCard: '#F5F5F5',
-          darkBg:      '#101010',
+          black:       'var(--brand-black)',
+          dark:        'var(--brand-dark)',
+          mid:         'var(--brand-mid)',
+          muted:       'var(--brand-muted)',
+          border:      'var(--brand-border)',
+          borderLight: 'var(--brand-border-light)',
+          surface:     'var(--brand-surface)',
+          surfaceCard: 'var(--brand-surface-card)',
+          darkBg:      'var(--brand-dark-bg)',
         },
         status: {
           success:     '#10B981',
           green:       '#15803D',
-          greenBg:     '#F0FDF4',
+          greenBg:     'var(--color-green-bg)',
           warning:     '#F59E0B',
           amber:       '#B45309',
-          amberBg:     '#FFFBEB',
+          amberBg:     'var(--color-amber-bg)',
           amberDark:   '#92400E',
           amberMid:    '#FEF3C7',
           error:       '#EF4444',
           red:         '#DC2626',
-          redBg:       '#FEF2F2',
+          redBg:       'var(--color-red-bg)',
           blue:        '#1D4ED8',
-          blueBg:      '#EFF6FF',
+          blueBg:      'var(--color-blue-bg)',
         }
       },
       fontSize: {
@@ -55,9 +56,9 @@ export default {
       },
       boxShadow: {
         'card':   '0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08)',
-        'sheet':  '0 -4px 12px rgba(0,0,0,.06)',
+        'sheet':  'var(--shadow-sheet)',
         'active': 'inset 0 1px 3px rgba(0,0,0,.12)',
-        'seg':    '0 1px 3px rgba(0,0,0,.10)',
+        'seg':    'var(--shadow-seg)',
       },
       spacing: {
         '11': '44px',

@@ -56,8 +56,8 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
         <StatusBadge status="in_progress" size="sm" />
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs font-medium text-brand-mid flex items-center gap-1">
-            <Clock size={12} color="#6B7280" />
-            {job.is_multi_day && dayNumber !== undefined
+            <Clock size={12} className="text-brand-mid" />
+  {job.is_multi_day && dayNumber !== undefined
               ? `Day ${dayNumber}`
               : displayTime}
           </span>
@@ -67,7 +67,7 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
                 e.stopPropagation();
                 onDone();
               }}
-              className="h-11 px-4 bg-brand-black text-white rounded-xl text-xs font-bold tracking-wide shrink-0 cursor-pointer"
+              className="h-13 px-4 bg-brand-black text-brand-surface rounded-xl text-sm font-semibold tracking-wide shrink-0 cursor-pointer"
             >
               Done
             </button>
@@ -87,7 +87,7 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
         <div className="flex items-center gap-4 px-4 pb-2.5 pt-0">
           {customer.address && (
             <div className="flex items-center gap-1.5 min-w-0">
-              <MapPin size={12} color="#9CA3AF" className="shrink-0" />
+              <MapPin size={12} className="shrink-0 text-brand-muted" />
               <span className="text-label text-brand-mid truncate">
                 {customer.address}
               </span>

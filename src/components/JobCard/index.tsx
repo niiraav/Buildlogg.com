@@ -53,7 +53,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Eyebrow row */}
       <div className="flex items-center gap-2">
         {isNextUp && (
-          <span className="text-micro font-bold uppercase tracking-wider text-white bg-brand-black px-2.5 py-0.5 rounded-xs">
+          <span className="text-micro font-bold uppercase tracking-wider text-brand-surface bg-brand-black px-2.5 py-0.5 rounded-xs">
             NEXT UP
           </span>
         )}
@@ -70,19 +70,19 @@ export const JobCard: React.FC<JobCardProps> = ({
       <div className="mt-2.5 flex flex-col gap-1">
         {showAddress && customer.address && (
           <div className="flex items-center gap-2">
-            <MapPin size={14} color="#9CA3AF" />
+            <MapPin size={14} className="text-brand-muted" />
             <span className="text-xs text-brand-mid">{customer.address}</span>
           </div>
         )}
         {showAddress && !customer.address && (
           <div className="flex items-center gap-2">
-            <MapPin size={14} color="#9CA3AF" />
+            <MapPin size={14} className="text-brand-muted" />
             <span className="text-xs text-brand-mid">No address</span>
           </div>
         )}
         {formattedTime && (
           <div className="flex items-center gap-2">
-            <Clock size={14} color="#9CA3AF" />
+            <Clock size={14} className="text-brand-muted" />
             <span className="text-xs text-brand-mid">{formattedTime}</span>
           </div>
         )}

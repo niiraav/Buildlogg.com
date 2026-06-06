@@ -18,7 +18,7 @@ function daysSince(dateStr: string): number {
 }
 
 function formatShortDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
 function formatTime(d: Date): string {
@@ -270,7 +270,7 @@ export default function Jobs() {
         <span className="text-xs font-semibold text-brand-dark">
           £{job.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
-        <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+        <ChevronRight size={16} className="shrink-0 text-brand-muted" />
       </div>
     </div>
   );
@@ -300,7 +300,7 @@ export default function Jobs() {
       <span className="text-xxs text-gray-300">
         {count} job{count !== 1 ? 's' : ''}
       </span>
-      <ChevronRight size={16} color="#D1D5DB" className="shrink-0" />
+      <ChevronRight size={16} className="shrink-0 text-brand-muted" />
     </div>
   );
 
@@ -317,7 +317,7 @@ export default function Jobs() {
     if (!hasAnyJobs) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
-          <ClipboardList size={40} color="#9CA3AF" className="mb-4 opacity-40" />
+          <ClipboardList size={40} className="mb-4 opacity-40 text-brand-muted" />
           <p className="text-lg font-bold text-brand-black mb-2">No jobs yet</p>
           <p className="text-sm text-brand-muted leading-relaxed mb-7">
             Log a missed call or create a quote to get your first job on the books.
@@ -385,7 +385,7 @@ export default function Jobs() {
                 h-11 px-3.5 rounded-2xl flex items-center text-xs font-semibold whitespace-nowrap cursor-pointer shrink-0 border-2
                 transition-colors
                 ${isActive
-                  ? 'bg-brand-black text-white border-brand-black'
+                  ? 'bg-brand-black text-brand-surface border-brand-black'
                   : 'bg-white text-brand-mid border-brand-border'
                 }
               `}
@@ -400,7 +400,7 @@ export default function Jobs() {
       {hasAnyJobs && (
         <div className="px-4 pt-2 shrink-0">
           <div className="relative flex items-center">
-            <div className="absolute left-3.5 shrink-0 pointer-events-none"><Search size={16} color="#9CA3AF" /></div>
+            <div className="absolute left-3.5 shrink-0 pointer-events-none"><Search size={16} className="text-brand-muted" /> </div>
             <input
               type="text"
               value={searchQuery}
@@ -410,8 +410,7 @@ export default function Jobs() {
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 p-1 cursor-pointer">
-                <X size={14} color="#9CA3AF" />
-              </button>
+                <X size={14} className="text-brand-muted" />              </button>
             )}
           </div>
         </div>
@@ -426,7 +425,7 @@ export default function Jobs() {
           <div className="flex gap-2 px-4 py-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))]">
             <button
               onClick={() => navigate('/quote')}
-              className="flex-1 h-11 bg-brand-black text-white border border-brand-black rounded-xl text-xs font-semibold cursor-pointer"
+              className="flex-1 h-11 bg-brand-black text-brand-surface border border-brand-black rounded-xl text-xs font-semibold cursor-pointer"
             >
               + New Quote
             </button>

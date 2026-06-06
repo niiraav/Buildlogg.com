@@ -22,9 +22,9 @@ export const Button: React.FC<ButtonProps> = ({
   const disabledClasses = disabled ? 'opacity-50 pointer-events-none' : '';
 
   const variantClasses: Record<string, string> = {
-    primary: 'h-13 bg-brand-black text-white font-bold text-base',
-    secondary: 'h-11.5 bg-brand-surface text-brand-black font-semibold text-sm border border-gray-300',
-    destructive: 'h-11.5 bg-status-redBg text-status-red font-semibold text-sm border border-red-200',
+    primary: 'h-13 bg-brand-black text-brand-surface font-semibold text-sm',
+    secondary: 'h-13 bg-brand-surface text-brand-black font-semibold text-sm border border-brand-border',
+    destructive: 'h-13 bg-status-redBg text-status-red font-semibold text-sm border border-red-200',
     ghost: 'min-h-11 bg-transparent text-brand-mid font-medium text-sm underline underline-offset-2',
   };
 
