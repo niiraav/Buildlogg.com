@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 
 const MAX_RETRIES = 5;
 const SYNC_TIMEOUT_MS = 8000;
+const OVERALL_SYNC_TIMEOUT_MS = 20000;
 let syncRunning = false;
 
 function setSyncStatus(status: 'syncing' | 'synced' | 'error') {
@@ -28,15 +29,36 @@ export async function syncWorker() {
   if (syncRunning) return;
   syncRunning = true;
 
+  // Set a hard ceiling so we never hang forever
+  const overallTimeout = setTimeout(() => {
+    syncRunning = false;
+    setSyncStatus('error');
+  }, OVERALL_SYNC_TIMEOUT_MS);
+
   try {
     await _syncWorkerCore();
   } finally {
+    clearTimeout(overallTimeout);
     syncRunning = false;
   }
 }
 
 async function _syncWorkerCore() {
   if (!navigator.onLine) {
+    setSyncStatus('synced');
+    return;
+  }
+
+  // Check for a valid Supabase session before trying to push.
+  // If there's no session (mock user / not signed in), skip sync cleanly.
+  let session = null;
+  try {
+    const { data } = await withTimeout(supabase.auth.getSession(), 5000);
+    session = data?.session ?? null;
+  } catch {
+    session = null;
+  }
+  if (!session) {
     setSyncStatus('synced');
     return;
   }

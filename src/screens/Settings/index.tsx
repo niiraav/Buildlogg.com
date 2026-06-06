@@ -112,7 +112,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F9FAFB]">
+    <div className="flex flex-col min-h-[100svh] bg-[#F9FAFB]">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 bg-white border-b border-[#F3F4F6] flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -122,7 +122,7 @@ export default function Settings() {
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[calc(16px+56px+env(safe-area-inset-bottom))] min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 min-h-0">
         {/* Nudge banner */}
         {showNudge && (
           <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[10px] p-3 mb-4 flex items-start gap-2.5">

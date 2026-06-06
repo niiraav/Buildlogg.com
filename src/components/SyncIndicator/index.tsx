@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { syncWorker } from '../../lib/sync';
@@ -8,6 +8,8 @@ export default function SyncIndicator() {
   const syncStatus = useAppStore((s) => s.syncStatus);
   const [hasPending, setHasPending] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [syncStartedAt, setSyncStartedAt] = useState<number | null>(null);
+  const prevStatusRef = useRef(syncStatus);
 
   useEffect(() => {
     let mounted = true;
@@ -37,12 +39,37 @@ export default function SyncIndicator() {
     };
   }, []);
 
+  // Track when sync started so we can detect stuck syncs
+  useEffect(() => {
+    if (syncStatus === 'syncing' && prevStatusRef.current !== 'syncing') {
+      setSyncStartedAt(Date.now());
+    }
+    if (syncStatus !== 'syncing') {
+      setSyncStartedAt(null);
+    }
+    prevStatusRef.current = syncStatus;
+  }, [syncStatus]);
+
+  const isStuck = syncStatus === 'syncing' && syncStartedAt !== null && (Date.now() - syncStartedAt > 15000);
+
   // Offline with pending changes
   if (!isOnline && hasPending) {
     return (
       <span className="text-[10px] font-medium text-[#9CA3AF]">
         Offline
       </span>
+    );
+  }
+
+  // Stuck sync — show as error with retry
+  if (isStuck) {
+    return (
+      <button
+        onClick={() => syncWorker()}
+        className="text-[10px] font-medium text-[#D97706]"
+      >
+        Sync stuck · Tap to retry
+      </button>
     );
   }
 
