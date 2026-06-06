@@ -527,7 +527,7 @@ export default function JobDetail() {
   const renderHeader = () => (
     <div className="px-4 pt-2 pb-3 border-b border-[#F3F4F6] shrink-0">
       <button
-        onClick={() => navigate('/jobs')}
+        onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1 min-h-[44px] pr-4 text-[14px] font-medium text-[#6B7280] cursor-pointer"
       >
         <ChevronLeft size={22} color="#9CA3AF" className="-mt-px" />

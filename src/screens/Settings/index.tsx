@@ -73,9 +73,9 @@ export default function Settings() {
     navigate('/auth', { replace: true });
   };
 
-  const handleNavigate = (tab: 'home' | 'jobs' | 'activity' | 'settings') => {
+  const handleNavigate = (tab: 'home' | 'jobs' | 'settings') => {
     if (tab === 'settings') return;
-    navigate(tab === 'home' ? '/' : `/${tab}`);
+    navigate(tab === 'home' ? '/' : '/jobs');
   };
 
   const fullName = profile?.full_name || '';

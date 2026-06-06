@@ -1,16 +1,15 @@
 import React from 'react';
-import { Home, Briefcase, Bell, Settings } from 'lucide-react';
+import { Home, Briefcase, Settings } from 'lucide-react';
 
 export interface TabBarProps {
-  activeTab: 'home' | 'jobs' | 'activity' | 'settings';
-  onNavigate: (tab: 'home' | 'jobs' | 'activity' | 'settings') => void;
+  activeTab: 'home' | 'jobs' | 'settings';
+  onNavigate: (tab: 'home' | 'jobs' | 'settings') => void;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
   const tabs = [
     { key: 'home' as const, label: 'Home', icon: Home },
     { key: 'jobs' as const, label: 'Jobs', icon: Briefcase },
-    { key: 'activity' as const, label: 'Activity', icon: Bell },
     { key: 'settings' as const, label: 'Settings', icon: Settings },
   ];
 

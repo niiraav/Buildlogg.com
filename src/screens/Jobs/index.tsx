@@ -379,7 +379,7 @@ export default function Jobs() {
               key={f.key}
               onClick={() => { setFilter(f.key); setSearchParams(f.key === 'all' ? {} : { filter: f.key }); }}
               className={`
-                h-8 px-3.5 rounded-2xl flex items-center text-[13px] font-semibold whitespace-nowrap cursor-pointer shrink-0 border-[1.5px]
+                h-[44px] px-3.5 rounded-2xl flex items-center text-[13px] font-semibold whitespace-nowrap cursor-pointer shrink-0 border-[1.5px]
                 transition-colors
                 ${isActive
                   ? 'bg-[#111827] text-white border-[#111827]'
