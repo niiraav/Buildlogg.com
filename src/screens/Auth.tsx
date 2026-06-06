@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/db';
+import { useAppStore } from '../store/useAppStore';
 import { Button } from '../components/Button';
 
 export default function Auth() {
@@ -87,6 +88,9 @@ export default function Auth() {
           created_at: new Date().toISOString(),
         }));
       }
+
+      // Set userId immediately so AuthGuard sees it on next render
+      useAppStore.getState().setUserId(mockUserId);
 
       const profile = await db.profiles.get(mockUserId);
       if (profile) {

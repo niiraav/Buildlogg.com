@@ -127,6 +127,7 @@ export default function Onboarding() {
       created_at: now,
       retry_count: 0,
     });
+    return resolvedUserId;
   }, [userId, fullName, phone, businessName, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
 
   const nextStep = () => setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
@@ -138,8 +139,8 @@ export default function Onboarding() {
   };
 
   const handleContinueS4 = async () => {
-    await handleWriteProfile();
-    if (userId) setUserId(userId);
+    const resolvedUserId = await handleWriteProfile();
+    if (resolvedUserId) setUserId(resolvedUserId);
     navigate('/');
   };
 

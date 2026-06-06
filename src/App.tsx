@@ -35,9 +35,13 @@ function AuthGuard() {
     let syncInterval: ReturnType<typeof setInterval> | null = null;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      let session = null;
+      try {
+        const { data } = await supabase.auth.getSession();
+        session = data?.session ?? null;
+      } catch {
+        session = null;
+      }
 
       if (!mounted) return;
 
