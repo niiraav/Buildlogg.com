@@ -84,7 +84,7 @@ function AuthGuard() {
       if (!session) {
         const mockUser = localStorage.getItem('tradepad_mock_user');
         if (mockUser) {
-          let mock: { id: string; email?: string; phone?: string } | null = null;
+          let mock: { id: string; email?: string } | null = null;
           try {
             mock = JSON.parse(mockUser);
           } catch {
@@ -269,7 +269,7 @@ function AppRoutes() {
   return (
     <div className="flex flex-col h-full">
       {/* Content area — animated only for deep navigation */}
-      <div className="flex-1 min-h-0 relative overflow-hidden">
+      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
         <AnimatePresence mode={animatePresenceMode} initial={false}>
           <motion.div
             key={location.pathname}

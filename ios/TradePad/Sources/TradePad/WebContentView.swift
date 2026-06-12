@@ -12,7 +12,7 @@ struct WebContentView: UIViewRepresentable {
         webView.scrollView.bounces = true
         webView.scrollView.isScrollEnabled = true
         
-        let url = URL(string: "http://localhost:8765/")!
+        let url = URL(string: "http://localhost:9000/")!
         let request = URLRequest(url: url)
         webView.load(request)
         
