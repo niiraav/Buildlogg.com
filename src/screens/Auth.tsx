@@ -36,6 +36,84 @@ export default function Auth() {
     return () => clearTimeout(t);
   }, [countdown]);
 
+  // Handle magic-link / email-confirmation callbacks from the URL.
+  // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
+  useEffect(() => {
+    let mounted = true;
+
+    async function handleCallback() {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      const tokenHash = url.searchParams.get('token_hash');
+      const token = url.searchParams.get('token');
+      const type = url.searchParams.get('type') || 'email';
+      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+      const hasAccessToken = hashParams.has('access_token') || hashParams.has('refresh_token');
+
+      if (!code && !tokenHash && !token && !hasAccessToken) return;
+
+      if (!mounted) return;
+      setLoading(true);
+      setError('');
+
+      try {
+        let session = null;
+
+        if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+          session = data.session;
+        } else if (tokenHash) {
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as 'email' | 'recovery' | 'invite' | 'email_change' | 'signup' | 'magiclink',
+          });
+          if (verifyError) throw verifyError;
+          session = data.session;
+        } else if (token) {
+          // Older Supabase confirmation URLs use ?token=...&type=...; treat as token_hash.
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: type as 'email' | 'recovery' | 'invite' | 'email_change' | 'signup' | 'magiclink',
+          });
+          if (verifyError) throw verifyError;
+          session = data.session;
+        } else if (hasAccessToken) {
+          const { data } = await supabase.auth.getSession();
+          session = data.session;
+        }
+
+        if (!session) {
+          throw new Error('No session returned from callback');
+        }
+
+        if (!mounted) return;
+        hapticSuccess();
+        showSuccess("You're in");
+        identifyUser(session.user.id, { email: session.user.email || undefined });
+        captureUserSignedIn();
+
+        // Strip auth params from the URL so a refresh doesn't re-trigger the flow.
+        window.history.replaceState({}, document.title, url.pathname + url.search.replace(/[?&](code|token_hash|token|type)=[^&]*/g, '').replace(/\?(?=&|$)/, '') + url.hash.replace(/#access_token=[^&]*&?/g, '').replace(/&?refresh_token=[^&]*&?/g, '').replace(/&?expires_in=[^&]*&?/g, '').replace(/&?token_type=[^&]*&?/g, '').replace(/#$/, ''));
+
+        // Let AuthGuard check the profile and route to onboarding or home.
+        navigate('/', { replace: true });
+      } catch (err) {
+        console.error('[Auth] Magic link callback error:', err);
+        if (!mounted) return;
+        hapticError();
+        showError('This sign-in link is invalid or expired. Please try again.');
+        setLoading(false);
+      }
+    }
+
+    handleCallback();
+
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmailInput(e.target.value);
     setError('');
