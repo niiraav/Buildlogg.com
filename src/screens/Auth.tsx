@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/db';
 import { useAppStore } from '../store/useAppStore';
@@ -7,6 +7,7 @@ import { identifyUser, captureUserSignedIn } from '../lib/analytics';
 import { showSuccess, showError, showToast } from '../components/Toast/store';
 import { haptic, hapticError, hapticSuccess } from '../lib/haptics';
 import { Button } from '../components/Button';
+import AuthDesktopLayout from '../components/AuthDesktopLayout';
 
 type AuthStep = 'email' | 'otp';
 
@@ -20,6 +21,8 @@ function validateEmail(email: string): string | null {
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const action = searchParams.get('action') === 'signin' ? 'signin' : 'signup';
   const [step, setStep] = useState<AuthStep>('email');
   const [emailInput, setEmailInput] = useState('');
   const [otp, setOtp] = useState('');
@@ -57,7 +60,7 @@ export default function Auth() {
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: true, emailRedirectTo: 'https://buildlogg.com/app/auth' },
       });
       if (otpError) {
         console.error('[Auth] OTP send error:', otpError);
@@ -124,7 +127,7 @@ export default function Auth() {
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: true, emailRedirectTo: 'https://buildlogg.com/app/auth' },
       });
       if (otpError) {
         showError(otpError.message || 'Could not resend code.');
@@ -159,7 +162,7 @@ export default function Auth() {
         console.warn('[Auth] Dexie open failed:', dbErr);
       }
 
-      const existingMock = localStorage.getItem('tradepad_mock_user');
+      const existingMock = localStorage.getItem('buildlogg_mock_user');
       let mockUserId: string;
       let mockEmail: string;
 
@@ -172,7 +175,7 @@ export default function Auth() {
         } catch {
           mockUserId = 'mock_' + Date.now();
           mockEmail = 'test@example.com';
-          localStorage.setItem('tradepad_mock_user', JSON.stringify({
+          localStorage.setItem('buildlogg_mock_user', JSON.stringify({
             id: mockUserId,
             email: mockEmail,
             created_at: new Date().toISOString(),
@@ -182,7 +185,7 @@ export default function Auth() {
       } else {
         mockUserId = 'mock_' + Date.now();
         mockEmail = 'test@example.com';
-        localStorage.setItem('tradepad_mock_user', JSON.stringify({
+        localStorage.setItem('buildlogg_mock_user', JSON.stringify({
           id: mockUserId,
           email: mockEmail,
           created_at: new Date().toISOString(),
@@ -226,7 +229,7 @@ export default function Auth() {
 
   const handleResetDevData = () => {
     haptic('light');
-    localStorage.removeItem('tradepad_mock_user');
+    localStorage.removeItem('buildlogg_mock_user');
     db.delete().then(() => {
       navigate('/auth', { replace: true });
       window.location.reload();
@@ -239,18 +242,23 @@ export default function Auth() {
   const email = emailInput.trim().toLowerCase();
 
   return (
-    <div className="flex flex-col items-center px-6 pt-12 pb-8 h-full">
-      <div className="text-hero font-extrabold text-brand-black mb-8">
-        TradePad
+    <AuthDesktopLayout variant="auth">
+    
+      <div className="text-hero font-extrabold text-brand-black mb-8 lg:hidden">
+        Buildlogg
       </div>
 
       <div className="w-full flex flex-col gap-4">
         {step === 'email' && (
           <>
             <div>
-              <h1 className="text-xl font-bold text-brand-black">Get started</h1>
+              <h1 className="text-xl font-bold text-brand-black">
+                {action === 'signin' ? 'Welcome back' : 'Get started'}
+              </h1>
               <p className="text-sm text-brand-muted mt-1">
-                We&apos;ll send you a 6-digit code. No password needed.
+                {action === 'signin'
+                  ? "We\'ll send you a code to sign in. No password needed."
+                  : "We\'ll send you a 6-digit code. No password needed."}
               </p>
             </div>
 
@@ -364,6 +372,6 @@ export default function Auth() {
           </div>
         )}
       </div>
-    </div>
+    </AuthDesktopLayout>
   );
 }

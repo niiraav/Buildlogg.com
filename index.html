@@ -1,37 +1,417 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#FFFFFF" id="theme-color-meta" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <link rel="manifest" href="/manifest.json?v=2" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png?v=2" />
-    <title>TradePad</title>
-    <script>
-      (function() {
-        try {
-          var stored = localStorage.getItem("tradepad_dark_mode");
-          var isDark = stored !== null ? stored === "true" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-          if (isDark) document.documentElement.classList.add("dark");
-          // Prevent white flash: set body background immediately before any rendering
-          document.documentElement.style.backgroundColor = isDark ? "#111827" : "#FFFFFF";
-          document.body = document.body || {};
-          var meta = document.getElementById("theme-color-meta");
-          if (meta) meta.setAttribute("content", isDark ? "#111827" : "#FFFFFF");
-        } catch (e) {}
-      })();
-    </script>
-    <style>
-      /* Prevent flash of unstyled content before CSS loads */
-      html, body { background-color: #FFFFFF; }
-      html.dark, html.dark body { background-color: #111827; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=2"></script>
-  </body>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<script>
+  // Redirect Supabase auth callbacks from the marketing root to the PWA app.
+  // If SITE_URL is ever misconfigured, magic links still reach the app shell.
+  (function () {
+    const url = new URL(window.location.href);
+    const authKeys = ['token', 'type', 'access_token', 'refresh_token', 'code', 'expires_in', 'token_type'];
+    const hasAuthParam = authKeys.some((k) => url.searchParams.has(k));
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    const hasAuthHash = authKeys.some((k) => hashParams.has(k));
+    if (hasAuthParam || hasAuthHash) {
+      const target = new URL('/app/auth', url.origin);
+      target.search = url.search;
+      target.hash = url.hash;
+      window.location.replace(target.href);
+    }
+  })();
+</script>
+<title>Buildlogg — Quote, book and get paid, from your van</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="description" content="Buildlogg is the job and money app for solo tradespeople. Quote, book, run and get paid — all from your phone, between jobs." />
+<!-- TODO: replace with real favicon before launch -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="canonical" href="https://buildlogg.com/" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://buildlogg.com/" />
+<meta property="og:title" content="Buildlogg — Quote, book and get paid, from your van" />
+<meta property="og:description" content="Buildlogg is the job and money app for solo tradespeople. Quote, book, run and get paid — all from your phone, between jobs." />
+<!-- TODO: create 1200×630 og-image.png and replace URL -->
+<meta property="og:image" content="https://buildlogg.com/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content="https://buildlogg.com/" />
+<meta name="twitter:title" content="Buildlogg — Quote, book and get paid, from your van" />
+<meta name="twitter:description" content="Buildlogg is the job and money app for solo tradespeople. Quote, book, run and get paid — all from your phone, between jobs." />
+<meta name="twitter:image" content="https://buildlogg.com/assets/og-image.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/landing.css?v=6" />
+<script src="https://unpkg.com/lucide@0.460.0"></script>
+</head>
+<body>
+
+<!-- ============================================================ NAV -->
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top"><span class="mark"><i data-lucide="hammer" class="lucide"></i></span> Buildlogg</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="#how">How it works</a>
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="nav-signin" href="/app/auth?action=signin">Log in</a>
+      <a class="btn btn-primary btn-sm" href="/app/auth?action=signup">Start free</a>
+      <button type="button" class="nav-burger" aria-label="Menu"><i data-lucide="menu" class="lucide"></i></button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#how">How it works</a>
+  <a href="#features">Features</a>
+  <a href="#pricing">Pricing</a>
+  <a href="/app/auth?action=signin">Log in</a>
+</div>
+
+<main id="top">
+
+<!-- ============================================================ HERO -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="hero-eyebrow" style="border-width: 1px; padding: 6px 12px 6px 8px">NEW Built for the trades</span>
+      <h1 class="display d-hero">Quote, book and<br />get paid — from<br />your van.</h1>
+      <p class="lead">Buildlogg turns the admin you do at 9pm into a few taps between jobs. Send quotes, run the day, chase what you're owed and take payment - all from your phone.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="/app/auth?action=signup">Start free <i data-lucide="arrow-right" class="lucide"></i></a>
+        <a class="btn btn-secondary btn-lg" href="#how">See how it works</a>
+      </div>
+      <div class="hero-trust">
+        <span class="trust-badge"><i data-lucide="shield-check" class="lucide"></i> Free to start</span>
+        <span class="hero-sep"></span>
+        <span class="trust-badge"><i data-lucide="wifi-off" class="lucide"></i> Works offline</span>
+        <span class="hero-sep"></span>
+        <span class="trust-badge"><i data-lucide="credit-card" class="lucide"></i> No card needed</span>
+      </div>
+    </div>
+
+    <div class="hero-stage">
+      <!-- HOME / TODAY screen -->
+      <div class="hero-screen">
+          <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="lucide"></i><i data-lucide="wifi" class="lucide"></i><i data-lucide="battery-full" class="lucide"></i></span></div>
+          <div class="app">
+            <div class="greet-row">
+              <div class="greet"><div class="hi" style="font-size: 18px">Evening, Dave</div><div class="day" style="font-size: 12px">Sunday · 1 job today</div></div>
+              <div class="owed"><div class="amt" style="font-size: 18px">£1,840</div><div class="lbl">owed to you</div></div>
+            </div>
+            <div class="app-tabs" style="padding: 0px 16px 0px 1px; gap: 16px">
+              <div class="app-tab active">Today</div>
+              <div class="app-tab">Tasks <span class="ct">2</span></div>
+            </div>
+            <div class="pad" style="padding: 4px 16px 0px 1px">
+              <div class="sec-label" style="font-size: 10px">Right now</div>
+              <div class="jobcard" style="padding: 12px; border-radius: 8px; margin: 0px; border-width: 1px">
+                <div class="jc-top">
+                  <span class="spill green" style="font-size: 8px"><span class="dot"></span> In progress</span>
+                  <span class="jc-time" style="font-size: 9px"><i data-lucide="clock" class="lucide"></i> Started 8:10 pm</span>
+                </div>
+                <div class="jc-name" style="font-size: 15px">Mark O'Connor</div>
+                <div class="jc-job" style="font-size: 11px">New radiator install</div>
+                <div class="jc-loc" style="font-size: 11px"><i data-lucide="map-pin" class="lucide"></i> 22 Elm Close, London SW4</div>
+                <div class="jc-divider"></div>
+                <div class="jc-actions">
+                  <button type="button" class="abtn secondary sm" style="font-size: 12px; height: 32px"><i data-lucide="phone" class="lucide"></i> Call</button>
+                  <button type="button" class="abtn secondary sm" style="font-size: 12px; height: 32px"><i data-lucide="message-circle" class="lucide"></i> Message</button>
+                </div>
+                <button type="button" class="abtn primary lg full" style="margin-top: 9px; font-size: 12px; height: 32px"><i data-lucide="check" class="lucide"></i> Mark done</button>
+              </div>
+              <div class="quiet"><i data-lucide="check-circle-2" class="lucide"></i> Nothing else booked today</div>
+            </div>
+          </div>
+          <div class="app-foot">
+            <button type="button" class="abtn primary"><i data-lucide="plus" class="lucide"></i> New quote</button>
+          </div>
+          <div class="tabbar">
+            <div class="tabitem on"><i data-lucide="house" class="lucide"></i> Home</div>
+            <div class="tabitem"><i data-lucide="briefcase" class="lucide"></i> Jobs</div>
+            <div class="tabitem"><i data-lucide="settings" class="lucide"></i> Settings</div>
+          </div>
+          </div>
+        </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ============================================================ PROBLEM -->
+<section class="section problem">
+  <div class="container problem-grid">
+    <div class="reveal">
+      <span class="eyebrow">The real job</span>
+      <h2 class="display d-lg" style="margin:14px 0 18px;">The work pays.<br />The paperwork doesn't.</h2>
+      <p class="lead" style="color:var(--muted);max-width:440px;">You're great with a wrench. But quotes get scribbled on the back of a hand, leads go to voicemail, and invoices sit unpaid because chasing feels rude. The admin is quietly costing you jobs, and evenings.</p>
+    </div>
+    <div class="pain-list reveal d1">
+      <div class="pain">
+        <span class="ic"><i data-lucide="phone-missed" class="lucide"></i></span>
+        <div><h4>Missed calls = missed work</h4><p>A call you couldn't take mid-job is a lead a competitor picks up by lunchtime.</p></div>
+      </div>
+      <div class="pain">
+        <span class="ic"><i data-lucide="file-clock" class="lucide"></i></span>
+        <div><h4>Quotes that go cold</h4><p>"I'll send it tonight" turns into three days later — and the customer's already booked someone else.</p></div>
+      </div>
+      <div class="pain">
+        <span class="ic"><i data-lucide="banknote" class="lucide"></i></span>
+        <div><h4>Money you're owed, untracked</h4><p>Invoices scattered across texts and notebooks. You can't chase what you can't see.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="container">
+    <div style="text-align:center;max-width:620px;margin:0 auto;" class="reveal">
+      <span class="eyebrow">How it works</span>
+      <h2 class="display d-lg" style="margin:14px 0 16px;">From first call to paid,<br />in one place.</h2>
+      <p class="lead">Three steps, no desk required. Buildlogg follows the job through its whole life — so nothing slips.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">1</div><h3>Quote on the spot</h3><p>Standing in their hallway? Build a tidy quote in under a minute and send it before you've packed the toolbox.</p></div>
+      <div class="step reveal d1"><div class="n">2</div><h3>Book &amp; run the day</h3><p>Accepted quotes become booked jobs with addresses, arrival windows and one-tap navigation. Open the app, see what's next.</p></div>
+      <div class="step reveal d2"><div class="n">3</div><h3>Finish &amp; get paid</h3><p>Mark the job done. Record how it was paid, add any notes, and the job moves to complete. Your money-owed total updates itself.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FEATURE 3 — MISSED CALL / TASKS -->
+<section class="section" id="features" style="background:var(--surface-soft);">
+  <div class="container feat">
+    <div class="feat-copy reveal">
+      <span class="eyebrow">Never lose a lead</span>
+      <h2 class="display d-md">Turn a missed call<br />into a booked job.</h2>
+      <p>Couldn't pick up? Buildlogg catches it. The call becomes a task with the next step already on it, call back, send a quote, so a buzzing phone in your pocket never turns into lost work.</p>
+      <ul class="feat-points">
+        <li><span class="ck"><i data-lucide="check" class="lucide"></i></span><span><b>“Can't ignore” vs “When you get a minute”</b> — tasks sorted by what actually matters.</span></li>
+        <li><span class="ck"><i data-lucide="check" class="lucide"></i></span><span><b>One-tap actions on the card</b> — call back or quote without digging.</span></li>
+        <li><span class="ck"><i data-lucide="check" class="lucide"></i></span><span><b>Stale quotes surface in your task list</b> — spotted before they cost you a job.</span></li>
+      </ul>
+    </div>
+    <div class="feat-media reveal d1">
+      <div class="panel">
+        <div class="panel-callout" style="top: 120px; right: -6px; gap: 16px; height: 68px">
+          <span class="ic" style="background:var(--green-bg);color:var(--green);"><i data-lucide="phone-call" class="lucide"></i></span>
+          <span class="ct"><span class="t">New lead caught</span><span class="s">12 minutes ago</span></span>
+        </div>
+        <div class="phone sm">
+          <div class="screen">
+            <div class="statusbar iphone-sb"><span>9:41</span><span class="right"><i data-lucide="signal" class="lucide"></i><i data-lucide="wifi" class="lucide"></i><i data-lucide="battery-full" class="lucide"></i></span></div>
+            <div class="app">
+              <div class="greet-row"><div class="greet"><div class="hi">Evening, Dave</div><div class="day">Sunday · 1 job today</div></div><div class="owed"><div class="amt">£1,840</div><div class="lbl">owed to you</div></div></div>
+              <div class="app-tabs"><div class="app-tab">Today</div><div class="app-tab active">Tasks <span class="ct">2</span></div></div>
+              <div class="pad">
+                <div class="sec-label">Can't ignore</div>
+                <div class="task urgent">
+                  <div class="row1"><span class="spill blue"><span class="dot"></span> New</span><span class="jc-time">12 min ago</span></div>
+                  <div class="ttl">Missed call</div>
+                  <div class="meta">Unknown number · could be a lead</div>
+                  <div class="actions"><button type="button" class="abtn primary sm"><i data-lucide="phone-call" class="lucide"></i> Call back</button><button type="button" class="abtn secondary sm"><i data-lucide="file-plus-2" class="lucide"></i> Quote</button></div>
+                </div>
+                <div class="sec-label" style="margin-top:16px;">When you get a minute <span class="see">See all</span></div>
+                <div class="task">
+                  <div class="row1"><span class="spill grey">Stale · 1d</span><span class="amt">£165</span></div>
+                  <div class="ttl">Sarah Mitchell</div>
+                  <div class="meta">Boiler service · quote sent 1 day ago</div>
+                  <div class="actions"><button type="button" class="abtn secondary sm"><i data-lucide="send" class="lucide"></i> Send reminder</button><button type="button" class="abtn secondary sm"><i data-lucide="eye" class="lucide"></i> View</button></div>
+                </div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tabitem on"><i data-lucide="house" class="lucide"></i> Home</div>
+              <div class="tabitem"><i data-lucide="briefcase" class="lucide"></i> Jobs</div>
+              <div class="tabitem"><i data-lucide="settings" class="lucide"></i> Settings</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SECONDARY FEATURE GRID -->
+<section class="section">
+  <div class="container">
+    <div style="max-width:640px;" class="reveal">
+      <span class="eyebrow">Everything else</span>
+      <h2 class="display d-md" style="margin:14px 0 16px;">The boring bits, handled.</h2>
+      <p class="lead">All the small admin that eats your evenings, done quietly in the background.</p>
+    </div>
+    <div class="fgrid">
+      <div class="fcard reveal"><span class="ic"><i data-lucide="message-circle" class="lucide"></i></span><h3>Quotes via WhatsApp</h3><p>Build a professional quote and send it straight to the customer via WhatsApp. Done before you've started the van.</p></div>
+      <div class="fcard reveal d1"><span class="ic"><i data-lucide="layout-list" class="lucide"></i></span><h3>Jobs, sorted by status</h3><p>Quoted, booked, in progress, paid. Every job in the right pile so you always know what needs doing next.</p></div>
+      <div class="fcard reveal d2"><span class="ic"><i data-lucide="wallet" class="lucide"></i></span><h3>Money owed, always visible</h3><p>The total that runs your business, top-right on every screen. Always know your position at a glance.</p></div>
+      <div class="fcard reveal"><span class="ic"><i data-lucide="map-pin" class="lucide"></i></span><h3>One tap to navigate</h3><p>Every booked job has the address loaded. Tap Navigate and Google Maps opens with the destination already set.</p></div>
+      <div class="fcard reveal d1"><span class="ic"><i data-lucide="wifi-off" class="lucide"></i></span><h3>Works offline</h3><p>In a basement, a dead zone or a rural farm — Buildlogg keeps working. Jobs and quotes sync when you’re back online.</p></div>
+      <div class="fcard reveal d2"><span class="ic"><i data-lucide="hand" class="lucide"></i></span><h3>Gloves-on design</h3><p>Big targets, calm screens, one job at a time. Usable with mucky hands in bad light, between tasks.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div style="text-align:center;max-width:600px;margin:0 auto;" class="reveal">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="display d-lg" style="margin:14px 0 16px;">Costs less than<br />one lost job.</h2>
+      <p class="lead">Start free. Pro is free while we’re in beta.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="tier reveal">
+        <div class="tname-row"><span class="tname">Free</span></div>
+        <div class="price">£0 <span class="per">/ month</span></div>
+        <p class="tdesc">Everything you need to get going. No card required.</p>
+        <ul class="tlist">
+          <li><i data-lucide="check" class="lucide"></i> 5 active jobs per month</li>
+          <li><i data-lucide="check" class="lucide"></i> Send quotes via WhatsApp</li>
+          <li><i data-lucide="check" class="lucide"></i> Offline-first — works in basements</li>
+          <li><i data-lucide="check" class="lucide"></i> Track jobs from missed call to paid</li>
+        </ul>
+        <a class="btn btn-secondary btn-lg" href="/app/auth?action=signup" style="width:100%;">Get started free</a>
+      </div>
+      <div class="tier featured reveal d1">
+        <div class="tname-row"><span class="tname">Pro</span><span class="badge-rec">Free during beta</span></div>
+        <div class="price-beta">
+          <span class="worth">Worth £14/month</span>
+          <span class="free-now">FREE</span>
+        </div>
+        <ul class="tlist">
+          <li><i data-lucide="check" class="lucide"></i> Unlimited jobs</li>
+          <li><i data-lucide="check" class="lucide"></i> Unlimited quotes</li>
+          <li><i data-lucide="check" class="lucide"></i> Priority support — 4hr reply</li>
+          <li><i data-lucide="check" class="lucide"></i> Everything in Free</li>
+        </ul>
+        <a class="btn btn-on-dark btn-lg" href="/app/auth?action=signup" style="width:100%;">Get Pro free — Beta access</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+<!-- ============================================================ CTA BAND -->
+<section class="section tight cta-band">
+  <div class="container">
+    <div class="cta-card reveal">
+      <h2 class="display d-lg">Stop chasing.<br />Start getting paid.</h2>
+      <p>Free to start. Pro is free during beta. No card, no contract, just a cleaner way to run your day.</p>
+      <div class="cta-actions">
+        <a class="btn btn-on-dark btn-lg" href="/app/auth?action=signup">Start free <i data-lucide="arrow-right" class="lucide"></i></a>
+        <a class="btn btn-lg" href="#how" style="background:transparent;color:#fff;border-color:#3a3b40;">See how it works</a>
+      </div>
+      <div class="cta-note"><i data-lucide="shield-check" class="lucide"></i> No card required · Set up in under 5 minutes</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================================================ FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <a class="brand" href="#top"><span class="mark"><i data-lucide="hammer" class="lucide"></i></span> Buildlogg</a>
+        <p class="footer-blurb">The job app for working alone. Quote, book and track jobs, from your van, on your phone.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/app/">Add to Home Screen</a>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+    <div class="footer-badges">
+      <span><i data-lucide="lock" class="lucide"></i> Data stored in the UK</span>
+      <span><i data-lucide="file-x" class="lucide"></i> No contracts</span>
+      <span><i data-lucide="wifi-off" class="lucide"></i> Works offline</span>
+    </div>
+    <div class="footer-bot">
+      <span>© 2026 Buildlogg. Made for people who work with their hands.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+
+  // sticky nav shadow
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // mobile menu toggle
+  const burger = document.querySelector('.nav-burger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (burger && mobileMenu) {
+    burger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      burger.setAttribute('aria-expanded', String(isOpen));
+      burger.innerHTML = isOpen ? '<i data-lucide="x" class="lucide"></i>' : '<i data-lucide="menu" class="lucide"></i>';
+      lucide.createIcons();
+    });
+    mobileMenu.querySelectorAll('a').forEach((a) => {
+      a.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.innerHTML = '<i data-lucide="menu" class="lucide"></i>';
+        lucide.createIcons();
+      });
+    });
+  }
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  const revealEls = document.querySelectorAll('.reveal');
+  revealEls.forEach((el) => io.observe(el));
+
+  function forceAll() {
+    revealEls.forEach((el) => {
+      el.style.transition = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.classList.add('in');
+    });
+  }
+
+  // Some non-interactive render contexts freeze the compositor, so CSS transitions
+  // never advance and reveal elements would stay invisible. Detect that with an
+  // isolated probe; if the compositor is frozen, reveal everything instantly.
+  // In a real (interactive) browser the probe advances and the scroll animations play.
+  function guardAgainstFrozenCompositor() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;transition:opacity 80ms linear;pointer-events:none;';
+    document.body.appendChild(probe);
+    probe.getBoundingClientRect();        // force reflow
+    probe.style.opacity = '1';            // start the transition
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const advanced = parseFloat(getComputedStyle(probe).opacity) > 0.01;
+      probe.remove();
+      if (!advanced) forceAll();
+    }));
+  }
+  guardAgainstFrozenCompositor();
+  // belt-and-braces: if every reveal element is still hidden after a beat, show them.
+  setTimeout(() => {
+    const stillHidden = [...revealEls].filter((el) => parseFloat(getComputedStyle(el).opacity) < 0.05);
+    if (revealEls.length && stillHidden.length === revealEls.length) forceAll();
+  }, 1600);
+</script>
+</body>
 </html>
