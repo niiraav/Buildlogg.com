@@ -464,7 +464,7 @@ export default function Auth() {
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer active:opacity-70 transition-opacity duration-100"
+                className="text-sm font-semibold text-brand-black min-h-11 px-4 cursor-pointer active:opacity-70 transition-opacity duration-100"
               >
                 {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
