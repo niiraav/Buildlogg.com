@@ -111,6 +111,33 @@ export default function Onboarding() {
 
     await db.profiles.put(profile);
 
+    // Try to persist directly to Supabase immediately so the profile survives cross-origin/device reloads.
+    // If it fails, the sync queue will retry later.
+    if (navigator.onLine) {
+      try {
+        const { error: upsertError } = await supabase.from('profiles').upsert({
+          id: profile.id,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          business_name: profile.business_name,
+          trade: profile.trade,
+          trade_other: profile.trade_other,
+          callout_charge: profile.callout_charge,
+          payment_terms: profile.payment_terms,
+          default_labour_description: profile.default_labour_description,
+          default_labour_charge: profile.default_labour_charge,
+          quote_valid_days: profile.quote_valid_days,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+        }, { onConflict: 'id' });
+        if (!upsertError) {
+          await db.profiles.update(profile.id, { _sync_status: 'synced' });
+        }
+      } catch (err) {
+        console.error('[Onboarding] direct Supabase upsert failed:', err);
+      }
+    }
+
     await db.sync_queue.add({
       operation: 'insert',
       table_name: 'profiles',
@@ -226,7 +253,7 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <StickyFooter>
+          <StickyFooter className="px-0">
             <Button
               variant="primary"
               onClick={handleContinueS1}
@@ -318,7 +345,7 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <StickyFooter>
+          <StickyFooter className="px-0">
             <Button
               variant="primary"
               onClick={handleContinueS2}
@@ -486,7 +513,7 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <StickyFooter>
+          <StickyFooter className="px-0">
             <Button variant="primary" onClick={nextStep}>
               Continue →
             </Button>
@@ -517,8 +544,8 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <StickyFooter>
-            <Button variant="primary" onClick={handleContinueS4}>
+          <StickyFooter className="px-0">
+            <Button variant="primary" onClick={handleContinueS4} fullWidth>
               Go to home →
             </Button>
           </StickyFooter>

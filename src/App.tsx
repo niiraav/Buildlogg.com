@@ -99,6 +99,16 @@ function AuthGuard() {
       const resolvedUserId = session?.user.id ?? devUserId ?? null;
       setUserId(resolvedUserId);
       if (resolvedUserId) identifyUser(resolvedUserId);
+
+      // Try to pull the user's profile from Supabase first if it's not locally present.
+      if (navigator.onLine && resolvedUserId) {
+        try {
+          await withTimeout(initialSync(resolvedUserId), 15000);
+        } catch {
+          // silently fail
+        }
+      }
+
       const profile = resolvedUserId ? await db.profiles.get(resolvedUserId) : null;
 
       if (!profile) {
@@ -112,11 +122,6 @@ function AuthGuard() {
       }
 
       if (navigator.onLine && resolvedUserId) {
-        try {
-          await withTimeout(initialSync(resolvedUserId), 15000);
-        } catch {
-          // silently fail
-        }
         await syncWorker().catch(() => {});
       }
 

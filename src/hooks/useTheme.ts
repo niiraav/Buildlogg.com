@@ -6,7 +6,7 @@ function getInitialTheme(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored !== null) return stored === 'true';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return false; // Default to light mode regardless of system preference
   } catch {
     return false;
   }
