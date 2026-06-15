@@ -27,7 +27,7 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
           <h1 className="text-3xl lg:text-4xl xl:text-5xl font-semibold text-brand-black tracking-[-0.03em] leading-[1.08] mb-6">
             Quotes, jobs, and payments from your van.
           </h1>
-          <p className="text-base lg:text-lg font-normal text-brand-dark max-w-md mb-10">
+          <p className="text-base lg:text-lg font-light text-brand-dark max-w-md mb-10">
             Built for UK tradespeople who work alone. Send professional quotes, track jobs and get paid faster — even with no signal.
           </p>
 
