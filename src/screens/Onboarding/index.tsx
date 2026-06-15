@@ -190,6 +190,36 @@ export default function Onboarding() {
     navigate('/', { replace: true });
   };
 
+  // Advance on Enter key from anywhere in the onboarding flow
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      // Let buttons handle their own Enter/click behaviour
+      if (e.target instanceof HTMLButtonElement) return;
+      // Don't submit inside textareas
+      if (e.target instanceof HTMLTextAreaElement) return;
+
+      e.preventDefault();
+
+      if (step === 1 && fullName.trim().length > 0) {
+        handleContinueS1();
+      } else if (
+        step === 2 &&
+        trade &&
+        (trade !== 'other' || tradeOther.trim().length > 0)
+      ) {
+        handleContinueS2();
+      } else if (step === 3) {
+        nextStep();
+      } else if (step === 4) {
+        handleContinueS4();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, fullName, trade, tradeOther, handleContinueS1, handleContinueS2, handleContinueS4, nextStep]);
+
   const firstName = fullName.trim().split(' ')[0] || 'there';
 
   return (
