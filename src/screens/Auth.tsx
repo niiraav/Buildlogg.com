@@ -40,13 +40,6 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => {
-    try {
-      return localStorage.getItem('buildlogg_remember_me') !== 'false';
-    } catch {
-      return true;
-    }
-  });
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -128,12 +121,6 @@ export default function Auth() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-
-    try {
-      localStorage.setItem('buildlogg_remember_me', String(rememberMe));
-    } catch {
-      // ignore storage errors
-    }
 
     const email = emailInput.trim().toLowerCase();
     const emailError = validateEmail(email);
@@ -402,19 +389,6 @@ export default function Auth() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                id="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-5 h-5 rounded-md border-2 border-brand-border accent-brand-black cursor-pointer"
-              />
-              <label htmlFor="remember-me" className="text-sm text-brand-mid cursor-pointer select-none">
-                Remember me on this device
-              </label>
             </div>
 
             {mode === 'signup' && (

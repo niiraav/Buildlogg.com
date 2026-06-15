@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { clientsClaim } from 'workbox-core';
 
 declare const self: ServiceWorkerGlobalScope;
@@ -24,6 +25,12 @@ self.addEventListener('message', (event) => {
 
 // Precache all assets injected by VitePWA build
 precacheAndRoute(self.__WB_MANIFEST);
+
+// SPA fallback: any navigation under /app/* should serve the PWA shell
+// from the precache. This keeps refreshes and direct links inside the app
+// even if the network or the Pages middleware is slow/unavailable.
+const appHandler = createHandlerBoundToURL('/pwa/index.html');
+registerRoute(new NavigationRoute(appHandler, { allowlist: [/^\/app(\/|$)/] }));
 
 // Clean up old caches
 cleanupOutdatedCaches();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -10,7 +10,7 @@ import {
 } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabase';
-import { db } from './lib/db';
+import { db, type Profile } from './lib/db';
 import { useAppStore } from './store/useAppStore';
 import { syncWorker } from './lib/sync';
 import { identifyUser, capture, initAnalytics } from './lib/analytics';
@@ -65,6 +65,7 @@ function AuthGuard() {
   const setOnline = useAppStore((s) => s.setOnline);
   const location = useLocation();
   const [checking, setChecking] = useState(true);
+  const initialCheckDone = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -100,16 +101,28 @@ function AuthGuard() {
       setUserId(resolvedUserId);
       if (resolvedUserId) identifyUser(resolvedUserId);
 
-      // Try to pull the user's profile from Supabase first if it's not locally present.
-      if (navigator.onLine && resolvedUserId) {
+      // Ensure the user's profile exists locally. If it doesn't, try to restore
+      // it directly from Supabase before deciding they need onboarding. This
+      // fixes the bug where existing users were sent back to onboarding on
+      // refresh because the full initialSync bundle (which waits for jobs,
+      // customers, etc.) timed out before the profile could be written.
+      let profile = resolvedUserId ? await db.profiles.get(resolvedUserId) : null;
+      if (!profile && navigator.onLine && resolvedUserId) {
         try {
-          await withTimeout(initialSync(resolvedUserId), 15000);
+          // .single() returns a PostgrestBuilder, not a native Promise. Chain
+          // .then() so withTimeout receives a real Promise and TypeScript is happy.
+          const { data, error } = await withTimeout(
+            (supabase.from('profiles').select('*').eq('id', resolvedUserId).single().then((r: { data: Profile | null; error: Error | null }) => r) as Promise<{ data: Profile | null; error: Error | null }>),
+            5000
+          );
+          if (data && !error) {
+            await db.profiles.put({ ...data, _sync_status: 'synced' });
+            profile = await db.profiles.get(resolvedUserId);
+          }
         } catch {
-          // silently fail
+          // silently fall through to local-only check
         }
       }
-
-      const profile = resolvedUserId ? await db.profiles.get(resolvedUserId) : null;
 
       if (!profile) {
         navigate('/onboarding', { replace: true });
@@ -121,10 +134,14 @@ function AuthGuard() {
         navigate('/', { replace: true });
       }
 
+      // Pull the rest of the user's data in the background; don't block the
+      // dashboard on this large sync.
       if (navigator.onLine && resolvedUserId) {
-        await syncWorker().catch(() => {});
+        withTimeout(initialSync(resolvedUserId), 30000).catch(() => {});
+        syncWorker().catch(() => {});
       }
 
+      initialCheckDone.current = true;
       setChecking(false);
     }
 
@@ -154,10 +171,16 @@ function AuthGuard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       if (!session) {
-        const devUserId = import.meta.env.DEV ? useAppStore.getState().userId : null;
-        if (!devUserId) {
-          setUserId(null);
-          navigate('/auth' + window.location.search, { replace: true });
+        // Only react to sign-out events once the initial session check has
+        // finished. The initial onAuthStateChange event can fire with null
+        // before getSession() has read the persisted session from storage,
+        // which would otherwise redirect the user to /auth prematurely.
+        if (initialCheckDone.current) {
+          const devUserId = import.meta.env.DEV ? useAppStore.getState().userId : null;
+          if (!devUserId) {
+            setUserId(null);
+            navigate('/auth' + window.location.search, { replace: true });
+          }
         }
       } else {
         setUserId(session.user.id);
