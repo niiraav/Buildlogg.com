@@ -119,7 +119,8 @@ export default function Auth() {
     };
   }, [navigate]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     const email = emailInput.trim().toLowerCase();
     const emailError = validateEmail(email);
     if (emailError) {
@@ -333,7 +334,7 @@ export default function Auth() {
         Buildlogg
       </div>
 
-      <div className="w-full flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
         <div>
           <h1 className="text-xl font-bold text-brand-black">
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
@@ -416,8 +417,8 @@ export default function Auth() {
 
             <div className="mt-2">
               <Button
+                type="submit"
                 variant="primary"
-                onClick={handleSubmit}
                 disabled={loading}
                 fullWidth
               >
@@ -429,6 +430,7 @@ export default function Auth() {
 
             <div className="text-center mt-2 flex flex-col gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setMode(mode === 'signin' ? 'signup' : 'signin');
                   setError('');
@@ -442,6 +444,7 @@ export default function Auth() {
 
               {mode === 'signin' && (
                 <button
+                  type="button"
                   onClick={handleForgotPassword}
                   disabled={loading}
                   className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer disabled:opacity-50 active:opacity-70 transition-opacity duration-100"
@@ -465,12 +468,14 @@ export default function Auth() {
               Mock Sign In (Test Mode)
             </Button>
             <button
+              type="button"
               onClick={() => { haptic('light'); setEmailInput('test@example.com'); setPassword('password123'); }}
               className="h-11 w-full rounded-lg text-sm font-medium text-brand-mid cursor-pointer bg-transparent active:opacity-70 transition-opacity duration-100"
             >
               Fill Test Credentials
             </button>
             <button
+              type="button"
               onClick={handleResetDevData}
               className="h-11 w-full rounded-lg text-sm font-medium text-status-red cursor-pointer active:opacity-70 transition-opacity duration-100"
             >
@@ -478,7 +483,7 @@ export default function Auth() {
             </button>
           </div>
         )}
-      </div>
+      </form>
     </AuthDesktopLayout>
   );
 }
