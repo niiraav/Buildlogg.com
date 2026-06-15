@@ -278,7 +278,7 @@ export default function Onboarding() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {/* Business Name */}
               <div>
                 <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
