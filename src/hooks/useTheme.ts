@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
-const STORAGE_KEY = 'tradepad_dark_mode';
+const STORAGE_KEY = 'buildlogg_dark_mode';
 
 function getInitialTheme(): boolean {
   try {
@@ -24,7 +24,7 @@ export function useTheme() {
     }
     try {
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', isDark ? '#111827' : '#FFFFFF');
+      if (meta) meta.setAttribute('content', isDark ? '#0a0a0a' : '#FFFFFF');
     } catch { /* ignore */ }
     try {
       localStorage.setItem(STORAGE_KEY, String(isDark));

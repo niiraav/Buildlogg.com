@@ -1,3 +1,2 @@
-# Cloudflare Pages — SPA fallback
-# Serve index.html for all client-side routes (200 = rewrite, not redirect)
-/* /index.html 200
+# Cloudflare Pages redirect rules
+# (PWA routing is handled by functions/_middleware.js)

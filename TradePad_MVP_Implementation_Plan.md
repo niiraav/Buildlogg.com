@@ -1,4 +1,4 @@
-# TradePad — MVP Implementation Plan
+# Buildlogg — MVP Implementation Plan
 
 > **Status**: R2 (Business Name Dead-End) is SOLVED. This plan covers the remaining 8 Must Have features.
 > **Target**: Self-employed tradesperson ("Dave") — on-site, gloves, one-handed, poor signal.
@@ -251,7 +251,7 @@ export interface JobPhoto {
   _sync_status: SyncStatus;
 }
 
-// In TradePadDB constructor:
+// In BuildloggDB constructor:
 // this.version(2).stores({
 //   ...existing stores,
 //   job_photos: 'id, job_id, user_id, created_at, _sync_status',
@@ -659,7 +659,7 @@ In the "Add note" textarea in JobDetail, add a mic button below the textarea:
 **Current state**: Hardcoded quick-add buttons (`Pipes`, `Fittings`, `Boiler`, etc.) based on trade type. Clicking adds a description with £0.00 amount.
 **Goal**: User-editable saved items (description + price) that one-tap add to quotes with pre-filled prices.
 
-> **See detailed design in `TradePad_MVP_Recommendations.md` Part 2. This is a summary for implementation planning.**
+> **See detailed design in `Buildlogg_MVP_Recommendations.md` Part 2. This is a summary for implementation planning.**
 
 ### Files to Modify
 
@@ -1051,7 +1051,7 @@ export interface MaterialItem {
   _sync_status: SyncStatus;
 }
 
-// In TradePadDB constructor:
+// In BuildloggDB constructor:
 // this.version(2).stores({
 //   ...existing stores,
 //   material_items: 'id, job_id, user_id, created_at, _sync_status',

@@ -35,6 +35,6 @@ clientsClaim();
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    self.clients.openWindow('/jobs?filter=unpaid')
+    self.clients.openWindow('/app/jobs?filter=unpaid')
   );
 });

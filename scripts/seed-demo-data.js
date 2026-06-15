@@ -1,5 +1,5 @@
 /**
- * TradePad Demo Data Seeder
+ * Buildlogg Demo Data Seeder
  * Run this in the browser console while the app is running at localhost:5173
  * 
  * Usage: Copy this entire file, paste into browser DevTools console, press Enter.
@@ -17,7 +17,7 @@
   }));
 
   if (!db) {
-    console.error('TradePadDB not found. Make sure the app is loaded first.');
+    console.error('BuildloggDB not found. Make sure the app is loaded first.');
     return;
   }
 

@@ -1,5 +1,5 @@
 // ============================================================
-// TradePad Demo Data Seeder — Console Version
+// Buildlogg Demo Data Seeder — Console Version
 // Paste this entire block into browser DevTools console, then press Enter
 // ============================================================
 

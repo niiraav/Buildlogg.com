@@ -60,7 +60,7 @@
   --brand-dark-bg:      #000000;   /* deepest canvas */
 
   --app-bg:             #0a0a0a;   /* body / page background */
-  --app-shell-bg:       #111111;   /* app shell / surface-dark */
+  --app-shell-bg: #0a0a0a;   /* app shell / surface-dark */
   --app-text:           #ffffff;
   --app-text-secondary: #e5e5e5;
   --app-text-muted:     #a1a1aa;

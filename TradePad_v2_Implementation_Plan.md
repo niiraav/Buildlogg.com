@@ -1,4 +1,4 @@
-# TradePad — v2 Implementation Plan
+# Buildlogg — v2 Implementation Plan
 
 > **Features**: Should Have + Could Have recommendations (8 + 3 = 11 features)
 > **Target**: Polishing, efficiency, and differentiation beyond the core MVP loop
@@ -160,7 +160,7 @@ const tabConfig = [
 
 ## R10 — Dismissible Desktop Banner
 
-**Current state**: `DesktopNudge` component shows a permanent banner: "TradePad is designed for your phone — for the best experience, open it on mobile." It blocks the top of the desktop view and has a non-functional X button (or no X button).
+**Current state**: `DesktopNudge` component shows a permanent banner: "Buildlogg is designed for your phone — for the best experience, open it on mobile." It blocks the top of the desktop view and has a non-functional X button (or no X button).
 **Goal**: Make the banner dismissible with a tap on the X button. Store dismissal in `localStorage` so it doesn't reappear on reload.
 
 ### Files to Modify

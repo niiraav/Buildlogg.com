@@ -1,7 +1,7 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of TradePad. PostHog was already bootstrapped (`posthog-js` installed, `src/lib/analytics.ts` wrapping `posthog.init`, `identifyUser` called from `App.tsx`). The wizard extended that foundation with four missing funnel events, user identification on sign-in, and a full dashboard.
+The wizard has completed a deep integration of Buildlogg. PostHog was already bootstrapped (`posthog-js` installed, `src/lib/analytics.ts` wrapping `posthog.init`, `identifyUser` called from `App.tsx`). The wizard extended that foundation with four missing funnel events, user identification on sign-in, and a full dashboard.
 
 ## Changes made
 

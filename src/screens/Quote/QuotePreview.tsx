@@ -165,7 +165,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   };
 
   const handleGoSettings = () => {
-    localStorage.setItem('tradepad_redirected_from_quote', 'true');
+    localStorage.setItem('buildlogg_redirected_from_quote', 'true');
     navigate('/settings');
   };
 

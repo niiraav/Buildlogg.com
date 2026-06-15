@@ -149,7 +149,7 @@ export interface MaterialItem {
   _sync_status: SyncStatus;
 }
 
-class TradePadDB extends Dexie {
+class BuildloggDB extends Dexie {
   profiles!: Table<Profile>;
   customers!: Table<Customer>;
   jobs!: Table<Job>;
@@ -162,7 +162,7 @@ class TradePadDB extends Dexie {
   material_items!: Table<MaterialItem>;
 
   constructor() {
-    super('TradePadDB');
+    super('BuildloggDB');
     this.version(1).stores({
       profiles:    'id, _sync_status',
       customers:   'id, user_id, _sync_status',
@@ -180,4 +180,4 @@ class TradePadDB extends Dexie {
   }
 }
 
-export const db = new TradePadDB();
+export const db = new BuildloggDB();

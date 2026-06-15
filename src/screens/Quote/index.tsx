@@ -70,7 +70,7 @@ export default function Quote() {
   useEffect(() => {
     if (step !== 'missed_call') {
       const state = { step, customerId, jobId, sendMethod, timestamp: Date.now() };
-      localStorage.setItem('tradepad_quote_state', JSON.stringify(state));
+      localStorage.setItem('buildlogg_quote_state', JSON.stringify(state));
     }
   }, [step, customerId, jobId, sendMethod]);
 
@@ -79,7 +79,7 @@ export default function Quote() {
     const saveNow = () => {
       if (step !== 'missed_call') {
         const state = { step, customerId, jobId, sendMethod, timestamp: Date.now() };
-        localStorage.setItem('tradepad_quote_state', JSON.stringify(state));
+        localStorage.setItem('buildlogg_quote_state', JSON.stringify(state));
       }
     };
     // pagehide fires before tab is killed/suspended
@@ -95,14 +95,14 @@ export default function Quote() {
 
   // Restore state from localStorage on mount (handles refresh / PWA reload / tab restore)
   useEffect(() => {
-    const saved = localStorage.getItem('tradepad_quote_state');
+    const saved = localStorage.getItem('buildlogg_quote_state');
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as { step: QuoteStep; customerId?: string; jobId?: string; sendMethod?: SendMethod; timestamp: number };
         // Only restore if less than 24 hours old
         const TTL = 24 * 60 * 60 * 1000; // 24h
         if (parsed.timestamp && (Date.now() - parsed.timestamp) > TTL) {
-          localStorage.removeItem('tradepad_quote_state');
+          localStorage.removeItem('buildlogg_quote_state');
           return;
         }
         if (parsed.step && parsed.step !== 'missed_call') {
@@ -119,7 +119,7 @@ export default function Quote() {
 
   // Clear persisted state when leaving quote flow (completed or cancelled)
   const clearPersistedState = () => {
-    localStorage.removeItem('tradepad_quote_state');
+    localStorage.removeItem('buildlogg_quote_state');
   };
 
   /* Save customer data to Dexie (new or update) */

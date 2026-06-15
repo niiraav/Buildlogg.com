@@ -1,12 +1,12 @@
 // Force dark mode class before React renders to avoid FOUC
 (function () {
   try {
-    const stored = localStorage.getItem("tradepad_dark_mode");
+    const stored = localStorage.getItem("buildlogg_dark_mode");
     const isDark = stored !== null ? stored === "true" : window.matchMedia("(prefers-color-scheme: dark)").matches;
     if (isDark) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", isDark ? "#111827" : "#FFFFFF");
+    if (meta) meta.setAttribute("content", isDark ? "#0a0a0a" : "#FFFFFF");
   } catch (e) {}
 })();
 

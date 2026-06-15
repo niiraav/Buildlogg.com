@@ -24,7 +24,7 @@ export async function checkEndOfDay() {
     .count();
 
   if (unpaidToday > 0 && Notification.permission === 'granted') {
-    new Notification('TradePad', {
+    new Notification('Buildlogg', {
       body: `${unpaidToday} job${unpaidToday > 1 ? 's' : ''} done today. Did you get paid?`,
       icon: '/icons/icon-192.png',
       tag: 'end-of-day-nudge',

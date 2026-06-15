@@ -38,6 +38,11 @@ input, button, textarea, select {
   body { background: var(--app-shell-bg); }
   #app-shell { box-shadow: none; }
 }
+@media (min-width: 1024px) {
+  #app-shell.desktop-split {
+    max-width: none;
+  }
+}
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -699,3 +704,17 @@ input[type="time"]::-webkit-clear-button {
 .dark .bg-orange-500,
 .dark .hover\:bg-orange-500:hover,
 .dark .focus\:bg-orange-500:focus { background-color: #c2410c !important; }
+
+
+
+#app-shell.desktop-split {
+  box-shadow: none;
+}
+
+/* Auth split-screen left panel — slight offset from the main canvas */
+.auth-left-panel {
+  background-color: var(--brand-surface);
+}
+.dark .auth-left-panel {
+  background-color: var(--brand-surface-card);
+}

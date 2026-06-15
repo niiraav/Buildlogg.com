@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# TradePad — Cloudflare Pages Deploy Script
+# Buildlogg — Cloudflare Pages Deploy Script
 # Usage: ./scripts/deploy-cloudflare.sh
 
 cd "$(dirname "$0")/.."
 
-echo "🚀 TradePad → Cloudflare Pages"
+echo "🚀 Buildlogg → Cloudflare Pages"
 
 # 1. Build with production env
 echo "🔧 Building..."

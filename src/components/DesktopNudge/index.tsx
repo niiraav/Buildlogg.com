@@ -14,7 +14,7 @@ export default function DesktopNudge() {
 
   return (
     <div className="bg-brand-black text-brand-surface px-4 py-3 text-sm flex items-center justify-between gap-3">
-      <span>TradePad is designed for your phone — for the best experience, open it on mobile.</span>
+      <span>Buildlogg is designed for your phone — for the best experience, open it on mobile.</span>
       <button
         onClick={() => {
           localStorage.setItem('tp_desktop_nudge_dismissed', '1');

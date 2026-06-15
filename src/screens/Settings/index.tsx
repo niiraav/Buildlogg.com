@@ -67,7 +67,7 @@ export default function Settings() {
   
   // Check if user was redirected from quote flow (missing required info)
   useEffect(() => {
-    const redirected = localStorage.getItem('tradepad_redirected_from_quote') === 'true';
+    const redirected = localStorage.getItem('buildlogg_redirected_from_quote') === 'true';
     setWasRedirectedFromQuote(redirected);
   }, []);
   
@@ -75,7 +75,7 @@ export default function Settings() {
   useEffect(() => {
     if (!wasRedirectedFromQuote) return;
     
-    const saved = localStorage.getItem('tradepad_quote_state');
+    const saved = localStorage.getItem('buildlogg_quote_state');
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved);
@@ -104,7 +104,7 @@ export default function Settings() {
   // Clear the redirect flag when leaving Settings (if not clicking Resume)
   useEffect(() => {
     return () => {
-      localStorage.removeItem('tradepad_redirected_from_quote');
+      localStorage.removeItem('buildlogg_redirected_from_quote');
     };
   }, []);
 
@@ -132,7 +132,7 @@ export default function Settings() {
     if (!confirmed) return;
 
     // Clear local auth markers
-    localStorage.removeItem('tradepad_mock_user');
+    localStorage.removeItem('buildlogg_mock_user');
     useAppStore.getState().setUserId(null);
 
     // Tear down session + DB (fire-and-forget to prevent hang blocking reload)
@@ -193,7 +193,7 @@ export default function Settings() {
             </div>
             <button
               onClick={() => {
-                localStorage.removeItem('tradepad_redirected_from_quote');
+                localStorage.removeItem('buildlogg_redirected_from_quote');
                 navigate(`/quote?step=${draftInfo.step}&jobId=${draftInfo.jobId}`);
               }}
               className="shrink-0 h-9 px-3 bg-amber-700 text-white text-sm font-semibold rounded-lg active:opacity-80 transition-opacity"
@@ -443,7 +443,7 @@ export default function Settings() {
             </div>
             <div
               className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
-              onClick={() => window.open('https://tradepad.app/privacy', '_blank')}
+              onClick={() => window.open('https://buildlogg.com/privacy', '_blank')}
             >
               <span className="text-sm text-brand-dark">Privacy policy</span>
               <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export default function Settings() {
             </div>
             <div
               className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
-              onClick={() => window.open('https://tradepad.app/terms', '_blank')}
+              onClick={() => window.open('https://buildlogg.com/terms', '_blank')}
             >
               <span className="text-sm text-brand-dark">Terms of service</span>
               <div className="flex items-center gap-2">

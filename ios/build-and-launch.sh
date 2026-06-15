@@ -6,9 +6,9 @@ PROJECT_DIR="${SCRIPT_DIR}/TradePad"
 SCHEME="TradePad"
 WORKSPACE="${PROJECT_DIR}/TradePad.xcworkspace"
 SIMULATOR_NAME="iPhone 16"
-BUNDLE_ID="com.tradepad.app"
+BUNDLE_ID="com.buildlogg.app"
 
-echo "=== TradePad iOS Build & Launch ==="
+echo "=== Buildlogg iOS Build & Launch ==="
 
 # Step 1: Generate project with Tuist if needed
 cd "${PROJECT_DIR}"

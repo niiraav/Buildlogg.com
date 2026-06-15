@@ -1,4 +1,4 @@
-# TradePad Code Audit Report
+# Buildlogg Code Audit Report
 **Date:** 2026-06-07  
 **Scope:** Full codebase — dark mode, auth (Twilio + email), general bugs  
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-TradePad is a well-structured React 18 + TypeScript PWA. The core architecture (Zustand + Dexie + Supabase sync queue) is sound, and the dark mode token system is correctly designed. However, there are several issues that will cause user-facing failures right now:
+Buildlogg is a well-structured React 18 + TypeScript PWA. The core architecture (Zustand + Dexie + Supabase sync queue) is sound, and the dark mode token system is correctly designed. However, there are several issues that will cause user-facing failures right now:
 
 **Critical (blocks users today):**
 - Email sign-in succeeds silently — the user is authenticated but never navigated away from the login screen

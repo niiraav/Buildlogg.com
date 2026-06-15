@@ -11,6 +11,7 @@ import { ProgressDots } from '../../components/ProgressDots';
 import { hapticSuccess } from '../../lib/haptics';
 import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
+import AuthDesktopLayout from '../../components/AuthDesktopLayout';
 import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle } from 'lucide-react';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -75,14 +76,7 @@ export default function Onboarding() {
           return;
         }
       } catch {
-        // Supabase not available, continue to mock user check
-      }
-      // Check for mock user (dev testing)
-      const mockUser = localStorage.getItem('tradepad_mock_user');
-      if (mockUser) {
-        const mock = JSON.parse(mockUser);
-        setLocalUserId(mock.id);
-        setEmail(mock.email || '');
+        // Supabase not available
       }
     }
     fetchUser();
@@ -94,12 +88,6 @@ export default function Onboarding() {
 
   const handleWriteProfile = useCallback(async () => {
     let resolvedUserId = userId;
-    if (!resolvedUserId) {
-      const mockUser = localStorage.getItem('tradepad_mock_user');
-      if (mockUser) {
-        resolvedUserId = JSON.parse(mockUser).id;
-      }
-    }
     if (!resolvedUserId) return;
 
     const now = new Date().toISOString();
@@ -168,19 +156,20 @@ export default function Onboarding() {
   const firstName = fullName.trim().split(' ')[0] || 'there';
 
   return (
+    <AuthDesktopLayout variant="onboarding">
     <div className="flex flex-col h-full">
       <ProgressDots total={4} current={step} />
 
       {/* ── S1: Welcome ── */}
       {step === 1 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-4 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Hi, what's your name?
               </h1>
               <p className="text-md text-brand-muted mt-1">
-                Just you for now — you can add your team later.
+                Just you for now. You can add your team later.
               </p>
             </div>
 
@@ -242,7 +231,7 @@ export default function Onboarding() {
       {/* ── S2: Business ── */}
       {step === 2 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-4 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Tell us about your business
@@ -333,7 +322,7 @@ export default function Onboarding() {
       {/* ── S3: Defaults ── */}
       {step === 3 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-4 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Set your defaults
@@ -432,7 +421,7 @@ export default function Onboarding() {
                 </div>
 
                 {showTermsHelp && (
-                  <div className="bg-sky-50 rounded-lg p-3 mb-2 border border-sky-200">
+                  <div className="bg-brand-surface rounded-lg p-3 mb-2 border border-brand-border">
                     <p className="text-sm text-sky-700 leading-relaxed">
                       This is the default way you ask to be paid. It appears on every quote you send. You can change it for any individual job.
                     </p>
@@ -500,7 +489,7 @@ export default function Onboarding() {
       {/* ── S4: Done ── */}
       {step === 4 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-4 flex-1 flex flex-col items-center justify-center gap-4 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 flex flex-col items-center justify-center gap-4 overflow-y-auto">
             <div className="w-20 h-20 rounded-full bg-status-greenBg flex items-center justify-center">
               <Check size={36} strokeWidth={2.5} className="text-status-green" />
             </div>
@@ -525,5 +514,6 @@ export default function Onboarding() {
         </div>
       )}
     </div>
+    </AuthDesktopLayout>
   );
 }

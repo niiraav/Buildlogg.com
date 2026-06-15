@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# TradePad — Cloudflare Tunnel Setup (for local iPhone testing)
+# Buildlogg — Cloudflare Tunnel Setup (for local iPhone testing)
 # Usage: ./scripts/setup-tunnel.sh
 
-echo "🚧 Setting up Cloudflare Tunnel for TradePad local dev..."
+echo "🚧 Setting up Cloudflare Tunnel for Buildlogg local dev..."
 
 # 1. Check cloudflared
 if ! command -v cloudflared &>/dev/null; then

@@ -2,15 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "TradePad wireframes",
-      "cwd": "/Users/niravarvinda/Workspace/projects/TradePad/wireframes",
+      "name": "Buildlogg wireframes",
+      "cwd": "/Users/niravarvinda/Workspace/projects/Buildlogg/wireframes",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 4000
     },
     {
-      "name": "TradePad app",
-      "cwd": "/Users/niravarvinda/Workspace/projects/TradePad",
+      "name": "Buildlogg app",
+      "cwd": "/Users/niravarvinda/Workspace/projects/Buildlogg",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173

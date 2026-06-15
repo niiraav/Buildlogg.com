@@ -10,6 +10,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
+      injectRegister: false, // manually injected in app/index.html so landing page stays untouched
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
@@ -22,6 +23,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        app: path.resolve(__dirname, 'pwa/index.html'),
+      },
     },
   },
   server: {

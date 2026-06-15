@@ -82,38 +82,6 @@ function AuthGuard() {
       if (!mounted) return;
 
       if (!session) {
-        const mockUser = localStorage.getItem('tradepad_mock_user');
-        if (mockUser) {
-          let mock: { id: string; email?: string } | null = null;
-          try {
-            mock = JSON.parse(mockUser);
-          } catch {
-            localStorage.removeItem('tradepad_mock_user');
-          }
-          if (!mock) {
-            navigate('/auth' + window.location.search, { replace: true });
-            setChecking(false);
-            return;
-          }
-          setUserId(mock.id);
-          identifyUser(mock.id);
-          let profile = null;
-          try {
-            profile = await db.profiles.get(mock.id);
-          } catch {
-            profile = null;
-          }
-          if (!profile) {
-            navigate('/onboarding', { replace: true });
-            setChecking(false);
-            return;
-          }
-          if (location.pathname === '/onboarding') {
-            navigate('/', { replace: true });
-          }
-          setChecking(false);
-          return;
-        }
         navigate('/auth' + window.location.search, { replace: true });
         setChecking(false);
         return;
@@ -171,8 +139,6 @@ function AuthGuard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       if (!session) {
-        const mockUser = localStorage.getItem('tradepad_mock_user');
-        if (mockUser) return;
         setUserId(null);
         navigate('/auth' + window.location.search, { replace: true });
       } else {
@@ -208,6 +174,20 @@ function ScreenTracker() {
   useEffect(() => {
     capture('screen_viewed', { screen: location.pathname });
   }, [location.pathname]);
+  return null;
+}
+
+/* ─── Route-aware shell width helper ─── */
+function DesktopSplitShell() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const shell = document.getElementById('app-shell');
+    if (!shell) return;
+    const isSplit = location.pathname === '/auth' || location.pathname === '/onboarding';
+    shell.classList.toggle('desktop-split', isSplit);
+  }, [location.pathname]);
+
   return null;
 }
 
@@ -322,8 +302,9 @@ export default function App() {
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">
-        <Router>
+        <Router basename="/app">
           <ScreenTracker />
+          <DesktopSplitShell />
           <AppRoutes />
         </Router>
       </div>

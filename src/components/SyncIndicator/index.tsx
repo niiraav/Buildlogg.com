@@ -8,7 +8,7 @@ export default function SyncIndicator() {
   const [hasPending, setHasPending] = useState(false);
 
   // For mock users, never show sync indicator
-  const isMockUser = typeof window !== 'undefined' && !!localStorage.getItem('tradepad_mock_user');
+  const isMockUser = typeof window !== 'undefined' && !!localStorage.getItem('buildlogg_mock_user');
   if (isMockUser) return null;
 
   // Trust syncStatus when it says synced — don't show stale indicator
