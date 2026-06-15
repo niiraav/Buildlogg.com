@@ -13,8 +13,12 @@
     <script>
       (function() {
         try {
+          var path = window.location.pathname;
+          var isAuth = path === '/app/auth' || path.startsWith('/app/auth');
           var stored = localStorage.getItem("buildlogg_dark_mode");
-          var isDark = stored !== null ? stored === "true" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          // Auth pages are always light. In-app pages respect stored preference,
+          // defaulting to light (system preference is ignored).
+          var isDark = !isAuth && stored !== null ? stored === "true" : false;
           if (isDark) document.documentElement.classList.add("dark");
           // Prevent white flash: set body background immediately before any rendering
           document.documentElement.style.backgroundColor = isDark ? "#0a0a0a" : "#FFFFFF";

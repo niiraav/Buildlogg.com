@@ -2,11 +2,19 @@ import { useEffect, useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'buildlogg_dark_mode';
 
+function isAuthPage(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return path === '/app/auth' || path.startsWith('/app/auth');
+}
+
 function getInitialTheme(): boolean {
   try {
+    // Auth pages are always light mode, regardless of stored preference.
+    // In-app pages use the stored preference, defaulting to light.
+    if (isAuthPage()) return false;
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) return stored === 'true';
-    return false; // Default to light mode regardless of system preference
+    return stored !== null ? stored === 'true' : false;
   } catch {
     return false;
   }

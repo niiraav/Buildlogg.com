@@ -1,8 +1,12 @@
 // Force dark mode class before React renders to avoid FOUC
 (function () {
   try {
+    const path = window.location.pathname;
+    const isAuth = path === '/app/auth' || path.startsWith('/app/auth');
     const stored = localStorage.getItem("buildlogg_dark_mode");
-    const isDark = stored !== null ? stored === "true" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Auth pages are always light. In-app pages respect stored preference,
+    // defaulting to light (system preference is ignored).
+    const isDark = !isAuth && stored !== null ? stored === "true" : false;
     if (isDark) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
     const meta = document.querySelector('meta[name="theme-color"]');
