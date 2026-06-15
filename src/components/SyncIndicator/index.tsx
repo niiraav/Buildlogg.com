@@ -7,13 +7,6 @@ export default function SyncIndicator() {
   const syncStatus = useAppStore((s) => s.syncStatus);
   const [hasPending, setHasPending] = useState(false);
 
-  // For mock users, never show sync indicator
-  const isMockUser = typeof window !== 'undefined' && !!localStorage.getItem('buildlogg_mock_user');
-  if (isMockUser) return null;
-
-  // Trust syncStatus when it says synced — don't show stale indicator
-  if (syncStatus === 'synced') return null;
-
   useEffect(() => {
     let mounted = true;
     async function check() {
@@ -31,6 +24,13 @@ export default function SyncIndicator() {
       clearInterval(interval);
     };
   }, [syncStatus]);
+
+  // For mock users, never show sync indicator
+  const isMockUser = typeof window !== 'undefined' && !!localStorage.getItem('buildlogg_mock_user');
+  if (isMockUser) return null;
+
+  // Trust syncStatus when it says synced — don't show stale indicator
+  if (syncStatus === 'synced') return null;
 
   // No pending sync → hide completely
   if (!hasPending) return null;
