@@ -62,7 +62,9 @@ const _supportsSwitch = typeof window !== 'undefined' ? supportsSwitchControl() 
 const USE_IOS_SWITCH = _isiOS || (_isWebKit && _supportsSwitch);
 const USE_VIBRATION = !USE_IOS_SWITCH && typeof navigator !== 'undefined' && !!navigator.vibrate;
 
-console.log('[Haptics] Platform:', USE_IOS_SWITCH ? 'iOS/WebKit switch' : USE_VIBRATION ? 'Vibration API' : 'none');
+if (import.meta.env.DEV) {
+  console.log('[Haptics] Platform:', USE_IOS_SWITCH ? 'iOS/WebKit switch' : USE_VIBRATION ? 'Vibration API' : 'none');
+}
 
 /* ─── Android: Vibration API ─── */
 function vibrateAndroid(pattern: number | number[]): void {

@@ -10,31 +10,54 @@ export function initAnalytics() {
     console.warn('[Analytics] PostHog key not set — events will be no-ops');
     return;
   }
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    person_profiles: 'identified_only',
-    capture_pageview: false, // SPA — we capture manually if needed
-    autocapture: false,      // Keep noise low; we fire explicit events
-  });
-  isReady = true;
+  try {
+    // Cast to `any` because this version's TypeScript types don't include
+    // the newer remote-disable options (they still work at runtime).
+    const posthogConfig: any = {
+      api_host: POSTHOG_HOST,
+      person_profiles: 'identified_only',
+      capture_pageview: false, // SPA — we capture manually if needed
+      autocapture: false,      // Keep noise low; we fire explicit events
+      // Disable remote features that load extra scripts and hit /decide.
+      // This prevents ad-blockers/content-blockers from logging errors for
+      // dead-clicks-autocapture.js and the PostHog decide endpoint.
+      dead_clicks_autocapture: false,
+      advanced_disable_decide: true,
+      advanced_disable_feature_flags: true,
+    };
+    posthog.init(POSTHOG_KEY, posthogConfig);
+    isReady = true;
+  } catch (err) {
+    // Ad-blockers or strict privacy extensions may block the PostHog host
+    // before init completes. Analytics should never break the app.
+    console.warn('[Analytics] PostHog init failed; events will be no-ops.', err);
+    isReady = false;
+  }
+}
+
+function safePostHogCall<T>(fn: () => T): T | undefined {
+  if (!isReady) return undefined;
+  try {
+    return fn();
+  } catch (err) {
+    // Swallow analytics failures so the app keeps working when blocked.
+    if (import.meta.env.DEV) {
+      console.warn('[Analytics] PostHog call failed:', err);
+    }
+    return undefined;
+  }
 }
 
 export function identifyUser(userId: string, traits?: Record<string, unknown>) {
-  if (!isReady) return;
-  posthog.identify(userId, traits);
+  safePostHogCall(() => posthog.identify(userId, traits));
 }
 
 export function resetUser() {
-  if (!isReady) return;
-  posthog.reset();
+  safePostHogCall(() => posthog.reset());
 }
 
 export function capture(event: string, properties?: Record<string, unknown>) {
-  if (!isReady) {
-    // Silently drop when not initialised (dev mode without key, or before init)
-    return;
-  }
-  posthog.capture(event, properties);
+  safePostHogCall(() => posthog.capture(event, properties));
 }
 
 /* ─── Funnel events (typed) ─── */
