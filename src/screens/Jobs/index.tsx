@@ -317,7 +317,6 @@ export default function Jobs() {
       return (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
           <ClipboardList size={40} className="mb-4 opacity-40 text-brand-muted" />
-          <div className="w-14 h-14 rounded-full bg-brand-borderLight flex items-center justify-center mb-3 mx-auto"><ClipboardList size={24} className="text-brand-muted" /></div>
           <p className="text-lg font-bold text-brand-black mb-2">No jobs yet</p>
           <p className="text-sm text-brand-muted leading-relaxed mb-7">
             Log a missed call or create a quote to get your first job on the books.
