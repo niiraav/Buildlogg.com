@@ -91,14 +91,14 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
       {/* Right panel — form / app experience */}
       <div className="flex flex-col h-full min-h-0 overflow-y-auto">
         <div
-          className={`flex-1 min-h-0 p-6 md:p-10 ${
+          className={`flex-1 min-h-0 p-6 md:p-8 lg:p-10 ${
             isAuth ? 'flex items-center justify-center' : 'flex flex-col'
           }`}
         >
           {isAuth ? (
             <div className="w-full max-w-sm">{children}</div>
           ) : (
-            <div className="w-full flex-1 min-h-0">{children}</div>
+            <div className="w-full flex-1 min-h-0 lg:max-w-xl lg:mx-auto">{children}</div>
           )}
         </div>
       </div>
