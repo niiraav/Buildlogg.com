@@ -72,12 +72,8 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
           </ul>
         </div>
 
-        {/* Mobile disclaimer + illustration */}
+        {/* Product illustration */}
         <div className="mt-8 max-w-sm">
-          <p className="text-xs text-brand-mid leading-relaxed mb-4">
-            <span className="font-medium text-brand-black">Built for mobile.</span>{' '}
-            Install the app on your phone for the best experience. A full desktop dashboard is coming soon.
-          </p>
           <img
             src="/images/auth-illustration.png"
             alt="Buildlogg app preview"
