@@ -139,8 +139,9 @@ export default function Settings() {
     supabase.auth.signOut().catch(() => {});
     db.delete().catch(() => {});
 
-    // Navigate and reload in one step — prevents blank-screen race
-    window.location.replace('/auth');
+    // Navigate to the in-app login page and reload — prevents blank-screen race
+    navigate('/auth', { replace: true });
+    window.location.reload();
   };
 
   const fullName = profile?.full_name || '';
