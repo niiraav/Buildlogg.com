@@ -8,8 +8,9 @@ import { showSuccess, showError, showToast } from '../components/Toast/store';
 import { haptic, hapticError, hapticSuccess } from '../lib/haptics';
 import { Button } from '../components/Button';
 import AuthDesktopLayout from '../components/AuthDesktopLayout';
+import { Eye, EyeOff } from 'lucide-react';
 
-type AuthStep = 'email' | 'otp';
+type AuthMode = 'signin' | 'signup';
 
 function validateEmail(email: string): string | null {
   const trimmed = email.trim().toLowerCase();
@@ -19,22 +20,26 @@ function validateEmail(email: string): string | null {
   return null;
 }
 
+function validatePassword(password: string): string | null {
+  if (!password) return 'Enter a password';
+  if (password.length < 8) return 'Password must be at least 8 characters';
+  return null;
+}
+
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const action = searchParams.get('action') === 'signin' ? 'signin' : 'signup';
-  const [step, setStep] = useState<AuthStep>('email');
+  const action = searchParams.get('action') === 'signup' ? 'signup' : 'signin';
+  const [mode, setMode] = useState<AuthMode>(action);
+
   const [emailInput, setEmailInput] = useState('');
-  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -114,118 +119,121 @@ export default function Auth() {
     };
   }, [navigate]);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmailInput(e.target.value);
-    setError('');
-  };
-
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setOtp(val);
-    setError('');
-  };
-
-  const handleSendOtp = async () => {
+  const handleSubmit = async () => {
     const email = emailInput.trim().toLowerCase();
-    const validationError = validateEmail(email);
-    if (validationError) {
-      setError(validationError);
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
     setError('');
     setLoading(true);
+
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: true, emailRedirectTo: 'https://buildlogg.com/app/auth' },
-      });
-      if (otpError) {
-        console.error('[Auth] OTP send error:', otpError);
-        hapticError();
-        showError(otpError.message || 'Could not send code. Try again.');
-        setLoading(false);
-        return;
+      if (mode === 'signin') {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError || !data.session) {
+          hapticError();
+          const message = signInError?.message || 'Could not sign in';
+          showError(message);
+          setError(message);
+          setLoading(false);
+          return;
+        }
+
+        hapticSuccess();
+        showSuccess('Signed in');
+        identifyUser(data.session.user.id, { email });
+        captureUserSignedIn();
+
+        const profile = await db.profiles.get(data.session.user.id);
+        navigate(profile ? '/' : '/onboarding', { replace: true });
+      } else {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: 'https://buildlogg.com/app/auth',
+          },
+        });
+
+        if (signUpError) {
+          hapticError();
+          const message = signUpError?.message || 'Could not create account';
+          showError(message);
+          setError(message);
+          setLoading(false);
+          return;
+        }
+
+        if (!data.session) {
+          // Email confirmation is required on the Supabase side.
+          hapticSuccess();
+          showToast('Account created. Check your email to confirm.', 'info', 4000);
+          setEmailConfirmed(true);
+          setLoading(false);
+          return;
+        }
+
+        hapticSuccess();
+        showSuccess('Account created');
+        identifyUser(data.session.user.id, { email });
+        captureUserSignedIn();
+
+        navigate('/onboarding', { replace: true });
       }
-      hapticSuccess();
-      showToast(`Code sent to ${email}`, 'info', 3000);
-      setStep('otp');
-      setCountdown(60);
     } catch (err) {
-      console.error('[Auth] Send OTP exception:', err);
+      console.error('[Auth] Password auth error:', err);
       hapticError();
       showError('Something went wrong. Try again.');
+      setError('Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) {
-      setError('Enter the 6-digit code');
+  const handleForgotPassword = async () => {
+    const email = emailInput.trim().toLowerCase();
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
       return;
     }
-    const email = emailInput.trim().toLowerCase();
-    setError('');
+
     setLoading(true);
     try {
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email',
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://buildlogg.com/app/auth',
       });
-      if (verifyError || !data.session) {
-        console.error('[Auth] Verify error:', verifyError);
-        hapticError();
-        showError(verifyError?.message || 'Invalid code. Try again.');
-        setLoading(false);
-        return;
+      if (resetError) {
+        showError(resetError.message || 'Could not send reset email');
+        setError(resetError.message || 'Could not send reset email');
+      } else {
+        hapticSuccess();
+        showToast('Password reset email sent', 'info', 3000);
       }
-
-      hapticSuccess();
-      showSuccess("You're in");
-      const userId = data.session.user.id;
-      identifyUser(userId, { email });
-      captureUserSignedIn();
-
-      const profile = await db.profiles.get(userId);
-      navigate(profile ? '/' : '/onboarding', { replace: true });
-    } catch (err) {
-      console.error('[Auth] Verify exception:', err);
-      hapticError();
-      showError('Something went wrong. Try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (countdown > 0) return;
-    const email = emailInput.trim().toLowerCase();
-    setLoading(true);
-    try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: true, emailRedirectTo: 'https://buildlogg.com/app/auth' },
-      });
-      if (otpError) {
-        showError(otpError.message || 'Could not resend code.');
-        return;
-      }
-      hapticSuccess();
-      showToast('Code resent', 'info', 2000);
-      setCountdown(60);
-      setError('');
     } catch (err) {
       showError('Something went wrong. Try again.');
+      setError('Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChangeEmail = () => {
-    setStep('email');
-    setOtp('');
-    setError('');
   };
 
   const handleMockSignIn = useCallback(async () => {
@@ -321,105 +329,126 @@ export default function Auth() {
 
   return (
     <AuthDesktopLayout variant="auth">
-    
       <div className="text-hero font-extrabold text-brand-black mb-8 lg:hidden">
         Buildlogg
       </div>
 
       <div className="w-full flex flex-col gap-4">
-        {step === 'email' && (
-          <>
-            <div>
-              <h1 className="text-xl font-bold text-brand-black">
-                {action === 'signin' ? 'Welcome back' : 'Get started'}
-              </h1>
-              <p className="text-sm text-brand-muted mt-1">
-                {action === 'signin'
-                  ? "We\'ll send you a code to sign in. No password needed."
-                  : "We\'ll send you a 6-digit code. No password needed."}
-              </p>
-            </div>
+        <div>
+          <h1 className="text-xl font-bold text-brand-black">
+            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+          </h1>
+          <p className="text-sm text-brand-muted mt-1">
+            {mode === 'signin'
+              ? 'Enter your email and password to continue.'
+              : 'Enter your email and password to get started.'}
+          </p>
+        </div>
 
+        {emailConfirmed ? (
+          <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
+            <p className="text-sm text-brand-dark leading-relaxed">
+              Check your email for a confirmation link. Once confirmed, you can sign in.
+            </p>
+          </div>
+        ) : (
+          <>
             <div className="flex flex-col gap-1">
               <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Email</label>
-              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-brand-border'}`}>
+              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && !email ? 'border-red-500' : 'border-brand-border'}`}>
                 <input
                   type="email"
                   inputMode="email"
                   placeholder="you@example.com"
                   value={emailInput}
-                  onChange={handleEmailChange}
+                  onChange={(e) => { setEmailInput(e.target.value); setError(''); }}
                   className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
                   autoFocus
                 />
               </div>
-              {error && <p className="text-sm text-status-red mt-1">{error}</p>}
-            </div>
-
-            <div className="mt-2">
-              <Button
-                variant="primary"
-                onClick={handleSendOtp}
-                disabled={loading}
-                fullWidth
-              >
-                {loading ? 'Sending code...' : 'Send code'}
-              </Button>
-            </div>
-          </>
-        )}
-
-        {step === 'otp' && (
-          <>
-            <div>
-              <h1 className="text-xl font-bold text-brand-black">Enter code</h1>
-              <p className="text-sm text-brand-muted mt-1">
-                We sent a 6-digit code to <span className="font-medium text-brand-black">{email}</span>
-              </p>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Verification Code</label>
-              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-brand-border'}`}>
+              <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Password</label>
+              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && !password ? 'border-red-500' : 'border-brand-border'} pr-2`}>
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="000000"
-                  value={otp}
-                  onChange={handleOtpChange}
-                  className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent tracking-[0.5em] text-center"
-                  autoFocus
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-2 text-brand-mid active:opacity-70 transition-opacity"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
-              {error && <p className="text-sm text-status-red mt-1">{error}</p>}
             </div>
+
+            {mode === 'signup' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Confirm Password</label>
+                <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && password !== confirmPassword ? 'border-red-500' : 'border-brand-border'} pr-2`}>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                    className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="p-2 text-brand-mid active:opacity-70 transition-opacity"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-status-red">{error}</p>}
 
             <div className="mt-2">
               <Button
                 variant="primary"
-                onClick={handleVerifyOtp}
-                disabled={loading || otp.length !== 6}
+                onClick={handleSubmit}
+                disabled={loading}
                 fullWidth
-                hapticPattern="medium"
               >
-                {loading ? 'Verifying...' : 'Verify'}
+                {loading
+                  ? mode === 'signin' ? 'Signing in...' : 'Creating account...'
+                  : mode === 'signin' ? 'Sign in' : 'Create account'}
               </Button>
             </div>
 
             <div className="text-center mt-2 flex flex-col gap-2">
               <button
-                onClick={handleResendOtp}
-                disabled={countdown > 0 || loading}
-                className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer disabled:opacity-50 active:opacity-70 transition-opacity duration-100"
-              >
-                {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}
-              </button>
-              <button
-                onClick={handleChangeEmail}
+                onClick={() => {
+                  setMode(mode === 'signin' ? 'signup' : 'signin');
+                  setError('');
+                  setPassword('');
+                  setConfirmPassword('');
+                }}
                 className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer active:opacity-70 transition-opacity duration-100"
               >
-                Change email
+                {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
+
+              {mode === 'signin' && (
+                <button
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer disabled:opacity-50 active:opacity-70 transition-opacity duration-100"
+                >
+                  Forgot password?
+                </button>
+              )}
             </div>
           </>
         )}
@@ -436,10 +465,10 @@ export default function Auth() {
               Mock Sign In (Test Mode)
             </Button>
             <button
-              onClick={() => { haptic('light'); setEmailInput('test@example.com'); }}
+              onClick={() => { haptic('light'); setEmailInput('test@example.com'); setPassword('password123'); }}
               className="h-11 w-full rounded-lg text-sm font-medium text-brand-mid cursor-pointer bg-transparent active:opacity-70 transition-opacity duration-100"
             >
-              Fill Test Email
+              Fill Test Credentials
             </button>
             <button
               onClick={handleResetDevData}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAppStore } from '../../store/useAppStore';
 import { captureUserSignedUp, capture } from '../../lib/analytics';
-import { showSuccess } from '../../components/Toast/store';
+import { showSuccess, showError } from '../../components/Toast/store';
 import { supabase } from '../../lib/supabase';
 import { db } from '../../lib/db';
 import type { Profile } from '../../lib/db';
@@ -43,6 +43,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   
   const setUserId = useAppStore((s) => s.setUserId);
+  const storeUserId = useAppStore((s) => s.userId);
   const [userId, setLocalUserId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
@@ -87,7 +88,7 @@ export default function Onboarding() {
   }, []);
 
   const handleWriteProfile = useCallback(async () => {
-    let resolvedUserId = userId;
+    let resolvedUserId = userId || storeUserId;
     if (!resolvedUserId) return;
 
     const now = new Date().toISOString();
@@ -143,10 +144,19 @@ export default function Onboarding() {
     nextStep();
   };
 
-  
-    const handleContinueS4 = async () => {
+  const handleContinueS2 = () => {
+    if (!trade) return;
+    if (trade === 'other' && tradeOther.trim().length === 0) return;
+    nextStep();
+  };
+
+  const handleContinueS4 = async () => {
     const resolvedUserId = await handleWriteProfile();
-    if (resolvedUserId) setUserId(resolvedUserId);
+    if (!resolvedUserId) {
+      showError('Could not save profile. Please try again.');
+      return;
+    }
+    setUserId(resolvedUserId);
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
     captureUserSignedUp(trade, window.location.search);
@@ -309,11 +319,12 @@ export default function Onboarding() {
           </div>
 
           <StickyFooter>
-            <Button variant="primary" onClick={nextStep}>
+            <Button
+              variant="primary"
+              onClick={handleContinueS2}
+              disabled={!trade || (trade === 'other' && tradeOther.trim().length === 0)}
+            >
               Continue →
-            </Button>
-            <Button variant="ghost" onClick={skip}>
-              Skip — I'll set this up later
             </Button>
           </StickyFooter>
         </div>

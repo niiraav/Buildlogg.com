@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Clipboard, AlertTriangle, Phone } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Clipboard, Phone } from 'lucide-react';
 import { db, type Job, type LineItem, type Customer, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
@@ -73,8 +73,9 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
   /* ─── derived ─── */
   const total = items.reduce((sum, i) => sum + i.amount, 0);
-  const businessName = profile?.business_name || '';
-  const hasBusinessName = businessName.trim().length > 0;
+  const businessName = profile?.business_name || profile?.full_name || 'Your business';
+  const hasBusinessName = !!(profile?.business_name?.trim() || profile?.full_name?.trim());
+  const isUsingFallbackName = !profile?.business_name && !!profile?.full_name;
   const quoteNumber = job?.quote_number || '';
   const quoteValidDays = profile?.quote_valid_days ?? 30;
   const customerName = customer?.name || '';
@@ -210,17 +211,16 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
         {/* Business name nudge */}
-        {!hasBusinessName && (
-          <div className="bg-status-amberMid border border-amber-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
-            <AlertTriangle size={16} className="shrink-0 text-status-amber" />
+        {isUsingFallbackName && (
+          <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-status-amberDark">
-                Add your business name before sending
+              <p className="text-sm font-medium text-status-blue">
+                Using your name on the quote. Add a business name in Settings for a more professional look.
               </p>
             </div>
             <button
               onClick={handleGoSettings}
-              className="text-sm font-medium text-status-amberDark underline underline-offset-2 cursor-pointer shrink-0"
+              className="text-sm font-medium text-status-blue underline underline-offset-2 cursor-pointer shrink-0"
             >
               Settings →
             </button>

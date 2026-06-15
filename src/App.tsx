@@ -81,15 +81,25 @@ function AuthGuard() {
 
       if (!mounted) return;
 
-      if (!session) {
+      // Dev fallback: mock sign-in only sets the app-store userId, not a real Supabase session.
+      let devUserId = import.meta.env.DEV ? useAppStore.getState().userId : null;
+      if (import.meta.env.DEV && !devUserId) {
+        try {
+          const mock = localStorage.getItem('buildlogg_mock_user');
+          if (mock) devUserId = JSON.parse(mock).id || null;
+        } catch {}
+      }
+
+      if (!session && !devUserId) {
         navigate('/auth' + window.location.search, { replace: true });
         setChecking(false);
         return;
       }
 
-      setUserId(session.user.id);
-      identifyUser(session.user.id);
-      const profile = await db.profiles.get(session.user.id);
+      const resolvedUserId = session?.user.id ?? devUserId ?? null;
+      setUserId(resolvedUserId);
+      if (resolvedUserId) identifyUser(resolvedUserId);
+      const profile = resolvedUserId ? await db.profiles.get(resolvedUserId) : null;
 
       if (!profile) {
         navigate('/onboarding', { replace: true });
@@ -101,9 +111,9 @@ function AuthGuard() {
         navigate('/', { replace: true });
       }
 
-      if (navigator.onLine) {
+      if (navigator.onLine && resolvedUserId) {
         try {
-          await withTimeout(initialSync(session.user.id), 15000);
+          await withTimeout(initialSync(resolvedUserId), 15000);
         } catch {
           // silently fail
         }
@@ -139,8 +149,11 @@ function AuthGuard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       if (!session) {
-        setUserId(null);
-        navigate('/auth' + window.location.search, { replace: true });
+        const devUserId = import.meta.env.DEV ? useAppStore.getState().userId : null;
+        if (!devUserId) {
+          setUserId(null);
+          navigate('/auth' + window.location.search, { replace: true });
+        }
       } else {
         setUserId(session.user.id);
         identifyUser(session.user.id);
