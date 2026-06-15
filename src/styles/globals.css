@@ -27,7 +27,8 @@ input, button, textarea, select {
   color: var(--app-text);
   position: relative;
   overflow-x: hidden;
-  box-shadow: 0 0 40px rgba(0,0,0,.08);
+  /* No shadow in light mode so the shell blends seamlessly with the body canvas.
+     Dark mode keeps a subtle shadow for depth. */
 }
 
 .dark #app-shell {
