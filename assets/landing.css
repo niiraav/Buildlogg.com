@@ -206,7 +206,7 @@ a { color: inherit; text-decoration: none; }
 }
 .phone.sm { width: 280px; }
 .phone.sm .screen { height: 580px; }
-.statusbar { height: 40px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 22px 0 26px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.statusbar { height: 40px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .statusbar .right { display: flex; align-items: center; gap: 6px; }
 .statusbar .right .lucide { font-size: 15px; }
 .app { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
