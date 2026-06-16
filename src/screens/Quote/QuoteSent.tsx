@@ -75,7 +75,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
   return (
     <div className="flex flex-col h-full">
       {/* Empty header spacer for alignment */}
-      <div className="px-4 pt-2 pb-3 border-b border-brand-borderLight shrink-0 flex items-center justify-between opacity-0">
+      <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 flex items-center justify-between opacity-0">
         <div className="min-h-11 pr-4 text-sm font-medium">&nbsp;</div>
         <div className="text-base font-bold">&nbsp;</div>
         <div className="min-h-11 text-sm">&nbsp;</div>

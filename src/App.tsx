@@ -312,7 +312,7 @@ function AppRoutes() {
             transition={transition}
             className={`absolute inset-0 flex flex-col ${isDeepRoute ? 'md:items-center' : ''}`}
           >
-            <div className={`h-full w-full ${isDeepRoute ? 'md:max-w-[640px]' : ''}`}>
+            <div className="h-full w-full">
               <Routes location={location}>
               <Route path="/auth" element={<Auth />} />
               <Route element={<AuthGuard />}>

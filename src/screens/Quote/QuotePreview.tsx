@@ -191,7 +191,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-2 pb-3 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
+      <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
