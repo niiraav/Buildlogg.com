@@ -296,11 +296,12 @@ function AppRoutes() {
 
   const isAuthOrOnboarding =
     location.pathname === '/auth' || location.pathname === '/onboarding';
+  const isDeepRoute = !isTab(location.pathname) && !isAuthOrOnboarding;
 
   const appContent = (
     <>
       {/* Content area — animated only for deep navigation */}
-      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
+      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''} ${isDeepRoute ? 'md:max-w-[640px] md:mx-auto' : ''}`}>
         <AnimatePresence mode={animatePresenceMode} initial={false}>
           <motion.div
             key={location.pathname}
