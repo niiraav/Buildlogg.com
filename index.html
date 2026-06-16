@@ -42,7 +42,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/landing.css?v=7" />
+<link rel="stylesheet" href="assets/landing.css?v=8" />
 <script src="https://unpkg.com/lucide@0.460.0"></script>
 </head>
 <body>
@@ -325,7 +325,7 @@
         <a href="#how">How it works</a>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
-        <a href="/app/">Add to Home Screen</a>
+        <button type="button" class="install-trigger" id="install-trigger">Add to Home Screen</button>
       </div>
       <div class="footer-col">
         <h5>Company</h5>
@@ -343,7 +343,29 @@
       <span>© 2026 Buildlogg. Made for people who work with their hands.</span>
     </div>
   </div>
+
 </footer>
+
+<div class="install-modal" id="install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title">
+  <div class="install-modal-backdrop" data-close></div>
+  <div class="install-modal-card">
+    <button type="button" class="install-modal-close" data-close aria-label="Close">
+      <i data-lucide="x" class="lucide"></i>
+    </button>
+    <div class="install-modal-icon">
+      <i data-lucide="smartphone" class="lucide"></i>
+    </div>
+    <h3 id="install-title">Add Buildlogg to your home screen</h3>
+    <p class="install-modal-subtitle">Open the app in one tap, like a native app.</p>
+    <div id="install-modal-content">
+      <ol class="install-steps" id="install-steps"></ol>
+      <div class="install-modal-installed" id="install-installed" hidden>Buildlogg is already installed. Open it from your home screen.</div>
+      <p class="install-modal-note" id="install-note" hidden></p>
+      <button type="button" class="install-modal-action" id="install-modal-action" hidden>Install Buildlogg</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
   lucide.createIcons();
@@ -412,6 +434,102 @@
     const stillHidden = [...revealEls].filter((el) => parseFloat(getComputedStyle(el).opacity) < 0.05);
     if (revealEls.length && stillHidden.length === revealEls.length) forceAll();
   }, 1600);
+  // Add to Home Screen / install modal
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isChrome = /chrome|crios/i.test(navigator.userAgent) && !/edge|edg/i.test(navigator.userAgent);
+  const isEdge = /edge|edg/i.test(navigator.userAgent);
+
+  const modal = document.getElementById('install-modal');
+  const trigger = document.getElementById('install-trigger');
+  const stepsEl = document.getElementById('install-steps');
+  const installedEl = document.getElementById('install-installed');
+  const noteEl = document.getElementById('install-note');
+  const actionBtn = document.getElementById('install-modal-action');
+
+  function setSteps(steps) {
+    stepsEl.innerHTML = steps.map((s, i) => `<li class="install-step"><span class="num">${i + 1}</span><span>${s}</span></li>`).join('');
+  }
+
+  function openInstallModal() {
+    if (!modal) return;
+    if (isStandalone) {
+      stepsEl.hidden = true;
+      noteEl.hidden = true;
+      actionBtn.hidden = true;
+      installedEl.hidden = false;
+    } else if (deferredInstallPrompt) {
+      stepsEl.hidden = true;
+      installedEl.hidden = true;
+      noteEl.textContent = 'Tap below to install Buildlogg directly from your browser.';
+      noteEl.hidden = false;
+      actionBtn.hidden = false;
+    } else if (isIOS && isSafari) {
+      installedEl.hidden = true;
+      actionBtn.hidden = true;
+      setSteps([
+        'Tap the Share button in Safari (the square with an arrow icon).',
+        'Scroll down and tap <strong>Add to Home Screen</strong>.',
+        'Tap <strong>Add</strong> in the top-right corner.'
+      ]);
+      stepsEl.hidden = false;
+      noteEl.textContent = 'This works in Safari on iPhone and iPad. Other browsers on iOS may not support home-screen shortcuts.';
+      noteEl.hidden = false;
+    } else if (isAndroid) {
+      installedEl.hidden = true;
+      actionBtn.hidden = true;
+      setSteps([
+        'Tap the menu (⋮) in Chrome.',
+        'Tap <strong>Add to Home Screen</strong> or <strong>Install app</strong>.',
+        'Tap <strong>Add</strong> or <strong>Install</strong> when prompted.'
+      ]);
+      stepsEl.hidden = false;
+      noteEl.textContent = 'On some Android phones the browser may show an “Install app” banner at the bottom instead.';
+      noteEl.hidden = false;
+    } else {
+      installedEl.hidden = true;
+      actionBtn.hidden = true;
+      setSteps([
+        'Look for the install icon in the address bar (Chrome or Edge).',
+        'Click it and choose <strong>Install Buildlogg</strong>.',
+        'The app will open in its own window from your desktop or taskbar.'
+      ]);
+      stepsEl.hidden = false;
+      noteEl.textContent = 'On desktop, install is supported in Chrome, Edge, and Brave. Safari on Mac does not support installing PWAs.';
+      noteEl.hidden = false;
+    }
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    lucide.createIcons();
+  }
+
+  function closeInstallModal() {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  if (trigger) trigger.addEventListener('click', openInstallModal);
+  modal.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', closeInstallModal));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeInstallModal(); });
+
+  actionBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') {
+      closeInstallModal();
+    }
+    deferredInstallPrompt = null;
+  });
+
 </script>
 </body>
 </html>

@@ -621,3 +621,32 @@ a { color: inherit; text-decoration: none; }
 .footer-badges { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 18px 0; border-bottom: 1px solid #26272b; margin-bottom: 8px; font-size: 13px; color: var(--on-dark-mute); }
 .footer-badges span { display: inline-flex; align-items: center; gap: 7px; }
 .footer-badges .lucide { font-size: 14px; }
+
+
+/* ---------- Add-to-home-screen modal ---------- */
+.footer-col .install-trigger {
+  display: block; width: 100%; font-size: 14px; color: var(--on-dark-soft);
+  padding: 6px 0; transition: color var(--ease) .15s; background: transparent;
+  border: 0; cursor: pointer; text-align: left; font-family: inherit; line-height: 1.5;
+}
+.footer-col .install-trigger:hover { color: #fff; }
+
+.install-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 24px; }
+.install-modal.open { display: flex; }
+.install-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+.install-modal-card { position: relative; width: 100%; max-width: 380px; background: var(--canvas); border-radius: var(--r-xl); padding: 26px; box-shadow: var(--sh-float); text-align: center; }
+.install-modal-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s; }
+.install-modal-close:hover { background: var(--surface-card); color: var(--ink); }
+.install-modal-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--surface-card); color: var(--ink); display: grid; place-items: center; margin: 0 auto 14px; }
+.install-modal-icon .lucide { font-size: 26px; }
+.install-modal-card h3 { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 6px; }
+.install-modal-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+.install-steps { text-align: left; list-style: none; margin: 0 0 20px; padding: 0; }
+.install-step { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--body); line-height: 1.5; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.install-step:last-child { border-bottom: 0; }
+.install-step .num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+.install-modal-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 18px; }
+.install-modal-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-family: inherit; font-size: 15px; font-weight: 600; color: #fff; background: var(--primary); border: 0; border-radius: var(--r-btn); padding: 12px 18px; cursor: pointer; transition: background .15s; }
+.install-modal-action:hover { background: var(--primary-active); }
+.install-modal-action[hidden] { display: none; }
+.install-modal-installed { background: var(--green-bg); color: var(--green); border-radius: var(--r-card); padding: 12px; font-size: 14px; font-weight: 500; margin-bottom: 18px; }
