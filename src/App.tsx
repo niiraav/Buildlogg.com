@@ -193,6 +193,16 @@ function AuthGuard() {
       } else {
         setUserId(session.user.id);
         identifyUser(session.user.id);
+        // If the persisted session arrives after the initial getSession() race
+        // sent us to /auth, mark the initial check done and recover the user
+        // into the app so they don't stay stuck on the sign-in screen.
+        initialCheckDone.current = true;
+        if (location.pathname === '/auth') {
+          db.profiles.get(session.user.id).then((profile) => {
+            if (!mounted) return;
+            navigate(profile ? '/' : '/onboarding', { replace: true });
+          });
+        }
       }
     });
 
