@@ -272,7 +272,7 @@ export default function Settings() {
                     </>
                   ) : (
                     <>
-                      <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-error italic' : 'text-brand-black'}`}>
+                      <span className={`text-base font-medium ${businessNameEmpty ? 'text-status-error italic' : 'text-brand-black'}`}>
                         {businessNameEmpty ? 'Tap to add ›' : businessName}
                       </span>
                       <ChevronRight size={14} className="text-brand-muted" />
@@ -301,7 +301,7 @@ export default function Settings() {
             >
               <span className="text-sm font-medium text-brand-dark">Trade</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-brand-black">
+                <span className="text-base font-medium text-brand-black">
                   {trade
                     ? trade === 'other' && profile?.trade_other
                       ? profile.trade_other
@@ -326,7 +326,7 @@ export default function Settings() {
             >
               <span className="text-sm font-medium text-brand-dark">Saved items</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-brand-black">
+                <span className="text-base font-medium text-brand-black">
                   {customItemCount} saved
                 </span>
                 <ChevronRight size={14} className="text-brand-muted" />
@@ -347,7 +347,7 @@ export default function Settings() {
             >
               <span className="text-sm font-medium text-brand-dark">Payment terms</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-brand-black">
+                <span className="text-base font-medium text-brand-black">
                   {PAYMENT_OPTIONS.find((p) => p.value === paymentTerms)?.label || paymentTerms}
                 </span>
                 <ChevronRight size={14} className="text-brand-muted" />
