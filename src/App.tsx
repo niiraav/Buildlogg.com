@@ -300,7 +300,7 @@ function AppRoutes() {
   const appContent = (
     <>
       {/* Content area — animated only for deep navigation */}
-      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
+      <div className="flex-1 min-h-0 relative overflow-hidden">
         <AnimatePresence mode={animatePresenceMode} initial={false}>
           <motion.div
             key={location.pathname}
@@ -343,14 +343,14 @@ function AppRoutes() {
   }
 
   return (
-    <div className="grid h-full min-h-full lg:grid-cols-2">
+    <div className="grid h-full min-h-full lg:grid-cols-2 overflow-hidden">
       {/* Left panel — contextual help, desktop only */}
       <div className="hidden lg:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto">
         <AppDesktopContext />
       </div>
 
       {/* Right panel — app content */}
-      <div className="flex flex-col h-full min-h-0 overflow-y-auto">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden relative">
         {appContent}
       </div>
     </div>
@@ -369,7 +369,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col h-[100dvh]">
+    <div id="app-shell" className="flex flex-col h-[100dvh] overflow-hidden">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">

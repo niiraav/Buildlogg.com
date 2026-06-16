@@ -338,7 +338,7 @@ export default function Jobs() {
     const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
 
     return (
-      <div className="flex-1 px-4 pt-4 pb-2 overflow-y-auto min-h-0">
+      <div className="flex-1 min-h-0 overscroll-contain px-4 pt-4 pb-28 overflow-y-auto">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>

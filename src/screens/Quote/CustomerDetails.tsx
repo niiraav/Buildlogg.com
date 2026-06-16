@@ -144,7 +144,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 min-h-0 overscroll-contain overflow-y-auto px-4 pt-4 pb-2">
         {customerStrip}
 
         <div className="mb-5">

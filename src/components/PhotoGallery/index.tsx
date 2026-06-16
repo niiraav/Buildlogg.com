@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
-import { capturePhoto } from '../../lib/photoCapture';
+import { capturePhoto, pickPhotoFromLibrary } from '../../lib/photoCapture';
+import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { db, type JobPhoto } from '../../lib/db';
 
 interface PhotoGalleryProps {
@@ -18,13 +19,9 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 }) => {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
 
-  const handleCapture = async () => {
-    if (photos.length >= 10) return;
-    haptic('medium');
-    const dataUrl = await capturePhoto();
-    if (!dataUrl) return;
-
+  const savePhoto = async (dataUrl: string) => {
     const photo: JobPhoto = {
       id: crypto.randomUUID(),
       job_id: jobId,
@@ -46,6 +43,26 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     });
     onPhotosChange();
     onCapture?.();
+  };
+
+  const handleCapture = () => {
+    if (photos.length >= 10) return;
+    haptic('medium');
+    setSourceSheetOpen(true);
+  };
+
+  const handleTakePhoto = async () => {
+    setSourceSheetOpen(false);
+    const dataUrl = await capturePhoto();
+    if (!dataUrl) return;
+    await savePhoto(dataUrl);
+  };
+
+  const handlePickFromLibrary = async () => {
+    setSourceSheetOpen(false);
+    const dataUrl = await pickPhotoFromLibrary();
+    if (!dataUrl) return;
+    await savePhoto(dataUrl);
   };
 
   const handleDelete = async (photoId: string) => {
@@ -101,6 +118,27 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       {photos.length >= 10 && (
         <p className="text-sm text-brand-muted">Max 10 photos reached</p>
       )}
+
+      {/* Photo source picker */}
+      <BottomSheet
+        isOpen={sourceSheetOpen}
+        onClose={() => setSourceSheetOpen(false)}
+        title="Add photo"
+      >
+        <div className="flex flex-col">
+          <SheetRow
+            icon={<Camera size={18} className="text-brand-dark" />}
+            label="Take photo"
+            onTap={handleTakePhoto}
+          />
+          <SheetRow
+            icon={<ImageIcon size={18} className="text-brand-dark" />}
+            label="Choose from library"
+            onTap={handlePickFromLibrary}
+            isLast
+          />
+        </div>
+      </BottomSheet>
 
       {/* Full-screen viewer */}
       {viewerOpen && (

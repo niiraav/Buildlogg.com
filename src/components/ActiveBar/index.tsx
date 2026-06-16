@@ -97,14 +97,16 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
         </div>
 
         {/* Address */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2">
-            <MapPin size={14} className="text-brand-muted flex-shrink-0" />
-            <span className="text-sm text-brand-mid truncate">
-              {customer.address || 'No address'}
-            </span>
+        {customer.address && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2">
+              <MapPin size={14} className="text-brand-muted flex-shrink-0" />
+              <span className="text-sm text-brand-mid truncate">
+                {customer.address}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Call + Message buttons */}
         <div className="px-4 pb-2.5 flex gap-2" onClick={(e) => e.stopPropagation()}>

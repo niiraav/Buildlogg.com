@@ -230,7 +230,7 @@ export default function Onboarding() {
       {/* ── S1: Welcome ── */}
       {step === 1 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-8 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 min-h-0 overscroll-contain overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Hi, what's your name?
@@ -298,7 +298,7 @@ export default function Onboarding() {
       {/* ── S2: Business ── */}
       {step === 2 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-8 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 min-h-0 overscroll-contain overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Tell us about your business
@@ -390,7 +390,7 @@ export default function Onboarding() {
       {/* ── S3: Defaults ── */}
       {step === 3 && (
         <div className="flex-1 flex flex-col">
-          <div className="px-6 pt-8 flex-1 overflow-y-auto">
+          <div className="px-6 pt-8 flex-1 min-h-0 overscroll-contain overflow-y-auto">
             <div className="mb-6">
               <h1 className="text-xl font-extrabold text-brand-black">
                 Set your defaults
