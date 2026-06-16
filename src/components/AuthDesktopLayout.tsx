@@ -15,14 +15,14 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
       <div className="relative hidden md:flex flex-col justify-between auth-left-panel p-8 lg:p-10 overflow-y-auto">
         <div className="max-w-md">
           {/* Wordmark */}
-          <div className="inline-flex items-center gap-2.5 mb-6">
+          <a href="https://buildlogg.com" className="inline-flex items-center gap-2.5 mb-6">
             <span className="w-9 h-9 rounded-lg bg-brand-black text-white grid place-items-center">
               <Hammer size={20} strokeWidth={2.2} />
             </span>
             <span className="text-[22px] font-extrabold tracking-[-0.03em] text-brand-black">
               Buildlogg
             </span>
-          </div>
+          </a>
 
           {/* Headline */}
           <h1 className="text-3xl lg:text-4xl xl:text-[44px] font-semibold text-brand-black tracking-[-0.03em] leading-[1.05] mb-4">

@@ -358,9 +358,9 @@ export default function Auth() {
     <AuthDesktopLayout variant="auth">
       <div className="flex flex-col h-full min-h-0">
         {/* Mobile brand wordmark */}
-        <div className="text-hero font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8">
+        <a href="https://buildlogg.com" className="text-hero font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8 inline-block">
           Buildlogg
-        </div>
+        </a>
 
         {/* Desktop/tablet header */}
         <header className="hidden md:flex items-center justify-end px-6 py-5 lg:px-10 lg:py-6">
