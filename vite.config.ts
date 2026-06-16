@@ -6,6 +6,18 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'app-route-rewrite',
+      apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url?.startsWith('/app/')) {
+            req.url = '/pwa/index.html';
+          }
+          next();
+        });
+      },
+    },
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

@@ -10,6 +10,25 @@
   --brand-surface-card: #F5F5F5;   /* surface-card: feature cards, testimonials */
   --brand-dark-bg:      #101010;   /* surface-dark: footer, deep inverse */
 
+  /* ── Cal-style aliases used by the adaptive left-column design system ───── */
+  --canvas:             var(--app-shell-bg);
+  --surface-soft:       var(--brand-surface);
+  --surface-card:       var(--brand-surface-card);
+  --surface-strong:     var(--brand-border);
+  --ink:                var(--brand-black);
+  --ink-press:          #242424;
+  --body:               var(--brand-dark);
+  --muted:              var(--brand-mid);
+  --muted-soft:         var(--brand-muted);
+  --hairline:           var(--brand-border);
+  --hairline-soft:      var(--brand-border-light);
+  --panel:              #f4f6f9;
+  --success:            #10b981;
+  --warning:            #f59e0b;
+  --badge-violet:       #8b5cf6;
+  --badge-orange:       #fb923c;
+  --brand-accent:       #3b82f6;
+
   --color-black:        var(--brand-black);
   --color-dark:         var(--brand-dark);
   --color-mid:          var(--brand-mid);
@@ -58,6 +77,20 @@
   --brand-surface:      #1a1a1a;   /* surface-dark-elevated: cards, nav-pill, sections */
   --brand-surface-card: #262626;   /* nested card background */
   --brand-dark-bg:      #000000;   /* deepest canvas */
+
+  /* ── Cal-style aliases in dark mode ─────────────────────────────────────── */
+  --canvas:             var(--app-shell-bg);
+  --surface-soft:       var(--brand-surface);
+  --surface-card:       var(--brand-surface-card);
+  --surface-strong:     var(--brand-border);
+  --ink:                var(--app-text);
+  --ink-press:          #e5e5e5;
+  --body:               var(--app-text-secondary);
+  --muted:              var(--brand-mid);
+  --muted-soft:         var(--brand-muted);
+  --hairline:           var(--brand-border);
+  --hairline-soft:      var(--brand-border-light);
+  --panel:              #0f1014;
 
   --app-bg:             #0a0a0a;   /* body / page background */
   --app-shell-bg: #0a0a0a;   /* app shell / surface-dark */

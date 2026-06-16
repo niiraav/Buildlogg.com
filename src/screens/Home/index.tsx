@@ -14,6 +14,7 @@ import { TaskCard } from '../../components/TaskCard';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
+import RecentActivity from '../../components/RecentActivity';
 
 const now = () => new Date().toISOString();
 
@@ -805,6 +806,9 @@ export default function Home() {
           {/* Remaining today strip */}
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
+
+          {/* Recent high-level activity */}
+          <RecentActivity />
 
           {/* No jobs today / All clear */}
           {todayState === 'all_clear' && (

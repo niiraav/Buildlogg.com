@@ -1307,12 +1307,12 @@ export default function JobDetail() {
                   : '—'}
               </span>
             </div>
-            <div className="flex items-center justify-between px-4 py-3 bg-status-greenBg">
+            <div className="flex items-center justify-between px-4 py-3 bg-status-blueBg">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-medium text-status-green">In progress</span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-sm font-medium text-status-blue">In progress</span>
               </div>
-              <span className="text-sm font-bold text-status-green font-mono">
+              <span className="text-sm font-bold text-status-blue font-mono">
                 {formatElapsed(job.actual_start, elapsedNow)}
               </span>
             </div>
@@ -1449,10 +1449,15 @@ export default function JobDetail() {
 
   const renderInProgressFooter = () => (
     <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
-      <Button variant="primary" onClick={() => setSheet('mark_done')}>
-        <Check size={18} className="mr-2" />
-        Complete & take payment
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="primary" onClick={() => setSheet('mark_done')}>
+          <Check size={18} className="mr-2" />
+          Complete & take payment
+        </Button>
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Close
+        </Button>
+      </div>
     </div>
   );
 

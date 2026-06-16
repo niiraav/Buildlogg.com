@@ -71,12 +71,12 @@ const statusLabels: Record<JobStatus, string> = {
 
 const statusDotClasses: Record<JobStatus, string> = {
   enquiry: 'bg-brand-mid',
-  in_progress: 'bg-status-green',
+  in_progress: 'bg-status-blue',
   booked: 'bg-status-blue',
   quoted: 'bg-purple-600',
   awaiting_payment: 'bg-status-amber',
   no_show: 'bg-amber-800',
-  paid: 'bg-brand-muted',
+  paid: 'bg-status-green',
   cancelled: 'bg-brand-border',
   written_off: 'bg-brand-border',
 };

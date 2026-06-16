@@ -73,8 +73,8 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
         {/* Status row: IN PROGRESS + dot on left, Started time on right */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-status-green inline-block" />
-            <span className="text-micro text-status-green">
+            <span className="w-2.5 h-2.5 rounded-full bg-status-blue inline-block" />
+            <span className="text-micro text-status-blue">
               IN PROGRESS
             </span>
           </div>

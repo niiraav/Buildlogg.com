@@ -7,7 +7,7 @@ export interface ProgressDotsProps {
 
 export const ProgressDots: React.FC<ProgressDotsProps> = ({ total, current }) => {
   return (
-    <div className="flex gap-1.5 px-6 pt-5">
+    <div className="flex gap-1.5 px-6 pt-5 pb-4">
       {Array.from({ length: total }).map((_, i) => {
         const step = i + 1;
         const isActive = step <= current;

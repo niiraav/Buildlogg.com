@@ -336,25 +336,29 @@ function AppRoutes() {
     </>
   );
 
-  // Auth and onboarding render their own two-column layout internally.
-  // Authenticated routes get the persistent contextual left panel.
+  // Auth and onboarding render their own layout internally.
+  // All other authenticated routes (tab routes, quote, job detail, settings, etc.)
+  // are rendered inside the two-column desktop shell with the contextual left panel.
   if (isAuthOrOnboarding) {
-    return <div className="flex flex-col h-full">{appContent}</div>;
+    return <div className="relative flex flex-col h-full">{appContent}</div>;
   }
 
   return (
-    <div className="grid h-full min-h-full lg:grid-cols-2">
-      {/* Left panel — contextual help, desktop only */}
-      <div className="hidden lg:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto">
-        <AppDesktopContext />
-      </div>
+    <div className="h-full min-h-full md:flex md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
+      <div className="grid h-full min-h-full w-full md:grid-cols-[2fr_3fr] md:max-w-[1440px]">
+        {/* Left panel — contextual help (40%) */}
+        <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto">
+          <AppDesktopContext />
+        </div>
 
-      {/* Right panel — app content */}
-      <div className="flex flex-col h-full min-h-0 overflow-y-auto">
-        {appContent}
+        {/* Right panel — app content */}
+        <div className="relative flex flex-col h-full min-h-0 overflow-hidden bg-[var(--app-shell-bg)]">
+          {appContent}
+        </div>
       </div>
     </div>
   );
+
 }
 
 /* ─── App root ─── */

@@ -12,6 +12,8 @@ import { Eye, EyeOff } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup';
 
+const REMEMBER_ME_KEY = 'buildlogg_remember_me';
+
 function validateEmail(email: string): string | null {
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return 'Enter your email address';
@@ -24,6 +26,15 @@ function validatePassword(password: string): string | null {
   if (!password) return 'Enter a password';
   if (password.length < 8) return 'Password must be at least 8 characters';
   return null;
+}
+
+function getInitialRememberMe(): boolean {
+  try {
+    const stored = localStorage.getItem(REMEMBER_ME_KEY);
+    return stored !== null ? stored === 'true' : true;
+  } catch {
+    return true;
+  }
 }
 
 export default function Auth() {
@@ -40,6 +51,7 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [rememberMe, setRememberMe] = useState(getInitialRememberMe);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -144,6 +156,14 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Persist the remember-me choice so the Supabase storage wrapper uses the
+      // correct backend (localStorage for remembered sessions, sessionStorage otherwise).
+      try {
+        localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe));
+      } catch {
+        // ignore storage errors
+      }
+
       if (mode === 'signin') {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -327,164 +347,223 @@ export default function Auth() {
     });
   };
 
-  const email = emailInput.trim().toLowerCase();
+  const switchMode = () => {
+    setMode(mode === 'signin' ? 'signup' : 'signin');
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
+  };
 
   return (
     <AuthDesktopLayout variant="auth">
-      <div className="text-hero font-extrabold text-brand-black mb-8 lg:hidden">
-        Buildlogg
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-brand-black">
-            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
-          </h1>
-          <p className="text-sm text-brand-muted mt-1">
-            {mode === 'signin'
-              ? 'Enter your email and password to continue.'
-              : 'Enter your email and password to get started.'}
-          </p>
+      <div className="flex flex-col h-full min-h-0">
+        {/* Mobile brand wordmark */}
+        <div className="text-hero font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8">
+          Buildlogg
         </div>
 
-        {emailConfirmed ? (
-          <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
-            <p className="text-sm text-brand-dark leading-relaxed">
-              Check your email for a confirmation link. Once confirmed, you can sign in.
-            </p>
+        {/* Desktop/tablet header */}
+        <header className="hidden md:flex items-center justify-end px-6 py-5 lg:px-10 lg:py-6">
+          <div className="text-sm text-brand-mid">
+            {mode === 'signin' ? "New here?" : "Already have an account?"}{' '}
+            <button
+              type="button"
+              onClick={switchMode}
+              className="font-semibold text-brand-black hover:underline"
+            >
+              {mode === 'signin' ? 'Create an account' : 'Sign in'}
+            </button>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-col gap-1">
-              <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Email</label>
-              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && !email ? 'border-red-500' : 'border-brand-border'}`}>
-                <input
-                  type="email"
-                  inputMode="email"
-                  placeholder="you@example.com"
-                  value={emailInput}
-                  onChange={(e) => { setEmailInput(e.target.value); setError(''); }}
-                  className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
-                  autoFocus
-                />
-              </div>
-            </div>
+        </header>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Password</label>
-              <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && !password ? 'border-red-500' : 'border-brand-border'} pr-2`}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-2 text-brand-mid active:opacity-70 transition-opacity"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+        {/* Main form */}
+        <main className="flex-1 flex flex-col md:justify-center px-6 md:px-10">
+          <div className="w-full md:max-w-sm mx-auto">
+            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
+                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+                </h1>
+                <p className="text-base text-brand-mid mt-2">
+                  {mode === 'signin'
+                    ? 'Sign in to continue to your Buildlogg dashboard.'
+                    : 'Enter your email and password to get started.'}
+                </p>
               </div>
-            </div>
 
-            {mode === 'signup' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-label font-bold tracking-[0.4px] text-brand-muted">Confirm Password</label>
-                <div className={`flex items-center border-2 rounded-xl min-h-12 overflow-hidden transition-colors ${error && password !== confirmPassword ? 'border-red-500' : 'border-brand-border'} pr-2`}>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
-                    className="flex-1 text-base text-brand-black outline-none min-h-12 px-4 bg-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="p-2 text-brand-mid active:opacity-70 transition-opacity"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
+              {emailConfirmed ? (
+                <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
+                  <p className="text-sm text-brand-dark leading-relaxed">
+                    Check your email for a confirmation link. Once confirmed, you can sign in.
+                  </p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="email" className="text-sm font-medium text-brand-black">
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      inputMode="email"
+                      placeholder="you@example.com"
+                      value={emailInput}
+                      onChange={(e) => { setEmailInput(e.target.value); setError(''); }}
+                      className={`w-full h-11 px-3.5 text-base text-brand-black bg-transparent border rounded-md outline-none transition-all focus:border-brand-black focus:ring-4 focus:ring-brand-black/5 ${
+                        error && !emailInput.trim() ? 'border-red-500' : 'border-brand-border'
+                      }`}
+                      autoFocus
+                    />
+                  </div>
 
-            {error && <p className="text-sm text-status-red">{error}</p>}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="password" className="text-sm font-medium text-brand-black">
+                        Password
+                      </label>
+                      {mode === 'signin' && (
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          disabled={loading}
+                          className="text-sm text-brand-mid hover:text-brand-black disabled:opacity-50 transition-colors"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                        className={`w-full h-11 px-3.5 pr-11 text-base text-brand-black bg-transparent border rounded-md outline-none transition-all focus:border-brand-black focus:ring-4 focus:ring-brand-black/5 ${
+                          error && !password ? 'border-red-500' : 'border-brand-border'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-brand-mid hover:text-brand-black transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
 
-            <div className="mt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={loading}
-                fullWidth
-              >
-                {loading
-                  ? mode === 'signin' ? 'Signing in...' : 'Creating account...'
-                  : mode === 'signin' ? 'Sign in' : 'Create account'}
-              </Button>
-            </div>
+                  {mode === 'signup' && (
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="confirmPassword" className="text-sm font-medium text-brand-black">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Enter your password again"
+                          value={confirmPassword}
+                          onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                          className={`w-full h-11 px-3.5 pr-11 text-base text-brand-black bg-transparent border rounded-md outline-none transition-all focus:border-brand-black focus:ring-4 focus:ring-brand-black/5 ${
+                            error && password !== confirmPassword ? 'border-red-500' : 'border-brand-border'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-brand-mid hover:text-brand-black transition-colors"
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-            <div className="text-center mt-2 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode(mode === 'signin' ? 'signup' : 'signin');
-                  setError('');
-                  setPassword('');
-                  setConfirmPassword('');
-                }}
-                className="text-sm font-semibold text-brand-black min-h-11 px-4 cursor-pointer active:opacity-70 transition-opacity duration-100"
-              >
-                {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-              </button>
+                  <div className="flex items-center">
+                    <label className="inline-flex items-center gap-2.5 text-sm text-brand-dark cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 rounded border-brand-border text-brand-black focus:ring-brand-black accent-brand-black"
+                      />
+                      Remember me for 30 days
+                    </label>
+                  </div>
 
-              {mode === 'signin' && (
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  disabled={loading}
-                  className="text-sm font-medium text-brand-mid min-h-11 px-4 cursor-pointer disabled:opacity-50 active:opacity-70 transition-opacity duration-100"
-                >
-                  Forgot password?
-                </button>
+                  {error && <p className="text-sm text-status-red">{error}</p>}
+
+                  <div className="mt-1">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={loading}
+                      fullWidth
+                      size="sm"
+                    >
+                      {loading
+                        ? mode === 'signin' ? 'Signing in...' : 'Creating account...'
+                        : mode === 'signin' ? 'Sign in' : 'Create account'}
+                    </Button>
+                  </div>
+
+                  <div className="text-center mt-1">
+                    <button
+                      type="button"
+                      onClick={switchMode}
+                      className="text-sm font-semibold text-brand-black hover:underline min-h-11 px-4 cursor-pointer"
+                    >
+                      {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                    </button>
+                  </div>
+
+                  {import.meta.env.DEV && (
+                    <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
+                      <p className="text-label font-bold tracking-[0.4px] text-brand-muted text-center">Dev Testing</p>
+                      <Button
+                        variant="secondary"
+                        onClick={handleMockSignIn}
+                        disabled={loading}
+                        fullWidth
+                      >
+                        Mock Sign In (Test Mode)
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => { haptic('light'); setEmailInput('test@example.com'); setPassword('password123'); }}
+                        className="h-11 w-full rounded-lg text-sm font-medium text-brand-mid cursor-pointer bg-transparent active:opacity-70 transition-opacity duration-100"
+                      >
+                        Fill Test Credentials
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetDevData}
+                        className="h-11 w-full rounded-lg text-sm font-medium text-status-red cursor-pointer active:opacity-70 transition-opacity duration-100"
+                      >
+                        Reset All Local Data
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
-            </div>
-          </>
-        )}
-
-        {import.meta.env.DEV && (
-          <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
-            <p className="text-label font-bold tracking-[0.4px] text-brand-muted text-center">Dev Testing</p>
-            <Button
-              variant="secondary"
-              onClick={handleMockSignIn}
-              disabled={loading}
-              fullWidth
-            >
-              Mock Sign In (Test Mode)
-            </Button>
-            <button
-              type="button"
-              onClick={() => { haptic('light'); setEmailInput('test@example.com'); setPassword('password123'); }}
-              className="h-11 w-full rounded-lg text-sm font-medium text-brand-mid cursor-pointer bg-transparent active:opacity-70 transition-opacity duration-100"
-            >
-              Fill Test Credentials
-            </button>
-            <button
-              type="button"
-              onClick={handleResetDevData}
-              className="h-11 w-full rounded-lg text-sm font-medium text-status-red cursor-pointer active:opacity-70 transition-opacity duration-100"
-            >
-              Reset All Local Data
-            </button>
+            </form>
           </div>
-        )}
-      </form>
+        </main>
+
+        {/* Desktop/tablet footer */}
+        <footer className="hidden md:flex items-center justify-between px-6 py-5 lg:px-10 lg:py-6 text-sm text-brand-muted">
+          <span>© 2026 Buildlogg Ltd.</span>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-brand-black transition-colors">Terms</a>
+            <a href="#" className="hover:text-brand-black transition-colors">Privacy</a>
+            <a href="#" className="hover:text-brand-black transition-colors">Support</a>
+          </div>
+        </footer>
+      </div>
     </AuthDesktopLayout>
   );
 }
