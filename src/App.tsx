@@ -301,7 +301,7 @@ function AppRoutes() {
   const appContent = (
     <>
       {/* Content area — animated only for deep navigation */}
-      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''} ${isDeepRoute ? 'md:max-w-[640px] md:mx-auto' : ''}`}>
+      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
         <AnimatePresence mode={animatePresenceMode} initial={false}>
           <motion.div
             key={location.pathname}
@@ -310,9 +310,10 @@ function AppRoutes() {
             exit={isTabSwitch ? undefined : 'exit'}
             variants={variants}
             transition={transition}
-            className="absolute inset-0 flex flex-col"
+            className={`absolute inset-0 flex flex-col ${isDeepRoute ? 'md:items-center' : ''}`}
           >
-            <Routes location={location}>
+            <div className={`h-full w-full ${isDeepRoute ? 'md:max-w-[640px]' : ''}`}>
+              <Routes location={location}>
               <Route path="/auth" element={<Auth />} />
               <Route element={<AuthGuard />}>
                 <Route path="/onboarding" element={<Onboarding />} />
@@ -326,6 +327,7 @@ function AppRoutes() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
+          </div>
           </motion.div>
         </AnimatePresence>
       </div>
