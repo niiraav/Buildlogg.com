@@ -39,7 +39,7 @@ export default function SyncIndicator() {
   if (!isOnline) {
     return (
       <span className="text-micro font-medium text-brand-muted">
-        Offline
+        Saved offline · will sync when online
       </span>
     );
   }

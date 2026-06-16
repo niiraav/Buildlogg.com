@@ -193,6 +193,16 @@ function AuthGuard() {
       } else {
         setUserId(session.user.id);
         identifyUser(session.user.id);
+        // If the persisted session arrives after the initial getSession() race
+        // sent us to /auth, mark the initial check done and recover the user
+        // into the app so they don't stay stuck on the sign-in screen.
+        initialCheckDone.current = true;
+        if (location.pathname === '/auth') {
+          db.profiles.get(session.user.id).then((profile) => {
+            if (!mounted) return;
+            navigate(profile ? '/' : '/onboarding', { replace: true });
+          });
+        }
       }
     });
 
@@ -301,7 +311,7 @@ function AppRoutes() {
   const appContent = (
     <>
       {/* Content area — animated only for deep navigation */}
-      <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
+      <div className="flex-1 min-h-0 relative overflow-hidden">
         <AnimatePresence mode={animatePresenceMode} initial={false}>
           <motion.div
             key={location.pathname}
@@ -376,7 +386,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col h-[100dvh]">
+    <div id="app-shell" className="flex flex-col h-[100dvh] overflow-hidden">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">

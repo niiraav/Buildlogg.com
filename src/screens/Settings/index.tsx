@@ -22,15 +22,23 @@ const PAYMENT_OPTIONS: Array<{ value: string; label: string; description: string
   { value: 'invoice', label: 'Invoice', description: 'Send an invoice after the job is done' },
 ];
 
-function validateUKPhone(value: string): string | null {
-  // Normalize: remove spaces, dashes, and leading +
+function normalizeUKPhone(value: string): string {
   const cleaned = value.replace(/[\s-]/g, '').replace(/^\+/, '');
-  // UK mobile: 44 7... or 07... (11 digits total after normalization)
-  const ukMobile = /^44?7\d{9}$/;
-  if (!ukMobile.test(cleaned)) {
-    return 'Enter a valid UK mobile number';
+  if (/^0?7\d{9}$/.test(cleaned)) {
+    return '+44' + cleaned.replace(/^0/, '');
   }
-  return null;
+  if (/^447\d{9}$/.test(cleaned)) {
+    return '+' + cleaned;
+  }
+  return value;
+}
+
+function validateUKPhone(value: string): string | null {
+  const cleaned = value.replace(/[\s-]/g, '').replace(/^\+/, '');
+  if (/^(0?7\d{9}|447\d{9})$/.test(cleaned)) {
+    return null;
+  }
+  return 'Enter a valid UK mobile number';
 }
 
 function now() {
@@ -285,7 +293,7 @@ export default function Settings() {
               <InlineEditRow
                 label="Phone"
                 value={phone}
-                onSave={(v) => saveField('phone', v)}
+                onSave={(v) => saveField('phone', normalizeUKPhone(v))}
                 isEditing={editingField === 'phone'}
                 onEditStart={() => setEditingField('phone')}
                 onEditEnd={() => setEditingField(null)}

@@ -666,6 +666,16 @@ export default function JobDetail() {
     refresh();
   };
 
+  const openEditDetails = () => {
+    setSheet('edit_details');
+    setEditTitle(job?.title || '');
+    setEditDate(toDateValue(job?.scheduled_start));
+    setEditStartTime(toTimeValue(job?.scheduled_start));
+    setEditEndTime(toTimeValue(job?.scheduled_end));
+    setEditNotes(job?.notes || '');
+    setEditAddress(customer?.address || '');
+  };
+
   const handleSendUpdate = async (method: 'whatsapp' | 'sms') => {
     if (!customer || !updateMessage) return;
     const phone = customer.phone.replace(/\D/g, '');
@@ -1188,36 +1198,47 @@ export default function JobDetail() {
     return (
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         {/* Location card — leads */}
-        <div className="mb-5">
-          <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
-          <div className="border border-brand-border rounded-xl overflow-hidden bg-white">
-            {customer.address && (
-              <>
-                <div className="relative">
-                  <MapPreview address={customer.address} />
+        {customer.address ? (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl overflow-hidden bg-white">
+              <div className="relative">
+                <MapPreview address={customer.address} />
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-brand-borderLight">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin size={16} className="text-brand-muted shrink-0" />
+                  <span className="text-sm text-brand-dark font-medium truncate">{customer.address}</span>
                 </div>
-                <div className="flex items-center justify-between px-4 py-3 border-t border-brand-borderLight">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MapPin size={16} className="text-brand-muted shrink-0" />
-                    <span className="text-sm text-brand-dark font-medium truncate">{customer.address}</span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`, '_blank')
-                    }
-                    className="flex items-center gap-1 text-sm font-semibold text-brand-black shrink-0 ml-2"
-                  >
-                    <Navigation size={14} />
-                    Navigate
-                  </button>
-                </div>
-              </>
-            )}
-            {!customer.address && (
-              <div className="px-4 py-3 text-sm text-brand-muted">No address set</div>
-            )}
+                <button
+                  onClick={() =>
+                    window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`, '_blank')
+                  }
+                  className="flex items-center gap-1 text-sm font-semibold text-brand-black shrink-0 ml-2"
+                >
+                  <Navigation size={14} />
+                  Navigate
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl px-4 py-6 bg-white flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-brand-surface flex items-center justify-center">
+                <MapPin size={18} className="text-brand-muted" />
+              </div>
+              <p className="text-sm text-brand-muted">No address set</p>
+              <button
+                onClick={openEditDetails}
+                className="text-sm font-semibold text-brand-black underline underline-offset-2"
+              >
+                Add address
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Schedule card */}
         <div className="mb-5">
@@ -1320,29 +1341,47 @@ export default function JobDetail() {
         </div>
 
         {/* Location — icon container + two-line address */}
-        <div className="mb-5">
-          <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
-          <div className="border border-brand-border rounded-xl px-4 py-3 bg-white flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-brand-surface flex items-center justify-center shrink-0 mt-0.5">
-              <MapPin size={18} className="text-brand-muted" />
-            </div>
-            <div className="flex-1 min-w-0">
-              {(() => {
-                const addr = customer.address || 'No address set';
-                const parts = addr.split(',');
-                if (parts.length > 1) {
-                  return (
-                    <>
-                      <div className="text-sm font-medium text-brand-dark">{parts[0].trim()}</div>
-                      <div className="text-sm text-brand-muted">{parts.slice(1).join(',').trim()}</div>
-                    </>
-                  );
-                }
-                return <div className="text-sm font-medium text-brand-dark">{addr}</div>;
-              })()}
+        {customer.address ? (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl px-4 py-3 bg-white flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-brand-surface flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin size={18} className="text-brand-muted" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {(() => {
+                  const addr = customer.address;
+                  const parts = addr.split(',');
+                  if (parts.length > 1) {
+                    return (
+                      <>
+                        <div className="text-sm font-medium text-brand-dark">{parts[0].trim()}</div>
+                        <div className="text-sm text-brand-muted">{parts.slice(1).join(',').trim()}</div>
+                      </>
+                    );
+                  }
+                  return <div className="text-sm font-medium text-brand-dark">{addr}</div>;
+                })()}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl px-4 py-6 bg-white flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-brand-surface flex items-center justify-center">
+                <MapPin size={18} className="text-brand-muted" />
+              </div>
+              <p className="text-sm text-brand-muted">No address set</p>
+              <button
+                onClick={openEditDetails}
+                className="text-sm font-semibold text-brand-black underline underline-offset-2"
+              >
+                Add address
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Invoice items */}
         <div className="flex items-center justify-between mb-2.5">
@@ -1755,7 +1794,7 @@ export default function JobDetail() {
     >
       <SheetRow
         label="Edit details"
-        onTap={() => { setSheet('edit_details'); setEditTitle(job?.title || ''); setEditDate(toDateValue(job?.scheduled_start)); setEditStartTime(toTimeValue(job?.scheduled_start)); setEditEndTime(toTimeValue(job?.scheduled_end)); setEditNotes(job?.notes || ''); setEditAddress(customer?.address || ''); }}
+        onTap={openEditDetails}
       />
       {(job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
         <SheetRow

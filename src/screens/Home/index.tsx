@@ -690,7 +690,7 @@ export default function Home() {
                     customer={c}
                     timeAgo={task.timeAgo}
                     contextLine={task.contextLine}
-                    onTap={() => navigate(`/jobs/${task.jobId}`)}
+                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
                 );
               })}
@@ -719,7 +719,7 @@ export default function Home() {
                     customer={c}
                     timeAgo={task.timeAgo}
                     contextLine={task.contextLine}
-                    onTap={() => navigate(`/jobs/${task.jobId}`)}
+                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
                 );
               })}
@@ -814,6 +814,9 @@ export default function Home() {
           {todayState === 'all_clear' && (
             tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
           )}
+
+          {/* Recent high-level activity — hidden when today has more than 3 jobs */}
+          {jobCountToday <= 3 && <RecentActivity />}
         </div>
       )}
 

@@ -3,11 +3,25 @@
  * Returns base64 data URL (JPEG, max 800px width).
  */
 export async function capturePhoto(): Promise<string | null> {
+  return openPhotoPicker({ source: 'camera' });
+}
+
+/**
+ * Pick a photo from the device library.
+ * Returns base64 data URL (JPEG, max 800px width).
+ */
+export async function pickPhotoFromLibrary(): Promise<string | null> {
+  return openPhotoPicker({ source: 'library' });
+}
+
+function openPhotoPicker(options: { source: 'camera' | 'library' }): Promise<string | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
+    if (options.source === 'camera') {
+      input.capture = 'environment';
+    }
 
     input.onchange = async () => {
       const file = input.files?.[0];

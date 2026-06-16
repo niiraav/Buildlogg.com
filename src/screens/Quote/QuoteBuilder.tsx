@@ -471,8 +471,18 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     ]);
   };
 
+
+
+  /* Starter suggestions when user has no custom items */
+  const starterItems: CustomItem[] = [
+    { id: 'starter-1', user_id: '', description: 'Labour', amount: profile?.default_labour_charge || 0, sort_order: 0, created_at: '', updated_at: '', _sync_status: 'pending' },
+    { id: 'starter-2', user_id: '', description: 'Materials', amount: 0, sort_order: 1, created_at: '', updated_at: '', _sync_status: 'pending' },
+    { id: 'starter-3', user_id: '', description: 'Callout charge', amount: profile?.callout_charge || 75, sort_order: 2, created_at: '', updated_at: '', _sync_status: 'pending' },
+  ];
+  const displayItems = customItems.length > 0 ? customItems : starterItems;
+
   const isInLibrary = (description: string, amount: number): boolean => {
-    return customItems.some((ci) => ci.description === description && ci.amount === amount);
+    return displayItems.some((ci) => ci.description === description && ci.amount === amount);
   };
 
   const saveToLibrary = async (description: string, amount: number) => {
@@ -518,13 +528,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     onPreview();
   };
 
-  /* Starter suggestions when user has no custom items */
-  const starterItems: CustomItem[] = [
-    { id: 'starter-1', user_id: '', description: 'Labour', amount: profile?.default_labour_charge || 0, sort_order: 0, created_at: '', updated_at: '', _sync_status: 'pending' },
-    { id: 'starter-2', user_id: '', description: 'Materials', amount: 0, sort_order: 1, created_at: '', updated_at: '', _sync_status: 'pending' },
-    { id: 'starter-3', user_id: '', description: 'Callout charge', amount: profile?.callout_charge || 75, sort_order: 2, created_at: '', updated_at: '', _sync_status: 'pending' },
-  ];
-  const displayItems = customItems.length > 0 ? customItems : starterItems;
+
 
   /* auto-scroll to deposit section on select */
   useEffect(() => {
