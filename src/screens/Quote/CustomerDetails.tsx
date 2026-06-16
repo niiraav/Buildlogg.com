@@ -152,7 +152,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
             Customer
           </div>
 
-          <div className="mb-2.5">
+          <div className="mb-4">
             <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
               Name
             </label>
@@ -171,7 +171,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
             />
           </div>
 
-          <div className="mb-2.5">
+          <div className="mb-4">
             <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
               Phone number
             </label>
