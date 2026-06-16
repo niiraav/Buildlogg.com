@@ -29,7 +29,6 @@ import Quote from './screens/Quote';
 import Settings from './screens/Settings';
 import CustomItems from './screens/Settings/CustomItems';
 import Activity from './screens/Activity';
-import AppDesktopContext from './components/AppDesktopContext';
 
 // Initialise theme before first paint
 if (isDarkModeEnabled()) document.documentElement.classList.add('dark');
@@ -131,13 +130,6 @@ function AuthGuard() {
         return;
       }
 
-      // User has reached the dashboard with a valid profile: mark them as returning.
-      try {
-        localStorage.setItem('buildlogg_has_seen_dashboard', 'true');
-      } catch {
-        // ignore storage errors
-      }
-
       if (location.pathname === '/onboarding') {
         navigate('/', { replace: true });
       }
@@ -228,13 +220,14 @@ function ScreenTracker() {
 
 /* ─── Route-aware shell width helper ─── */
 function DesktopSplitShell() {
+  const location = useLocation();
+
   useEffect(() => {
     const shell = document.getElementById('app-shell');
     if (!shell) return;
-    // The whole app shell is now full-width on desktop so the two-column
-    // layout (auth, onboarding, or in-app contextual panel) can use the space.
-    shell.classList.add('desktop-split');
-  }, []);
+    const isSplit = location.pathname === '/auth' || location.pathname === '/onboarding';
+    shell.classList.toggle('desktop-split', isSplit);
+  }, [location.pathname]);
 
   return null;
 }
@@ -294,11 +287,8 @@ function AppRoutes() {
 
   const animatePresenceMode = isTabSwitch ? 'sync' : 'wait';
 
-  const isAuthOrOnboarding =
-    location.pathname === '/auth' || location.pathname === '/onboarding';
-
-  const appContent = (
-    <>
+  return (
+    <div className="flex flex-col h-full">
       {/* Content area — animated only for deep navigation */}
       <div className={`flex-1 min-h-0 relative overflow-hidden ${isTab(location.pathname) ? 'pb-[calc(56px_+_env(safe-area-inset-bottom))]' : ''}`}>
         <AnimatePresence mode={animatePresenceMode} initial={false}>
@@ -333,26 +323,6 @@ function AppRoutes() {
       {isTab(location.pathname) && (
         <TabBar activeTab={activeTab} onNavigate={handleTabNavigate} />
       )}
-    </>
-  );
-
-  // Auth and onboarding render their own two-column layout internally.
-  // Authenticated routes get the persistent contextual left panel.
-  if (isAuthOrOnboarding) {
-    return <div className="flex flex-col h-full">{appContent}</div>;
-  }
-
-  return (
-    <div className="grid h-full min-h-full lg:grid-cols-2">
-      {/* Left panel — contextual help, desktop only */}
-      <div className="hidden lg:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto">
-        <AppDesktopContext />
-      </div>
-
-      {/* Right panel — app content */}
-      <div className="flex flex-col h-full min-h-0 overflow-y-auto">
-        {appContent}
-      </div>
     </div>
   );
 }
