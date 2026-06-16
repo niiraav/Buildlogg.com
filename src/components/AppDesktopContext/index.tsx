@@ -1,6 +1,7 @@
 import type { ReactNode, ReactElement } from 'react';
 import { Hammer, Smartphone } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
 import type { Profile } from '../../lib/db';
