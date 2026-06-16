@@ -668,7 +668,7 @@ export default function Home() {
 
   const renderTasks = () => {
     return (
-      <div className="flex-1 pt-4 pb-4 overflow-y-auto px-4">
+      <div className="flex-1 pt-4 md:pt-6 pb-4 overflow-y-auto px-4 md:px-6">
         {/* ACT TODAY: Missed calls + overdue payments */}
         {actTodayTasks.length > 0 && (
           <>
@@ -793,7 +793,7 @@ export default function Home() {
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
+        <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-4 overflow-y-auto">
           {/* Active bar */}
           {(todayState === 'in_progress' || todayState === 'multi_day') && renderActiveBar()}
 

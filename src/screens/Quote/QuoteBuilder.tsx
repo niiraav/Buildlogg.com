@@ -561,7 +561,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         {/* Customer strip */}
         {customer && (
           <div className="bg-brand-surface border border-brand-border rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">

@@ -148,7 +148,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         <div className="mb-5">
           <div className="mb-2.5">
             <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">

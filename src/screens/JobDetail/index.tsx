@@ -1020,7 +1020,7 @@ export default function JobDetail() {
     const total = jobTotal(lineItems);
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         {/* What we know */}
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-3">
@@ -1186,7 +1186,7 @@ export default function JobDetail() {
   const renderBookedBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         {/* Location card — leads */}
         <div className="mb-5">
           <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
@@ -1294,7 +1294,7 @@ export default function JobDetail() {
   const renderInProgressBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
         {/* Running state */}
         <div className="mb-5">
           <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Running</div>
@@ -1369,7 +1369,7 @@ export default function JobDetail() {
   const renderQuotedBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         <div className="mb-4">
           <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">
@@ -1465,7 +1465,7 @@ export default function JobDetail() {
     if (!job || !customer) return null;
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         {/* Amount card */}
         <div className="border border-amber-200 bg-status-amberBg rounded-xl px-5 py-6 text-center mb-5">
@@ -1500,7 +1500,7 @@ export default function JobDetail() {
   const renderNoShowBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1536,7 +1536,7 @@ export default function JobDetail() {
     const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
     const visibleLogs = workLogExpanded ? eventLogs : eventLogs.slice(0, 3);
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1631,7 +1631,7 @@ export default function JobDetail() {
   const renderCancelledBody = () => {
     if (!job) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1664,7 +1664,7 @@ export default function JobDetail() {
   const renderWrittenOffBody = () => {
     if (!job) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -2302,7 +2302,7 @@ export default function JobDetail() {
   if (!job || !customer) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="flex-1 flex items-center justify-center px-4 md:px-6">
           <p className="text-md text-brand-muted text-center">Job not found</p>
         </div>
       </div>
