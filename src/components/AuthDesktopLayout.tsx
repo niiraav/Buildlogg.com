@@ -65,20 +65,15 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
           </ul>
         </div>
 
-        {/* Mobile disclaimer + illustration */}
-        <div className="mt-8 max-w-sm">
-          <div className="inline-flex items-start gap-2 mb-4">
+        {/* Mobile disclaimer */}
+        <div className="max-w-sm">
+          <div className="inline-flex items-start gap-2">
             <Smartphone size={18} className="text-brand-mid mt-0.5 shrink-0" />
             <div className="text-xs text-brand-mid leading-relaxed">
               <p className="font-medium text-brand-black">Built for mobile.</p>
               <p>Install the app on your phone for the best experience. A full desktop dashboard is coming soon.</p>
             </div>
           </div>
-          <img
-            src="/images/auth-illustration.png"
-            alt="Buildlogg app preview"
-            className="w-full max-w-[320px] rounded-xl object-cover"
-          />
         </div>
       </div>
 
