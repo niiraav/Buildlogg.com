@@ -378,7 +378,7 @@ export default function Auth() {
 
         {/* Main form */}
         <main className="flex-1 flex flex-col md:justify-center px-6 md:px-10">
-          <div className="w-full md:max-w-sm mx-auto">
+          <div className="w-full md:max-w-[640px] mx-auto">
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
