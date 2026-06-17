@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ClipboardList, Search, X } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
+import { ensureJobNumber } from '../../lib/jobNumbers';
 import SyncIndicator from '../../components/SyncIndicator';
 import { Button } from '../../components/Button';
 
@@ -114,10 +115,15 @@ export default function Jobs() {
     const allCustomers = await db.customers.where('user_id').equals(userId).toArray();
     const allItems = await db.line_items.toArray();
 
+    const jobsWithNumbers: Job[] = [];
+    for (const j of allJobs) {
+      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
+    }
+
     const custMap: Record<string, Customer> = {};
     allCustomers.forEach((c) => { custMap[c.id] = c; });
 
-    setJobs(allJobs);
+    setJobs(jobsWithNumbers);
     setCustomers(custMap);
     setLineItems(allItems);
     setLoading(false);
@@ -262,6 +268,7 @@ export default function Jobs() {
           {job.customer.name} · {job.title}
         </div>
         <div className="text-sm text-brand-muted mt-0.5">
+          {job.job_number && <span className="font-medium text-brand-mid">{job.job_number} · </span>}
           {renderSubLine(job)}
         </div>
       </div>

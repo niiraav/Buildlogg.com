@@ -5,6 +5,7 @@ import { db } from '../../lib/db';
 import { captureJobCreated, captureQuoteSent } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
+import { nextJobNumber } from '../../lib/jobNumbers';
 import LogMissedCall from './LogMissedCall';
 import CustomerDetails from './CustomerDetails';
 import QuoteBuilder from './QuoteBuilder';
@@ -194,11 +195,13 @@ export default function Quote() {
         const newJobId = crypto.randomUUID();
         const n = now();
         const jobPaymentTerms = defaultPaymentTerms;
+        const jobNumber = await nextJobNumber(userId);
         await db.jobs.add({
           id: newJobId,
           user_id: userId,
           customer_id: data.id,
           title: '',
+          job_number: jobNumber,
           status: 'enquiry',
           payment_terms: jobPaymentTerms,
           is_multi_day: false,
@@ -211,7 +214,7 @@ export default function Quote() {
           table_name: 'jobs',
           record_id: newJobId,
           payload: {
-            id: newJobId, user_id: userId, customer_id: data.id,
+            id: newJobId, user_id: userId, customer_id: data.id, job_number: jobNumber,
             title: '', status: 'enquiry', payment_terms: jobPaymentTerms,
             is_multi_day: false, created_at: n, updated_at: n,
           },

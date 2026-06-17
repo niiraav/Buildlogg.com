@@ -58,6 +58,7 @@ export const ActivityEventCard: React.FC<{
         </div>
         <p className="text-xs text-brand-mid mt-0.5">
           {event.customerName} · {event.jobTitle}
+          {event.jobNumber && <span className="text-brand-muted"> · {event.jobNumber}</span>}
         </p>
         <p className="text-xs text-brand-muted mt-0.5">{timeAgo(event.timestamp)}</p>
       </div>

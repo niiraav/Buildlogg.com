@@ -14,6 +14,7 @@ export interface TaskCardProps {
   staleNote?: string;
   title?: string;
   subtitle?: string;
+  jobNumber?: string;
   contextLine?: string; // e.g. "Quote saved 2h ago · £450 · No message sent"
   onTap: () => void;
 }
@@ -30,10 +31,12 @@ const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgen
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   type,
+  job,
   customer,
   timeAgo,
   title: titleOverride,
   subtitle: subtitleOverride,
+  jobNumber,
   contextLine,
   onTap,
 }) => {
@@ -46,6 +49,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const title = titleOverride || customer?.name || 'Task';
   const subtitle = subtitleOverride || config.label;
+  const displayJobNumber = jobNumber || job?.job_number;
 
   return (
     <div
@@ -65,7 +69,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
       {/* Subtitle / context */}
       <div className="px-4 pb-3">
-        <p className="text-sm text-brand-mid mt-0.5">{subtitle}</p>
+        <p className="text-sm text-brand-mid mt-0.5">
+          {subtitle}
+          {displayJobNumber && <span className="text-brand-muted"> · {displayJobNumber}</span>}
+        </p>
         {contextLine && (
           <p className="text-sm text-brand-mid mt-1 truncate">{contextLine}</p>
         )}

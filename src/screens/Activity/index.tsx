@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { DaySummaryCard } from '../../components/ActivityCard';
 import SyncIndicator from '../../components/SyncIndicator';
 import { captureActivityViewed } from '../../lib/analytics';
+import { ensureJobNumber } from '../../lib/jobNumbers';
 import { filterEvents, groupByDay, type ActivityEvent, type DaySummary } from '../../lib/activityFilter';
 
 interface EnrichedJob {
@@ -12,6 +13,7 @@ interface EnrichedJob {
   title: string;
   customerName: string;
   customerId: string;
+  jobNumber?: string;
 }
 
 export default function Activity() {
@@ -30,9 +32,13 @@ export default function Activity() {
       return;
     }
 
-    // Fetch all jobs for this user
+    // Fetch all jobs for this user and backfill missing job numbers
     const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
-    const jobIds = allJobs.map((j) => j.id);
+    const jobsWithNumbers: typeof allJobs = [];
+    for (const j of allJobs) {
+      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
+    }
+    const jobIds = jobsWithNumbers.map((j) => j.id);
 
     if (jobIds.length === 0) {
       setDays([]);
@@ -61,13 +67,14 @@ export default function Activity() {
     customers.filter(Boolean).forEach((c) => customerMap.set(c!.id, c!));
 
     const jobMap = new Map<string, EnrichedJob>();
-    allJobs.forEach((j) => {
+    jobsWithNumbers.forEach((j) => {
       const customer = customerMap.get(j.customer_id);
       jobMap.set(j.id, {
         id: j.id,
         title: j.title || 'Untitled job',
         customerName: customer?.name ?? 'Unknown customer',
         customerId: j.customer_id,
+        jobNumber: j.job_number,
       });
     });
 
