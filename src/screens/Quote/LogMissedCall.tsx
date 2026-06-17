@@ -4,6 +4,7 @@ import { ChevronLeft, X } from 'lucide-react';
 import { db } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { captureJobCreated } from '../../lib/analytics';
+import { nextJobNumber } from '../../lib/jobNumbers';
 import { Button } from '../../components/Button';
 
 /* ─── helpers ─── */
@@ -54,6 +55,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
     const normalised = normalisePhone(cleaned);
     const customerId = crypto.randomUUID();
     const jobId = crypto.randomUUID();
+    const jobNumber = await nextJobNumber(userId);
 
     await db.customers.add({
       id: customerId,
@@ -70,6 +72,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
       user_id: userId,
       customer_id: customerId,
       title: 'Missed call',
+      job_number: jobNumber,
       status: 'enquiry',
       payment_terms: 'on_completion',
       is_multi_day: false,
@@ -102,7 +105,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
       operation: 'insert',
       table_name: 'jobs',
       record_id: jobId,
-      payload: { id: jobId, user_id: userId, customer_id: customerId, title: 'Missed call', status: 'enquiry', payment_terms: 'on_completion', is_multi_day: false, created_at: n, updated_at: n },
+      payload: { id: jobId, user_id: userId, customer_id: customerId, title: 'Missed call', job_number: jobNumber, status: 'enquiry', payment_terms: 'on_completion', is_multi_day: false, created_at: n, updated_at: n },
       created_at: n,
       retry_count: 0,
     });

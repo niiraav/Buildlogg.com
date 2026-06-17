@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, X, Plus, Calendar, Clock } from 'lucide-react';
 import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
+import { nextJobNumber } from '../../lib/jobNumbers';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { VoiceInputButton } from '../../components/VoiceInputButton';
 import { Button } from '../../components/Button';
@@ -206,11 +207,13 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         // Create new job — should not happen in normal flow (parent creates it)
         const newJobId = crypto.randomUUID();
         const n = now();
+        const jobNumber = await nextJobNumber(userId);
         await db.jobs.add({
           id: newJobId,
           user_id: userId,
           customer_id: customerId,
           title: '',
+          job_number: jobNumber,
           status: 'enquiry',
           payment_terms: 'on_completion',
           is_multi_day: false,
@@ -223,7 +226,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           table_name: 'jobs',
           record_id: newJobId,
           payload: {
-            id: newJobId, user_id: userId, customer_id: customerId,
+            id: newJobId, user_id: userId, customer_id: customerId, job_number: jobNumber,
             title: '', status: 'enquiry', payment_terms: 'on_completion',
             is_multi_day: false, created_at: n, updated_at: n,
           },

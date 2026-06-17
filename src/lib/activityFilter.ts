@@ -9,6 +9,7 @@ export interface ActivityEvent {
   description: string;
   jobTitle: string;
   customerName: string;
+  jobNumber?: string;
   amount: number;
   timestamp: Date;
   jobId: string;
@@ -117,7 +118,7 @@ export function isActivityEvent(log: WorkLogEntry): boolean {
 
 export function filterEvents(
   logs: WorkLogEntry[],
-  jobMap: Map<string, { title: string; customerName: string }>,
+  jobMap: Map<string, { title: string; customerName: string; jobNumber?: string }>,
   maxAgeDays: number = 30
 ): ActivityEvent[] {
   const cutoff = new Date(Date.now() - maxAgeDays * 86400000);
@@ -147,6 +148,7 @@ export function filterEvents(
         description: log.description,
         jobTitle: job?.title ?? 'Unknown job',
         customerName: job?.customerName ?? 'Unknown customer',
+        jobNumber: job?.jobNumber,
         amount,
         timestamp: new Date(log.created_at),
         jobId: log.job_id,

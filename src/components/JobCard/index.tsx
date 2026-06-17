@@ -55,6 +55,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <div className="mt-2">
           <h3 className="text-lg font-extrabold text-brand-black truncate">{customer.name}</h3>
           <p className="text-sm text-brand-mid mt-0.5 truncate">{job.title}</p>
+          {job.job_number && <p className="text-xs text-brand-muted mt-0.5">{job.job_number}</p>}
         </div>
         <div className="mt-2.5 flex items-center justify-between">
           <span className="text-md font-bold text-brand-black">£{lineItemsTotal.toFixed(2)}</span>
@@ -112,6 +113,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <div className="mt-2.5">
           <h3 className="text-base font-bold text-brand-black truncate">{customer.name}</h3>
           <p className="text-sm text-brand-mid mt-0.5 truncate">{job.title}</p>
+          {job.job_number && <p className="text-xs text-brand-muted mt-0.5">{job.job_number}</p>}
         </div>
 
         {address && (

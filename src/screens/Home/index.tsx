@@ -11,6 +11,7 @@ import SyncIndicator from '../../components/SyncIndicator';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { TaskCard } from '../../components/TaskCard';
+import { ensureJobNumber } from '../../lib/jobNumbers';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
@@ -100,6 +101,7 @@ interface TaskItem {
   jobId: string;
   customerName: string;
   jobTitle: string;
+  jobNumber?: string;
   tag: string;
   amount: string;
   isL2: boolean;
@@ -147,6 +149,10 @@ export default function Home() {
   const refresh = useCallback(async () => {
     if (!userId) return;
     const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
+    const jobsWithNumbers: Job[] = [];
+    for (const j of allJobs) {
+      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
+    }
     const allCustomers = await db.customers.where('user_id').equals(userId).toArray();
     const allItems = await db.line_items.toArray();
     const allWorkLog = await db.work_log.toArray();
@@ -167,7 +173,7 @@ export default function Home() {
       logMap[w.job_id].push(w);
     });
 
-    setJobs(allJobs);
+    setJobs(jobsWithNumbers);
     setCustomers(custMap);
     setLineItems(itemsMap);
     setWorkLog(logMap);
@@ -287,6 +293,7 @@ export default function Home() {
           jobId: j.id,
           customerName: c.name,
           jobTitle: j.title,
+          jobNumber: j.job_number,
           tag: 'No-show',
           amount: j.scheduled_start
             ? new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
@@ -305,6 +312,7 @@ export default function Home() {
           jobId: j.id,
           customerName: c.name,
           jobTitle: j.title,
+          jobNumber: j.job_number,
           tag: 'Overdue',
           amount: `£${formatAmount(total)}`,
           isL2: true,
@@ -327,6 +335,7 @@ export default function Home() {
             jobId: j.id,
             customerName: c.name,
             jobTitle: j.title,
+            jobNumber: j.job_number,
             tag: 'Missed call',
             amount: c.phone || '',
             isL2: false,
@@ -343,6 +352,7 @@ export default function Home() {
             jobId: j.id,
             customerName: c.name,
             jobTitle: j.title,
+            jobNumber: j.job_number,
             tag: 'Draft',
             amount: `£${formatAmount(total)}`,
             isL2: false,
@@ -357,6 +367,7 @@ export default function Home() {
             jobId: j.id,
             customerName: c.name,
             jobTitle: j.title,
+            jobNumber: j.job_number,
             tag: 'New',
             amount: '',
             isL2: false,
@@ -376,6 +387,7 @@ export default function Home() {
             jobId: j.id,
             customerName: c.name,
             jobTitle: j.title,
+            jobNumber: j.job_number,
             tag: `Chase · ${days}d`,
             amount: `£${formatAmount(total)}`,
             isL2: false,
@@ -395,6 +407,7 @@ export default function Home() {
           jobId: j.id,
           customerName: c.name,
           jobTitle: j.title,
+          jobNumber: j.job_number,
           tag: `Stale · ${days}d`,
           amount: `£${formatAmount(total)}`,
           isL2: false,

@@ -6,6 +6,7 @@ import {
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded } from '../../lib/analytics';
+import { nextJobNumber, ensureJobNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
@@ -185,8 +186,11 @@ export default function JobDetail() {
   /* ─── load data ─── */
   const refresh = useCallback(async () => {
     if (!jobId || !userId) { setLoading(false); return; }
-    const j = await db.jobs.get(jobId);
+    let j = await db.jobs.get(jobId);
     if (!j || j.user_id !== userId) { setLoading(false); return; }
+    if (!j.job_number) {
+      j = await ensureJobNumber(j, userId);
+    }
     setJob(j);
 
     const c = await db.customers.get(j.customer_id);
@@ -845,11 +849,13 @@ export default function JobDetail() {
     if (isNaN(amount) || amount <= 0) return;
     const n = now();
     const newJobId = crypto.randomUUID();
+    const jobNumber = await nextJobNumber(job.user_id);
     await db.jobs.add({
       id: newJobId,
       user_id: job.user_id,
       customer_id: job.customer_id,
       title: 'Callout charge',
+      job_number: jobNumber,
       status: 'awaiting_payment',
       payment_terms: 'invoice',
       invoice_sent_at: n,
@@ -877,7 +883,7 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', newJobId, { user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', status: 'awaiting_payment', payment_terms: 'invoice', invoice_sent_at: n, is_multi_day: false });
+    await addToSyncQueue('jobs', newJobId, { user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', job_number: jobNumber, status: 'awaiting_payment', payment_terms: 'invoice', invoice_sent_at: n, is_multi_day: false });
     await addToSyncQueue('line_items', liId, { job_id: newJobId, description: calloutDesc.trim() || 'Callout charge', amount, sort_order: 0 });
     setCalloutDesc('Callout charge');
     setCalloutAmount(profile?.callout_charge ? String(profile.callout_charge) : '75');
@@ -966,7 +972,7 @@ export default function JobDetail() {
   const renderPaidFooter = () => (
     <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => setSheet("send_receipt")}>
+        <Button variant="primary" onClick={() => setSheet('send_receipt')}>
           Send receipt
         </Button>
         <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -1020,6 +1026,7 @@ export default function JobDetail() {
             {job && job.status !== 'quoted' && <StatusBadge status={job.status} />}
           </div>
           <p className="text-sm font-medium text-brand-mid truncate">{job?.title}</p>
+          <p className="text-xs font-medium text-brand-muted mt-0.5">{job?.job_number}</p>
         </div>
         {hasContactButtons && (
           <div className="flex gap-1.5 shrink-0">
