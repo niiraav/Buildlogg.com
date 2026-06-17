@@ -17,6 +17,14 @@ export default defineConfig({
           next();
         });
       },
+      configurePreviewServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url?.startsWith('/app/')) {
+            req.url = '/pwa/index.html';
+          }
+          next();
+        });
+      },
     },
     VitePWA({
       strategies: 'injectManifest',

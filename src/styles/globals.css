@@ -10,7 +10,8 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--app-bg);
   color: var(--app-text);
-  min-height: 100svh;
+  min-height: 100dvh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -21,7 +22,7 @@ input, button, textarea, select {
 
 #app-shell {
   max-width: 430px;
-  min-height: 100svh;
+  min-height: 100dvh;
   margin: 0 auto;
   background: var(--app-shell-bg);
   color: var(--app-text);

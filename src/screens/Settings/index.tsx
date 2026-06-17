@@ -184,7 +184,7 @@ export default function Settings() {
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-24 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-6 min-h-0">
         {/* Resume draft banner */}
         {draftInfo && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-3">

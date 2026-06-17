@@ -322,7 +322,7 @@ function AppRoutes() {
             transition={transition}
             className={`absolute inset-0 flex flex-col ${isDeepRoute ? 'md:items-center' : ''}`}
           >
-            <div className="h-full w-full">
+            <div className="flex-1 min-h-0 w-full">
               <Routes location={location}>
               <Route path="/auth" element={<Auth />} />
               <Route element={<AuthGuard />}>
@@ -353,19 +353,19 @@ function AppRoutes() {
   // All other authenticated routes (tab routes, quote, job detail, settings, etc.)
   // are rendered inside the two-column desktop shell with the contextual left panel.
   if (isAuthOrOnboarding) {
-    return <div className="relative flex flex-col h-full">{appContent}</div>;
+    return <div className="relative flex flex-col flex-1 min-h-0">{appContent}</div>;
   }
 
   return (
-    <div className="h-full min-h-full md:flex md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
-      <div className="grid h-full min-h-full w-full md:grid-cols-[2fr_3fr] md:max-w-[1440px]">
+    <div className="flex-1 min-h-0 flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
+      <div className="flex-1 flex flex-col md:flex-row md:max-w-[1440px]">
         {/* Left panel — contextual help (40%) */}
-        <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto">
+        <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto md:w-[40%]">
           <AppDesktopContext />
         </div>
 
         {/* Right panel — app content */}
-        <div className="relative flex flex-col h-full min-h-0 overflow-hidden bg-[var(--app-shell-bg)]">
+        <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden bg-[var(--app-shell-bg)]">
           {appContent}
         </div>
       </div>
@@ -386,7 +386,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col h-[100dvh] overflow-hidden">
+    <div id="app-shell" className="flex flex-col overflow-hidden">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">

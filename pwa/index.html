@@ -37,14 +37,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx?v=2"></script>
-      <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').catch(function(err) {
-          console.error('SW registration failed:', err);
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').catch(function(err) {
+            console.error('SW registration failed:', err);
+          });
         });
-      });
-    }
-  </script>
-</body>
+      }
+    </script>
+  </body>
 </html>

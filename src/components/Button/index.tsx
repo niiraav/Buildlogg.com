@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { haptic, type HapticPattern } from '../../lib/haptics';
 
 export interface ButtonProps {
@@ -22,62 +22,6 @@ export const Button: React.FC<ButtonProps> = ({
   hapticPattern = 'light',
   size = 'lg',
 }) => {
-  const ref = useRef<HTMLButtonElement>(null);
-
-  // Overlay hidden iOS switch for native haptic on direct tap (iOS 17.4+)
-  // Technique: https://github.com/m1ckc3s/project-fathom
-  useEffect(() => {
-    if (!ref.current) return;
-    const btn = ref.current;
-
-    // Only needed on iOS/WebKit where navigator.vibrate doesn't exist
-    const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
-    if (!isWebKit && !isIOS) return;
-
-    // Check if switch control is supported (Safari 17.4+)
-    const testEl = document.createElement('input');
-    testEl.setAttribute('type', 'checkbox');
-    testEl.setAttribute('switch', '');
-    if (testEl.getAttribute('switch') !== '') return; // Browser doesn't support switch
-
-    // Create the hidden switch overlay
-    const sw = document.createElement('input');
-    sw.type = 'checkbox';
-    sw.setAttribute('switch', '');
-    sw.style.cssText = [
-      'position: absolute',
-      'top: 0',
-      'left: 0',
-      'width: 100%',
-      'height: 100%',
-      'opacity: 0',
-      'cursor: pointer',
-      'z-index: 1',
-      'clip-path: inset(0 round 12px)',
-    ].join(';');
-
-    btn.style.position = 'relative';
-    btn.appendChild(sw);
-
-    // Toggle the switch on each tap to trigger the haptic tick
-    const toggle = () => {
-      sw.checked = !sw.checked;
-      requestAnimationFrame(() => {
-        sw.checked = !sw.checked;
-      });
-    };
-
-    sw.addEventListener('click', toggle);
-
-    return () => {
-      sw.removeEventListener('click', toggle);
-      if (sw.parentNode === btn) {
-        btn.removeChild(sw);
-      }
-    };
-  }, []);
-
   const baseClasses = 'flex items-center justify-center cursor-pointer whitespace-nowrap select-none';
   const widthClass = fullWidth ? 'w-full' : '';
   const disabledClasses = disabled ? 'opacity-50 pointer-events-none' : '';
@@ -102,7 +46,6 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
-      ref={ref}
       type={type}
       onClick={handleClick}
       disabled={disabled}
