@@ -143,7 +143,7 @@ export default function Activity() {
       )}
 
       {/* Activity list */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-10">
         {days.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-brand-muted">
             <p className="text-sm">No activity yet</p>
