@@ -62,6 +62,7 @@ export interface SheetRowProps {
   onTap: () => void;
   variant?: 'default' | 'destructive';
   isLast?: boolean;
+  disabled?: boolean;
 }
 
 export const SheetRow: React.FC<SheetRowProps> = ({
@@ -71,10 +72,12 @@ export const SheetRow: React.FC<SheetRowProps> = ({
   onTap,
   variant = 'default',
   isLast = false,
+  disabled = false,
 }) => {
-  const labelClass = variant === 'destructive' ? 'text-status-red' : 'text-brand-black';
+  const labelClass = variant === 'destructive' ? 'text-status-red' : disabled ? 'text-brand-muted' : 'text-brand-black';
 
   const handleTap = () => {
+    if (disabled) return;
     haptic('light');
     onTap();
   };
@@ -82,9 +85,9 @@ export const SheetRow: React.FC<SheetRowProps> = ({
   return (
     <div
       onClick={handleTap}
-      className={`flex items-center gap-3.5 min-h-14 cursor-pointer active:opacity-70 transition-opacity duration-100 ${
-        isLast ? '' : 'border-t border-brand-borderLight'
-      }`}
+      className={`flex items-center gap-3.5 min-h-14 select-none transition-opacity duration-100 ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:opacity-70'
+      } ${isLast ? '' : 'border-t border-brand-borderLight'}`}
     >
       {icon}
       <div className="flex flex-col">

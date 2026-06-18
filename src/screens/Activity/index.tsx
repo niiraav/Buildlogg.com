@@ -105,24 +105,16 @@ export default function Activity() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-[var(--app-shell-bg)]">
-        <div className="px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-extrabold text-brand-black">Activity</h1>
-            <SyncIndicator />
-          </div>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-        </div>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
+        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)]">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight flex-shrink-0">
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-extrabold text-brand-black">Activity</h1>
           <SyncIndicator />
@@ -150,9 +142,9 @@ export default function Activity() {
       )}
 
       {/* Activity list */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-10">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))]">
         {days.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-brand-muted">
+          <div className="min-h-[50dvh] flex flex-col items-center justify-center text-brand-muted">
             <p className="text-sm">No activity yet</p>
             <p className="text-sm mt-1">Send quotes, mark jobs as paid, or log new leads</p>
           </div>

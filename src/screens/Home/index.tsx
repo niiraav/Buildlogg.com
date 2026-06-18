@@ -12,6 +12,9 @@ import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { TaskCard } from '../../components/TaskCard';
 import { ensureJobNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
+import { paymentSummary, paymentMethodLabel } from '../../lib/paymentHelpers';
+import { addToSyncQueue } from '../../lib/syncQueue';
+import { showToast } from '../../components/Toast/store';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
@@ -558,13 +561,14 @@ export default function Home() {
   };
 
   const handlePayment = async (method: 'cash' | 'terminal' | 'bank_transfer' | 'not_yet') => {
-    if (!selectedJobId) return;
+    if (!selectedJobId || !userId) return;
     const j = jobs.find((x) => x.id === selectedJobId);
     if (!j) return;
     const total = totalFor(selectedJobId);
     const n = now();
 
     if (method === 'not_yet') {
+      const logId = crypto.randomUUID();
       await db.jobs.update(selectedJobId, {
         status: 'awaiting_payment',
         actual_end: n,
@@ -572,22 +576,35 @@ export default function Home() {
         _sync_status: 'pending',
       });
       await db.work_log.add({
-        id: crypto.randomUUID(),
+        id: logId,
         job_id: selectedJobId,
         type: 'status_change',
-        description: 'Job completed — payment pending',
+        description: 'Job completed \u2014 payment pending',
         created_at: n,
         _sync_status: 'pending',
       });
-      if (j && userId) await ensureInvoiceNumber(j, userId);
+      await addToSyncQueue('jobs', selectedJobId, { status: 'awaiting_payment', actual_end: n, updated_at: n }, 'update');
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'status_change', description: 'Job completed \u2014 payment pending', created_at: n }, 'insert');
+      await ensureInvoiceNumber(j, userId);
     } else {
-      const paymentType = j.payment_terms === 'deposit' ? 'balance' : 'full';
-      const paymentAmount = j.payment_terms === 'deposit'
-        ? total - (j.deposit_pct ? (j.deposit_pct / 100) * total : 0)
-        : total;
-
+      const payments = await db.payments.where('job_id').equals(selectedJobId).toArray();
+      const summary = paymentSummary(j, payments, total);
+      if (summary.isFullyPaid || j.status === 'paid') {
+        showToast('This job is already paid', 'info', 2000);
+        setSheet(null);
+        return;
+      }
+      // For deposit jobs, the mark-done sheet collects the balance (deposit already paid)
+      let paymentType = summary.nextPaymentType;
+      let paymentAmount = summary.amountDue;
+      if (j.payment_terms === 'deposit' && j.deposit_pct) {
+        paymentType = 'balance';
+        paymentAmount = total - summary.depositAmount;
+      }
+      const payId = crypto.randomUUID();
+      const logId = crypto.randomUUID();
       await db.payments.add({
-        id: crypto.randomUUID(),
+        id: payId,
         job_id: selectedJobId,
         type: paymentType,
         method,
@@ -603,13 +620,16 @@ export default function Home() {
         _sync_status: 'pending',
       });
       await db.work_log.add({
-        id: crypto.randomUUID(),
+        id: logId,
         job_id: selectedJobId,
         type: 'status_change',
-        description: `Payment recorded — ${method === 'cash' ? 'Cash' : method === 'terminal' ? 'Terminal' : 'Bank Transfer'} · £${formatAmount(paymentAmount)}`,
+        description: `Payment recorded \u2014 ${paymentMethodLabel(method)} \u00b7 \u00a3${formatAmount(paymentAmount)}`,
         created_at: n,
         _sync_status: 'pending',
       });
+      await addToSyncQueue('payments', payId, { id: payId, job_id: selectedJobId, type: paymentType, method, amount: paymentAmount, recorded_at: n, created_at: n }, 'insert');
+      await addToSyncQueue('jobs', selectedJobId, { status: 'paid', actual_end: n, updated_at: n }, 'update');
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'status_change', description: `Payment recorded \u2014 ${paymentMethodLabel(method)} \u00b7 \u00a3${formatAmount(paymentAmount)}`, created_at: n }, 'insert');
     }
 
     setSheet(null);

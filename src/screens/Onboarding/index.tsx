@@ -224,7 +224,7 @@ export default function Onboarding() {
 
   return (
     <AuthDesktopLayout variant="onboarding">
-      <div className="flex flex-col min-h-full w-full md:max-w-xl md:mx-auto">
+      <div className="flex flex-col min-h-[100dvh] w-full md:max-w-xl md:mx-auto">
         <ProgressDots total={4} current={step} />
 
         {/* ── S1: Welcome ── */}
@@ -557,7 +557,7 @@ export default function Onboarding() {
         {/* ── S4: Done ── */}
         {step === 4 && (
           <div className="flex-1 flex flex-col">
-            <div className="px-6 pt-8 flex-1 flex flex-col items-center justify-center gap-4 overflow-y-auto">
+            <div className="px-6 pt-8 flex-1 flex flex-col items-center justify-center gap-4">
               <div className="w-20 h-20 rounded-full bg-status-greenBg flex items-center justify-center">
                 <Check size={36} strokeWidth={2.5} className="text-status-green" />
               </div>

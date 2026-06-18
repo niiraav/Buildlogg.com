@@ -1,6 +1,21 @@
 import { supabase } from './supabase';
 import { db } from './db';
 import type { Profile, Customer, Job, LineItem, WorkLogEntry, Payment } from './db';
+import type { Table } from 'dexie';
+
+async function safeBulkPut<T extends { id: string; _sync_status: string }>(
+  table: Table<T>,
+  remoteRows: T[]
+) {
+  if (!remoteRows.length) return;
+  const pendingIds = new Set<string>(
+    await table.where('_sync_status').equals('pending').primaryKeys() as string[]
+  );
+  const toPut = remoteRows
+    .filter((r) => !pendingIds.has(r.id))
+    .map((r) => ({ ...r, _sync_status: 'synced' as const }));
+  if (toPut.length) await table.bulkPut(toPut);
+}
 
 export async function initialSync(userId: string) {
   const [profile, customers, jobs, lineItems, workLog, payments] = await Promise.all([
@@ -21,32 +36,25 @@ export async function initialSync(userId: string) {
 
   await db.transaction('rw', [db.profiles, db.customers, db.jobs, db.line_items, db.work_log, db.payments], async () => {
     if (profile.data) {
-      await db.profiles.put({ ...(profile.data as Profile), _sync_status: 'synced' });
+      const local = await db.profiles.get(profile.data.id);
+      if (!local || local._sync_status !== 'pending') {
+        await db.profiles.put({ ...(profile.data as Profile), _sync_status: 'synced' });
+      }
     }
     if (customers.data) {
-      await db.customers.bulkPut(
-        customers.data.map((r) => ({ ...(r as Customer), _sync_status: 'synced' }))
-      );
+      await safeBulkPut(db.customers, customers.data as Customer[]);
     }
     if (jobs.data) {
-      await db.jobs.bulkPut(
-        jobs.data.map((r) => ({ ...(r as Job), _sync_status: 'synced' }))
-      );
+      await safeBulkPut(db.jobs, jobs.data as Job[]);
     }
     if (lineItems.data) {
-      await db.line_items.bulkPut(
-        lineItems.data.map((r) => ({ ...(r as LineItem), _sync_status: 'synced' }))
-      );
+      await safeBulkPut(db.line_items, lineItems.data as LineItem[]);
     }
     if (workLog.data) {
-      await db.work_log.bulkPut(
-        workLog.data.map((r) => ({ ...(r as WorkLogEntry), _sync_status: 'synced' }))
-      );
+      await safeBulkPut(db.work_log, workLog.data as WorkLogEntry[]);
     }
     if (payments.data) {
-      await db.payments.bulkPut(
-        payments.data.map((r) => ({ ...(r as Payment), _sync_status: 'synced' }))
-      );
+      await safeBulkPut(db.payments, payments.data as Payment[]);
     }
   });
 }

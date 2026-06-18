@@ -131,9 +131,9 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
   const canSave = phoneValid && !saving;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
+      <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={() => navigate('/')}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
@@ -151,7 +151,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-6">
         <div className="mb-5">
           <div className="mb-2.5">
             <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">

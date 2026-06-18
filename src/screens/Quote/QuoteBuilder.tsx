@@ -544,7 +544,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -553,9 +553,9 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
+      <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
@@ -568,7 +568,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(128px + env(safe-area-inset-bottom))]">
         {/* Customer strip */}
         {customer && (
           <div className="bg-brand-surface border border-brand-border rounded-lg px-3.5 py-2.5 mb-5 flex items-center gap-2">

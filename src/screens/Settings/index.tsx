@@ -165,26 +165,24 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-brand-surface">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-sm text-brand-muted">Loading…</div>
-        </div>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-brand-surface">
+        <div className="text-sm text-brand-muted">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-brand-surface">
+    <div className="bg-brand-surface">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight flex-shrink-0">
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-extrabold text-brand-black">Settings</h1>
           <SyncIndicator />
         </div>
       </div>
 
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-6 min-h-0">
+      {/* Body */}
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))]">
         {/* Resume draft banner */}
         {draftInfo && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-3">

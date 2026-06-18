@@ -49,10 +49,14 @@ function getActivityType(log: WorkLogEntry): ActivityType | null {
   const desc = log.description;
   const lower = desc.toLowerCase();
 
-  // ─── Payment recorded ───
+  // ─── Payment recorded / Deposit recorded ───
   // These are type: 'status_change' with description "Payment recorded — Cash · £X"
-  // or "Job completed — payment pending" (which also implies payment is due)
-  if (lower.startsWith('payment recorded')) return 'payment';
+  // or "Deposit recorded — Cash · £X"
+  if (lower.startsWith('payment recorded') || lower.startsWith('deposit recorded')) return 'payment';
+
+  // ─── Payment method updated ───
+  // Amendments should be visible in the activity feed so the audit trail is complete.
+  if (lower.startsWith('payment method updated')) return 'milestone';
 
   // ─── Quote sent ───
   if (log.type === 'quote_sent') return 'quote';
@@ -63,8 +67,11 @@ function getActivityType(log: WorkLogEntry): ActivityType | null {
   // ─── Job completed (payment pending) ───
   if (lower.includes('job completed') || lower.includes('payment pending')) return 'milestone';
 
-  // ─── Cancellation ───
-  if (lower.includes('cancelled')) return 'cancellation';
+  // ─── Cancellation / write-off ───
+  if (lower.includes('cancelled') || lower.includes('written off')) return 'cancellation';
+
+  // ─── No-show ───
+  if (lower.includes('no-show')) return 'milestone';
 
   // ─── New leads ───
   if (lower.includes('missed call') || lower.includes('new enquiry') || lower.includes('enquiry received')) {

@@ -322,7 +322,7 @@ export default function Jobs() {
   const renderBody = () => {
     if (!hasAnyJobs) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
+        <div className="min-h-[50dvh] flex flex-col items-center justify-center px-6 py-8 text-center">
           <ClipboardList size={40} className="mb-4 opacity-40 text-brand-muted" />
           <p className="text-lg font-bold text-brand-black mb-2">No jobs yet</p>
           <p className="text-sm text-brand-muted leading-relaxed mb-7">
@@ -344,7 +344,7 @@ export default function Jobs() {
     const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
 
     return (
-      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-2 overflow-y-auto min-h-0">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>
@@ -354,28 +354,24 @@ export default function Jobs() {
   /* ─── main render ─── */
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-        </div>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
+        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="bg-[var(--app-shell-bg)]">
       {/* Header */}
-      <div className="px-4 pt-4 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-extrabold text-brand-black">Jobs</h1>
-      </div>
-
-      {/* Sync indicator */}
-      <div className="px-4 flex justify-end -mt-1 mb-1">
-        <SyncIndicator />
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-extrabold text-brand-black">Jobs</h1>
+          <SyncIndicator />
+        </div>
       </div>
 
       {/* Filter chips */}
-      <div className="px-4 pt-3 flex gap-2 shrink-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="px-4 pt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {filters.map((f) => {
           const isActive = filter === f.key;
           return (
@@ -422,7 +418,7 @@ export default function Jobs() {
 
       {/* Footer — only when there are jobs */}
       {hasAnyJobs && (
-        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight">
+        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="primary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
