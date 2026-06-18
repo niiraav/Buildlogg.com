@@ -12,8 +12,6 @@ import { Eye, EyeOff } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup';
 
-const REMEMBER_ME_KEY = 'buildlogg_remember_me';
-
 function validateEmail(email: string): string | null {
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return 'Enter your email address';
@@ -26,15 +24,6 @@ function validatePassword(password: string): string | null {
   if (!password) return 'Enter a password';
   if (password.length < 8) return 'Password must be at least 8 characters';
   return null;
-}
-
-function getInitialRememberMe(): boolean {
-  try {
-    const stored = localStorage.getItem(REMEMBER_ME_KEY);
-    return stored !== null ? stored === 'true' : true;
-  } catch {
-    return true;
-  }
 }
 
 export default function Auth() {
@@ -51,7 +40,6 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
-  const [rememberMe, setRememberMe] = useState(getInitialRememberMe);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -156,14 +144,6 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      // Persist the remember-me choice so the Supabase storage wrapper uses the
-      // correct backend (localStorage for remembered sessions, sessionStorage otherwise).
-      try {
-        localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe));
-      } catch {
-        // ignore storage errors
-      }
-
       if (mode === 'signin') {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -356,7 +336,7 @@ export default function Auth() {
 
   return (
     <AuthDesktopLayout variant="auth">
-      <div className="flex flex-col h-full min-h-0">
+      <div className="flex flex-col min-h-[100dvh]">
         {/* Mobile brand wordmark */}
         <a href="https://buildlogg.com" className="text-hero font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8 inline-block">
           Buildlogg
@@ -482,18 +462,6 @@ export default function Auth() {
                       </div>
                     </div>
                   )}
-
-                  <div className="flex items-center">
-                    <label className="inline-flex items-center gap-2.5 text-sm text-brand-dark cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 rounded border-brand-border text-brand-black focus:ring-brand-black accent-brand-black"
-                      />
-                      Remember me for 30 days
-                    </label>
-                  </div>
 
                   {error && <p className="text-sm text-status-red">{error}</p>}
 
