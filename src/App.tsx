@@ -8,7 +8,6 @@ import {
   useNavigate,
   useLocation,
 } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { db, type Profile } from './lib/db';
 import { useAppStore } from './store/useAppStore';
@@ -46,18 +45,6 @@ const TAB_PATHS = ['/', '/jobs', '/settings', '/activity'];
 function isTab(path: string): boolean {
   return TAB_PATHS.includes(path);
 }
-
-const forwardVariants = {
-  initial: { opacity: 0, x: 40 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -40 },
-};
-
-const backVariants = {
-  initial: { opacity: 0, x: -40 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 40 },
-};
 
 /* ─── AuthGuard (no animation — just renders Outlet) ─── */
 function AuthGuard() {
@@ -249,34 +236,11 @@ function DesktopSplitShell() {
   return null;
 }
 
-/* ─── Animated Routes (TabBar outside AnimatePresence) ─── */
+/* ─── Body-scroll routes (site-wide) ─── */
 function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [history, setHistory] = useState<string[]>([location.pathname]);
 
-  // Track navigation history to detect back vs forward
-  useEffect(() => {
-    setHistory((prev) => {
-      const current = location.pathname;
-      const last = prev[prev.length - 1];
-      if (current === last) return prev;
-
-      const idx = prev.indexOf(current);
-      if (idx !== -1 && idx < prev.length - 1) {
-        // Going back — trim history to this point
-        return prev.slice(0, idx + 1);
-      }
-      // Going forward
-      return [...prev, current];
-    });
-  }, [location.pathname]);
-
-  const prevPath = history[history.length - 2] || history[0];
-  const isTabSwitch = isTab(location.pathname) && isTab(prevPath);
-  const isBack = history.length > 1 && history.indexOf(location.pathname) < history.length - 1;
-
-  // Determine active tab for the persistent TabBar
   const activeTab =
     location.pathname === '/' ? 'home' :
     location.pathname === '/jobs' ? 'jobs' :
@@ -291,73 +255,45 @@ function AppRoutes() {
     }
   };
 
-  // For tab switches: no animation (instant). For deep nav: slide.
-  const variants = isTabSwitch
-    ? { initial: {}, animate: {}, exit: {} }
-    : isBack
-      ? backVariants
-      : forwardVariants;
-
-  const transition = isTabSwitch
-    ? { duration: 0 }
-    : { type: 'spring' as const, stiffness: 400, damping: 35 };
-
-  const animatePresenceMode = isTabSwitch ? 'sync' : 'wait';
-
   const isAuthOrOnboarding =
     location.pathname === '/auth' || location.pathname === '/onboarding';
-  const isDeepRoute = !isTab(location.pathname) && !isAuthOrOnboarding;
 
-  const appContent = (
-    <>
-      {/* Content area — animated only for deep navigation */}
-      <div className="flex-1 min-h-0 relative overflow-hidden">
-        <AnimatePresence mode={animatePresenceMode} initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={isTabSwitch ? false : 'initial'}
-            animate="animate"
-            exit={isTabSwitch ? undefined : 'exit'}
-            variants={variants}
-            transition={transition}
-            className={`absolute inset-0 flex flex-col ${isDeepRoute ? 'md:items-center' : ''}`}
-          >
-            <div className="flex-1 min-h-0 w-full">
-              <Routes location={location}>
-              <Route path="/auth" element={<Auth />} />
-              <Route element={<AuthGuard />}>
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/" element={<Home />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="/activity" element={<Activity />} />
-                <Route path="/jobs/:jobId" element={<JobDetail />} />
-                <Route path="/quote" element={<Quote />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/custom-items" element={<CustomItems />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
-          </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Persistent TabBar — never animates, only visible on tab routes */}
-      {isTab(location.pathname) && (
-        <TabBar activeTab={activeTab} onNavigate={handleTabNavigate} />
-      )}
-    </>
+  const routes = (
+    <Routes location={location}>
+      <Route path="/auth" element={<Auth />} />
+      <Route element={<AuthGuard />}>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/jobs" element={<Jobs />} />
+        <Route path="/activity" element={<Activity />} />
+        <Route path="/jobs/:jobId" element={<JobDetail />} />
+        <Route path="/quote" element={<Quote />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/custom-items" element={<CustomItems />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 
-  // Auth and onboarding render their own layout internally.
-  // All other authenticated routes (tab routes, quote, job detail, settings, etc.)
-  // are rendered inside the two-column desktop shell with the contextual left panel.
+  const appContent = (
+    <div className="flex flex-col min-h-[100dvh]">
+      <div className="flex-1">{routes}</div>
+      {isTab(location.pathname) && (
+        <div className="sticky bottom-0 z-50 flex-shrink-0">
+          <TabBar activeTab={activeTab} onNavigate={handleTabNavigate} />
+        </div>
+      )}
+    </div>
+  );
+
+  const rightPanelClass = 'relative flex flex-col flex-1 min-h-[100dvh] bg-[var(--app-shell-bg)]';
+
   if (isAuthOrOnboarding) {
-    return <div className="relative flex flex-col flex-1 min-h-0">{appContent}</div>;
+    return <div className="relative flex flex-col flex-1 min-h-[100dvh]">{appContent}</div>;
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
+    <div className="flex-1 min-h-[100dvh] flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
       <div className="flex-1 flex flex-col md:flex-row md:max-w-[1440px]">
         {/* Left panel — contextual help (40%) */}
         <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto md:w-[40%]">
@@ -365,13 +301,12 @@ function AppRoutes() {
         </div>
 
         {/* Right panel — app content */}
-        <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden bg-[var(--app-shell-bg)]">
+        <div className={rightPanelClass}>
           {appContent}
         </div>
       </div>
     </div>
   );
-
 }
 
 /* ─── App root ─── */
@@ -386,7 +321,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col overflow-hidden">
+    <div id="app-shell" className="flex flex-col overflow-x-clip">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">

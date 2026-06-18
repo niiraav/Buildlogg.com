@@ -4,6 +4,8 @@ import {
   ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
+import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
+import { addToSyncQueue } from '../../lib/syncQueue';
 import { useAppStore } from '../../store/useAppStore';
 import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded } from '../../lib/analytics';
 import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
@@ -129,7 +131,9 @@ type SheetState =
   | 'send_receipt'
   | 'change_status'
   | 'edit_payment_method'
-  | 'finish_previous';
+  | 'finish_previous'
+  | 'record_deposit'
+  | 'write_off';
 
 /* ─── component ─── */
 
@@ -155,6 +159,7 @@ export default function JobDetail() {
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
   const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
   const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   /* Initialize callout amount from profile */
   useEffect(() => {
@@ -245,17 +250,6 @@ export default function JobDetail() {
 
   /* ─── actions ─── */
 
-  const addToSyncQueue = async (table: string, id: string, payload: Record<string, unknown>) => {
-    await db.sync_queue.add({
-      operation: 'update',
-      table_name: table,
-      record_id: id,
-      payload,
-      created_at: now(),
-      retry_count: 0,
-    });
-  };
-
   const handleSaveMaterialsCost = useCallback(async (value: string) => {
     const cost = parseFloat(value);
     if (isNaN(cost) || cost <= 0) return;
@@ -310,6 +304,7 @@ export default function JobDetail() {
     if (!chargeDesc.trim() || isNaN(amount) || amount <= 0) return;
     const n = now();
     const liId = crypto.randomUUID();
+    const workLogId = crypto.randomUUID();
     await db.line_items.add({
       id: liId,
       job_id: jobId!,
@@ -322,7 +317,7 @@ export default function JobDetail() {
     });
     const newTotal = total + amount;
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: workLogId,
       job_id: jobId!,
       type: 'charge',
       description: `${chargeDesc.trim()} — £${amount.toFixed(2)} (Total: £${newTotal.toFixed(2)})`,
@@ -331,8 +326,8 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('line_items', liId, { description: chargeDesc.trim(), amount, job_id: jobId!, added_on_site: true });
-    await addToSyncQueue('work_log', liId, { job_id: jobId!, type: 'charge', description: `${chargeDesc.trim()} — £${amount.toFixed(2)}`, amount });
+    await addToSyncQueue('line_items', liId, { id: liId, description: chargeDesc.trim(), amount, job_id: jobId!, added_on_site: true, sort_order: lineItems.length, created_at: n }, 'insert');
+    await addToSyncQueue('work_log', workLogId, { id: workLogId, job_id: jobId!, type: 'charge', description: `${chargeDesc.trim()} — £${amount.toFixed(2)} (Total: £${newTotal.toFixed(2)})`, amount, line_item_id: liId, created_at: n }, 'insert');
     setChargeDesc('');
     setChargeAmount('');
     setSheet(null);
@@ -342,15 +337,16 @@ export default function JobDetail() {
   const handleAddNote = async () => {
     if (!noteText.trim()) return;
     const n = now();
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: jobId!,
       type: 'note',
       description: noteText.trim(),
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('work_log', jobId!, { job_id: jobId!, type: 'note', description: noteText.trim() });
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: jobId!, type: 'note', description: noteText.trim(), created_at: n }, 'insert');
     setNoteText('');
     setSheet(null);
     refresh();
@@ -359,6 +355,7 @@ export default function JobDetail() {
   const handleCancelJob = async (reason: 'customer_cancelled' | 'dave_cancelled') => {
     if (!job) return;
     const n = now();
+    const logId = crypto.randomUUID();
     await db.jobs.update(job.id, {
       status: 'cancelled',
       cancellation_reason: reason,
@@ -366,14 +363,15 @@ export default function JobDetail() {
       _sync_status: 'pending',
     });
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: reason === 'customer_cancelled' ? 'Customer cancelled' : 'I cancelled',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: 'cancelled', cancellation_reason: reason, updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'cancelled', cancellation_reason: reason, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: reason === 'customer_cancelled' ? 'Customer cancelled' : 'I cancelled', created_at: n }, 'insert');
     hapticSuccess();
     showToast('Job cancelled', 'success', 2000);
     captureJobCancelled(reason);
@@ -384,6 +382,7 @@ export default function JobDetail() {
   const handleNotHome = async () => {
     if (!job) return;
     const n = now();
+    const logId = crypto.randomUUID();
     await db.jobs.update(job.id, {
       status: 'no_show',
       actual_end: n,
@@ -391,120 +390,225 @@ export default function JobDetail() {
       _sync_status: 'pending',
     });
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: 'Customer not home — no-show logged',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: 'no_show', actual_end: n, updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'no_show', actual_end: n, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Customer not home — no-show logged', created_at: n }, 'insert');
     refresh();
   };
 
   const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
-    if (!job || !userId) return;
+    if (!job || !userId || paymentProcessing) return;
+    setPaymentProcessing(true);
     const n = now();
-    if (method === 'not_yet') {
-      await db.jobs.update(job.id, {
-        status: 'awaiting_payment',
-        actual_end: n,
-        updated_at: n,
-        _sync_status: 'pending',
-      });
-      await db.work_log.add({
-        id: crypto.randomUUID(),
-        job_id: job.id,
-        type: 'status_change',
-        description: 'Job completed — payment pending',
-        created_at: n,
-        _sync_status: 'pending',
-      });
-      await ensureInvoiceNumber(job, userId);
-      await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, updated_at: n });
-    } else {
+    try {
+      if (method === 'not_yet') {
+        const logId = crypto.randomUUID();
+        await db.jobs.update(job.id, {
+          status: 'awaiting_payment',
+          actual_end: n,
+          updated_at: n,
+          _sync_status: 'pending',
+        });
+        await db.work_log.add({
+          id: logId,
+          job_id: job.id,
+          type: 'status_change',
+          description: 'Job completed — payment pending',
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        await ensureInvoiceNumber(job, userId);
+        await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, updated_at: n }, 'update');
+        await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — payment pending', created_at: n }, 'insert');
+      } else {
+        const summary = paymentSummary(job, payments, total);
+        if (summary.isFullyPaid || job.status === 'paid') {
+          showToast('This job is already paid', 'info', 2000);
+          return;
+        }
+        const payId = crypto.randomUUID();
+        await db.payments.add({
+          id: payId,
+          job_id: job.id,
+          type: summary.nextPaymentType,
+          method,
+          amount: summary.amountDue,
+          recorded_at: n,
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        const fullyPaidNow = summary.totalPaid + summary.amountDue >= total - 0.0001;
+        await db.jobs.update(job.id, {
+          status: fullyPaidNow ? 'paid' : 'awaiting_payment',
+          actual_end: n,
+          updated_at: n,
+          _sync_status: 'pending',
+        });
+        if (fullyPaidNow) {
+          hapticSuccess();
+          showSuccess('Job marked as paid');
+          captureJobMarkedPaid();
+        } else {
+          showToast('Deposit recorded — balance still due', 'info', 2500);
+        }
+        await ensureInvoiceNumber(job, userId);
+        const logId = crypto.randomUUID();
+        await db.work_log.add({
+          id: logId,
+          job_id: job.id,
+          type: 'status_change',
+          description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`,
+          amount: summary.amountDue,
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        await addToSyncQueue('payments', payId, { id: payId, job_id: job.id, type: summary.nextPaymentType, method, amount: summary.amountDue, recorded_at: n, created_at: n }, 'insert');
+        await addToSyncQueue('jobs', job.id, { status: fullyPaidNow ? 'paid' : 'awaiting_payment', actual_end: n, updated_at: n }, 'update');
+        await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`, amount: summary.amountDue, created_at: n }, 'insert');
+      }
+      setSheet(null);
+    } finally {
+      setPaymentProcessing(false);
+      refresh();
+    }
+  };
+
+  const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'other') => {
+    if (!job || !userId || paymentProcessing) return;
+    const summary = paymentSummary(job, payments, total);
+    if (summary.isFullyPaid || job.status === 'paid') {
+      showToast('This job is already paid', 'info', 2000);
+      return;
+    }
+    setPaymentProcessing(true);
+    const n = now();
+    try {
       const payId = crypto.randomUUID();
       await db.payments.add({
         id: payId,
         job_id: job.id,
-        type: 'full',
+        type: summary.nextPaymentType,
         method,
-        amount: total,
+        amount: summary.amountDue,
         recorded_at: n,
         created_at: n,
         _sync_status: 'pending',
       });
+      const fullyPaidNow = summary.totalPaid + summary.amountDue >= total - 0.0001;
       await db.jobs.update(job.id, {
-        status: 'paid',
-        actual_end: n,
+        status: fullyPaidNow ? 'paid' : 'awaiting_payment',
         updated_at: n,
         _sync_status: 'pending',
       });
-      hapticSuccess();
-      showSuccess('Job marked as paid');
-      hapticSuccess();
-    showSuccess('Job marked as paid');
-    captureJobMarkedPaid();
+      if (fullyPaidNow) {
+        captureJobMarkedPaid();
+      }
+      const logId = crypto.randomUUID();
       await db.work_log.add({
-        id: crypto.randomUUID(),
+        id: logId,
         job_id: job.id,
         type: 'status_change',
-        description: `Payment recorded — ${method === 'cash' ? 'Cash' : method === 'bank_transfer' ? 'Bank Transfer' : 'Other'} · £${total.toFixed(2)}`,
+        description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`,
+        amount: summary.amountDue,
         created_at: n,
         _sync_status: 'pending',
       });
-      await addToSyncQueue('payments', payId, { job_id: job.id, type: 'full', method, amount: total });
-      await addToSyncQueue('jobs', job.id, { status: 'paid', actual_end: n, updated_at: n });
-    }
-    setSheet(null);
-    setMarkDoneStep('photo');
+      await addToSyncQueue('payments', payId, { id: payId, job_id: job.id, type: summary.nextPaymentType, method, amount: summary.amountDue, recorded_at: n, created_at: n }, 'insert');
+      await addToSyncQueue('jobs', job.id, { status: fullyPaidNow ? 'paid' : 'awaiting_payment', updated_at: n }, 'update');
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`, amount: summary.amountDue, created_at: n }, 'insert');
+      setSheet(null);
+    } finally {
+      setPaymentProcessing(false);
+      setMarkDoneStep('photo');
 
-    // Anti-forgetting: if we were sent here from a new-job intercept, navigate back and auto-start the new job
-    const routeState = location.state as { returnToStartJob?: { jobId: string; from: string } } | null;
-    if (routeState?.returnToStartJob) {
-      navigate(`/jobs/${routeState.returnToStartJob.jobId}`, { state: { autoStart: true } });
-      return;
-    }
+      // Anti-forgetting: if we were sent here from a new-job intercept, navigate back and auto-start the new job
+      const routeState = location.state as { returnToStartJob?: { jobId: string; from: string } } | null;
+      if (routeState?.returnToStartJob) {
+        navigate(`/jobs/${routeState.returnToStartJob.jobId}`, { state: { autoStart: true } });
+        return;
+      }
 
-    refresh();
+      refresh();
+    }
   };
 
-  const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'other') => {
+  const handleRecordDeposit = async (method: 'cash' | 'bank_transfer' | 'other') => {
+    if (!job || !userId || paymentProcessing) return;
+    const summary = paymentSummary(job, payments, total);
+    if (summary.totalPaid >= summary.depositAmount - 0.0001) {
+      showToast('Deposit already recorded', 'info', 2000);
+      return;
+    }
+    setPaymentProcessing(true);
+    const n = now();
+    try {
+      const payId = crypto.randomUUID();
+      const logId = crypto.randomUUID();
+      const depositAmount = summary.depositAmount;
+      await db.payments.add({
+        id: payId,
+        job_id: job.id,
+        type: 'deposit',
+        method,
+        amount: depositAmount,
+        recorded_at: n,
+        created_at: n,
+        _sync_status: 'pending',
+      });
+      await db.work_log.add({
+        id: logId,
+        job_id: job.id,
+        type: 'status_change',
+        description: `Deposit recorded — ${paymentMethodLabel(method)} · £${formatAmount(depositAmount)}`,
+        amount: depositAmount,
+        created_at: n,
+        _sync_status: 'pending',
+      });
+      await addToSyncQueue('payments', payId, { id: payId, job_id: job.id, type: 'deposit', method, amount: depositAmount, recorded_at: n, created_at: n }, 'insert');
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Deposit recorded — ${paymentMethodLabel(method)} · £${formatAmount(depositAmount)}`, amount: depositAmount, created_at: n }, 'insert');
+      if (job.status === 'quoted') {
+        await db.jobs.update(job.id, { status: 'booked', updated_at: n, _sync_status: 'pending' });
+        await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n }, 'update');
+      }
+      hapticSuccess();
+      showSuccess('Deposit recorded');
+      setSheet(null);
+    } finally {
+      setPaymentProcessing(false);
+      refresh();
+    }
+  };
+
+  const handleWriteOff = async () => {
     if (!job) return;
     const n = now();
-    const paymentType = payments.length > 0 ? 'balance' : 'full';
-    const payId = crypto.randomUUID();
-    await db.payments.add({
-      id: payId,
-      job_id: job.id,
-      type: paymentType,
-      method,
-      amount: total,
-      recorded_at: n,
-      created_at: n,
-      _sync_status: 'pending',
-    });
+    const logId = crypto.randomUUID();
     await db.jobs.update(job.id, {
-      status: 'paid',
+      status: 'written_off',
       updated_at: n,
       _sync_status: 'pending',
     });
-    captureJobMarkedPaid();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
-      description: `Payment recorded — ${method === 'cash' ? 'Cash' : method === 'bank_transfer' ? 'Bank Transfer' : 'Other'} · £${total.toFixed(2)}`,
+      description: 'Job written off',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('payments', payId, { job_id: job.id, type: paymentType, method, amount: total });
-    await addToSyncQueue('jobs', job.id, { status: 'paid', updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'written_off', updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job written off', created_at: n }, 'insert');
+    hapticSuccess();
+    showToast('Job written off', 'success', 2000);
     setSheet(null);
     refresh();
   };
-
-  
 
   const handleMarkAsBooked = async () => {
     if (!job || !customer) return;
@@ -514,15 +618,17 @@ export default function JobDetail() {
       updated_at: n,
       _sync_status: 'pending',
     });
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: 'Quote accepted — marked as booked',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Quote accepted — marked as booked', created_at: n }, 'insert');
     hapticSuccess();
     showToast('Job booked', 'success');
     captureJobBooked();
@@ -581,15 +687,17 @@ export default function JobDetail() {
       updated_at: n,
       _sync_status: 'pending',
     });
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: 'Job started',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: 'in_progress', actual_start: n, updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'in_progress', actual_start: n, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job started', created_at: n }, 'insert');
     hapticSuccess();
     showToast('Job started', 'success');
     captureJobStarted();
@@ -606,15 +714,17 @@ export default function JobDetail() {
       updated_at: n,
       _sync_status: 'pending',
     });
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'note',
       description: `Rescheduled to ${formatShortDate(new Date(rescheduleDate))} · ${formatTime(new Date(rescheduleDate))}`,
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: 'booked', scheduled_start: rescheduleDate, updated_at: n });
+    await addToSyncQueue('jobs', job.id, { status: 'booked', scheduled_start: rescheduleDate, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'note', description: `Rescheduled to ${formatShortDate(new Date(rescheduleDate))} · ${formatTime(new Date(rescheduleDate))}`, created_at: n }, 'insert');
     setRescheduleDate('');
     setSheet(null);
     refresh();
@@ -634,15 +744,17 @@ export default function JobDetail() {
       updated_at: n,
       _sync_status: 'pending',
     });
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: `Status changed from ${prevStatus} to ${newStatus}`,
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, update);
+    await addToSyncQueue('jobs', job.id, update, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Status changed from ${prevStatus} to ${newStatus}`, created_at: n }, 'insert');
     if (newStatus === 'awaiting_payment') {
       await ensureInvoiceNumber(job, userId);
     }
@@ -663,8 +775,9 @@ export default function JobDetail() {
     });
     
     // Log the change
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: `Payment method updated: ${lastPayment.method} → ${newMethod}`,
@@ -672,7 +785,8 @@ export default function JobDetail() {
       _sync_status: 'pending',
     });
     
-    await addToSyncQueue('payments', lastPayment.id, { method: newMethod, updated_at: n });
+    await addToSyncQueue('payments', lastPayment.id, { method: newMethod, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment method updated: ${lastPayment.method} → ${newMethod}`, created_at: n }, 'insert');
     
     showToast('Payment method updated', 'success', 2000);
     setSheet(null);
@@ -704,7 +818,7 @@ export default function JobDetail() {
       scheduled_end: combinedEnd,
       notes: editNotes.trim() || undefined,
       updated_at: n,
-    });
+    }, 'update');
 
     if (customer && editAddress.trim() !== (customer.address || '')) {
       await db.customers.update(customer.id, {
@@ -715,18 +829,20 @@ export default function JobDetail() {
       await addToSyncQueue('customers', customer.id, {
         address: editAddress.trim() || undefined,
         updated_at: n,
-      });
+      }, 'update');
     }
 
     if (changes.length > 0) {
+      const logId = crypto.randomUUID();
       await db.work_log.add({
-        id: crypto.randomUUID(),
+        id: logId,
         job_id: job.id,
         type: 'status_change',
         description: `Job details updated (${changes.join(', ')})`,
         created_at: n,
         _sync_status: 'pending',
       });
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Job details updated (${changes.join(', ')})`, created_at: n }, 'insert');
       // Generate update message for customer
       const customerFirstName = customer?.name.split(' ')[0] || 'there';
       const business = profile?.business_name || 'Your tradesperson';
@@ -779,7 +895,7 @@ export default function JobDetail() {
       type: 'customer_notified',
       description: 'Update sent to customer via ' + (method === 'whatsapp' ? 'WhatsApp' : 'SMS'),
       created_at: n,
-    });
+    }, 'insert');
 
     setSheet(null);
     setUpdateMessage('');
@@ -812,7 +928,7 @@ export default function JobDetail() {
       type: 'note',
       description: `Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
       created_at: n,
-    });
+    }, 'insert');
 
     setSheet(null);
   };
@@ -846,7 +962,7 @@ export default function JobDetail() {
       type: 'customer_notified',
       description: `Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
       created_at: n,
-    });
+    }, 'insert');
 
     setSheet(null);
   };
@@ -885,16 +1001,18 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: newJobId,
       type: 'status_change',
       description: 'Callout charge invoice created',
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', newJobId, { user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', job_number: jobNumber, invoice_number: invoiceNumber, invoice_sent_at: n, status: 'awaiting_payment', payment_terms: 'invoice', is_multi_day: false });
-    await addToSyncQueue('line_items', liId, { job_id: newJobId, description: calloutDesc.trim() || 'Callout charge', amount, sort_order: 0 });
+    await addToSyncQueue('jobs', newJobId, { id: newJobId, user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', job_number: jobNumber, invoice_number: invoiceNumber, invoice_sent_at: n, status: 'awaiting_payment', payment_terms: 'invoice', is_multi_day: false, created_at: n, updated_at: n }, 'insert');
+    await addToSyncQueue('line_items', liId, { id: liId, job_id: newJobId, description: calloutDesc.trim() || 'Callout charge', amount, sort_order: 0, created_at: n }, 'insert');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: newJobId, type: 'status_change', description: 'Callout charge invoice created', created_at: n }, 'insert');
     setCalloutDesc('Callout charge');
     setCalloutAmount(profile?.callout_charge ? String(profile.callout_charge) : '75');
     setSheet(null);
@@ -915,8 +1033,9 @@ export default function JobDetail() {
       window.open(`sms:${customer.phone}?body=${encodedBody}`, '_blank');
     }
 
+    const logId = crypto.randomUUID();
     await db.work_log.add({
-      id: crypto.randomUUID(),
+      id: logId,
       job_id: job.id,
       type: 'status_change',
       description: `Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
@@ -928,7 +1047,8 @@ export default function JobDetail() {
       updated_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n });
+    await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`, created_at: n }, 'insert');
     capturePaymentChase(method);
     setSheet(null);
     refresh();
@@ -1012,7 +1132,7 @@ export default function JobDetail() {
           Back
         </button>
         <div className="flex items-center gap-2">
-          {(job?.status === 'booked' || job?.status === 'no_show' || job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
+          {(job?.status === 'quoted' || job?.status === 'booked' || job?.status === 'no_show' || job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
             <button
               onClick={() => setSheet('more_options')}
               className="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer text-brand-muted hover:text-brand-dark hover:bg-brand-surface transition-colors"
@@ -1887,15 +2007,45 @@ export default function JobDetail() {
         label="Edit details"
         onTap={openEditDetails}
       />
+      <SheetRow
+        label="Add a note"
+        onTap={() => setSheet('add_note')}
+      />
+      {(job?.status === 'in_progress' || job?.status === 'awaiting_payment' || job?.status === 'booked' || job?.status === 'no_show') && (
+        <SheetRow
+          label="Add charge"
+          onTap={() => setSheet('add_charge')}
+        />
+      )}
       {(job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
         <SheetRow
           label="Change status"
           onTap={() => setSheet('change_status')}
         />
       )}
+      {job?.payment_terms === 'deposit' && job?.deposit_pct && (
+        <SheetRow
+          label="Record deposit"
+          onTap={() => setSheet('record_deposit')}
+        />
+      )}
+      {job?.status === 'awaiting_payment' && (
+        <SheetRow
+          label="Write off"
+          onTap={() => setSheet('write_off')}
+          variant="destructive"
+        />
+      )}
       {(job?.status === 'booked' || job?.status === 'in_progress' || job?.status === 'no_show' || job?.status === 'awaiting_payment') && (
         <SheetRow
           label="Cancel job"
+          onTap={() => setSheet('cancel')}
+          variant="destructive"
+        />
+      )}
+      {job?.status === 'quoted' && (
+        <SheetRow
+          label="Cancel quote"
           onTap={() => setSheet('cancel')}
           variant="destructive"
         />
@@ -2006,120 +2156,186 @@ export default function JobDetail() {
   const renderMarkDoneSheet = () => {
     // If job already has 10 photos, skip the photo step
     const photoStep = markDoneStep === 'photo' && photos.length < 10;
+    const summary = job ? paymentSummary(job, payments, total) : null;
 
     return (
-    <BottomSheet
-      isOpen={sheet === 'mark_done'}
-      onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
-      title={photoStep ? 'Job done! 📸' : 'How were you paid?'}
-      subtitle={
-        photoStep
-          ? 'Snap a quick photo for your records?'
-          : job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined
-      }
-    >
-      {photoStep ? (
-        <>
-          <SheetRow
-            icon={<Camera size={18} className="text-brand-dark" />}
-            label="Take photo"
-            onTap={async () => {
-              if (!job || !userId) return;
-              const dataUrl = await capturePhoto();
-              if (!dataUrl) return;
-              await saveJobPhoto(job.id, userId, dataUrl);
-              captureCompletionPhotoTaken({ jobId: job.id });
-              setPhotos((prev) => [...prev, {
-                id: crypto.randomUUID(), job_id: job.id, user_id: userId,
-                data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
-              }]);
-              setMarkDoneStep('payment');
-            }}
-          />
-          <SheetRow
-            icon={<ImageIcon size={18} className="text-brand-dark" />}
-            label="Choose from library"
-            onTap={async () => {
-              if (!job || !userId) return;
-              const dataUrl = await pickPhotoFromLibrary();
-              if (!dataUrl) return;
-              await saveJobPhoto(job.id, userId, dataUrl);
-              captureCompletionPhotoTaken({ jobId: job.id });
-              setPhotos((prev) => [...prev, {
-                id: crypto.randomUUID(), job_id: job.id, user_id: userId,
-                data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
-              }]);
-              setMarkDoneStep('payment');
-            }}
-          />
-          <SheetRow
-            icon={<X size={18} className="text-brand-muted" />}
-            label="Skip"
-            onTap={() => {
-              if (job) captureCompletionPhotoSkipped({ jobId: job.id });
-              setMarkDoneStep('payment');
-            }}
-            variant="destructive"
-            isLast
-          />
-        </>
-      ) : (
-        <>
-          <SheetRow
-            icon={<Banknote size={18} className="text-brand-dark" />}
-            label="Cash"
-            onTap={() => handleMarkDone('cash')}
-          />
-          <SheetRow
-            icon={<Building2 size={18} className="text-brand-dark" />}
-            label="Bank Transfer"
-            onTap={() => handleMarkDone('bank_transfer')}
-          />
-          <SheetRow
-            icon={<Pencil size={18} className="text-brand-dark" />}
-            label="Other"
-            sublabel="Entered manually"
-            onTap={() => handleMarkDone('other')}
-          />
-          <SheetRow
-            icon={<Clock size={18} className="text-brand-muted" />}
-            label="Not yet"
-            sublabel="Chase later"
-            onTap={() => handleMarkDone('not_yet')}
-            variant="destructive"
-            isLast
-          />
-          <p className="text-label text-brand-muted px-4 pt-1 pb-2">
-            → Chase payment added to tasks
-          </p>
-        </>
-      )}
-    </BottomSheet>
+      <BottomSheet
+        isOpen={sheet === 'mark_done'}
+        onClose={() => { !paymentProcessing && setSheet(null); setMarkDoneStep('photo'); }}
+        title={photoStep ? 'Job done! 📸' : 'How were you paid?'}
+        subtitle={
+          photoStep
+            ? 'Snap a quick photo for your records?'
+            : job && customer ? `${customer.name} · ${job.title} · £${formatAmount(summary?.amountDue ?? total)} due` : undefined
+        }
+      >
+        {photoStep ? (
+          <>
+            <SheetRow
+              icon={<Camera size={18} className="text-brand-dark" />}
+              label="Take photo"
+              onTap={async () => {
+                if (!job || !userId) return;
+                const dataUrl = await capturePhoto();
+                if (!dataUrl) return;
+                await saveJobPhoto(job.id, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: job.id });
+                setPhotos((prev) => [...prev, {
+                  id: crypto.randomUUID(), job_id: job.id, user_id: userId,
+                  data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
+                }]);
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<ImageIcon size={18} className="text-brand-dark" />}
+              label="Choose from library"
+              onTap={async () => {
+                if (!job || !userId) return;
+                const dataUrl = await pickPhotoFromLibrary();
+                if (!dataUrl) return;
+                await saveJobPhoto(job.id, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: job.id });
+                setPhotos((prev) => [...prev, {
+                  id: crypto.randomUUID(), job_id: job.id, user_id: userId,
+                  data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
+                }]);
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<X size={18} className="text-brand-muted" />}
+              label="Skip"
+              onTap={() => {
+                if (job) captureCompletionPhotoSkipped({ jobId: job.id });
+                setMarkDoneStep('payment');
+              }}
+              variant="destructive"
+              isLast
+            />
+          </>
+        ) : (
+          <>
+            <SheetRow
+              icon={<Banknote size={18} className="text-brand-dark" />}
+              label="Cash"
+              onTap={() => handleMarkDone('cash')}
+              disabled={paymentProcessing}
+            />
+            <SheetRow
+              icon={<Building2 size={18} className="text-brand-dark" />}
+              label="Bank Transfer"
+              onTap={() => handleMarkDone('bank_transfer')}
+              disabled={paymentProcessing}
+            />
+            <SheetRow
+              icon={<Pencil size={18} className="text-brand-dark" />}
+              label="Other"
+              sublabel="Entered manually"
+              onTap={() => handleMarkDone('other')}
+              disabled={paymentProcessing}
+            />
+            <SheetRow
+              icon={<Clock size={18} className="text-brand-muted" />}
+              label="Not yet"
+              sublabel="Chase later"
+              onTap={() => handleMarkDone('not_yet')}
+              variant="destructive"
+              isLast
+              disabled={paymentProcessing}
+            />
+            <p className="text-label text-brand-muted px-4 pt-1 pb-2">
+              → Chase payment added to tasks
+            </p>
+          </>
+        )}
+      </BottomSheet>
+    );
     );
   };
 
-  const renderMarkPaidSheet = () => (
+  const renderMarkPaidSheet = () => {
+    const summary = job ? paymentSummary(job, payments, total) : null;
+    return (
+      <BottomSheet
+        isOpen={sheet === 'mark_paid'}
+        onClose={() => !paymentProcessing && setSheet(null)}
+        title="How were you paid?"
+        subtitle={job && customer ? `${customer.name} · ${job.title} · £${formatAmount(summary?.amountDue ?? total)} due` : undefined}
+      >
+        <SheetRow
+          icon={<Banknote size={18} className="text-brand-dark" />}
+          label="Cash"
+          onTap={() => handleMarkAsPaid('cash')}
+          disabled={paymentProcessing}
+        />
+        <SheetRow
+          icon={<Building2 size={18} className="text-brand-dark" />}
+          label="Bank Transfer"
+          onTap={() => handleMarkAsPaid('bank_transfer')}
+          disabled={paymentProcessing}
+        />
+        <SheetRow
+          icon={<Pencil size={18} className="text-brand-dark" />}
+          label="Other"
+          sublabel="Entered manually"
+          onTap={() => handleMarkAsPaid('other')}
+          isLast
+          disabled={paymentProcessing}
+        />
+      </BottomSheet>
+    );
+  };
+
+  const renderDepositSheet = () => {
+    const summary = job ? paymentSummary(job, payments, total) : null;
+    const depositAmount = summary?.depositAmount ?? 0;
+    return (
+      <BottomSheet
+        isOpen={sheet === 'record_deposit'}
+        onClose={() => !paymentProcessing && setSheet(null)}
+        title="Record deposit"
+        subtitle={job && customer ? `${customer.name} · ${job.title} · £${formatAmount(depositAmount)} deposit` : undefined}
+      >
+        <SheetRow
+          icon={<Banknote size={18} className="text-brand-dark" />}
+          label="Cash"
+          onTap={() => handleRecordDeposit('cash')}
+          disabled={paymentProcessing}
+        />
+        <SheetRow
+          icon={<Building2 size={18} className="text-brand-dark" />}
+          label="Bank Transfer"
+          onTap={() => handleRecordDeposit('bank_transfer')}
+          disabled={paymentProcessing}
+        />
+        <SheetRow
+          icon={<Pencil size={18} className="text-brand-dark" />}
+          label="Other"
+          sublabel="Entered manually"
+          onTap={() => handleRecordDeposit('other')}
+          isLast
+          disabled={paymentProcessing}
+        />
+      </BottomSheet>
+    );
+  };
+
+  const renderWriteOffSheet = () => (
     <BottomSheet
-      isOpen={sheet === 'mark_paid'}
+      isOpen={sheet === 'write_off'}
       onClose={() => setSheet(null)}
-      title="How were you paid?"
-      subtitle={job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined}
+      title="Write off this job?"
+      subtitle={job && customer ? `${customer.name} · ${job.title} · £${formatAmount(total)} still owed` : undefined}
     >
       <SheetRow
-        icon={<Banknote size={18} className="text-brand-dark" />}
-        label="Cash"
-        onTap={() => handleMarkAsPaid('cash')}
+        label="Write off balance"
+        onTap={handleWriteOff}
+        variant="destructive"
       />
       <SheetRow
-        icon={<Building2 size={18} className="text-brand-dark" />}
-        label="Bank Transfer"
-        onTap={() => handleMarkAsPaid('bank_transfer')}
-      />
-      <SheetRow
-        icon={<Pencil size={18} className="text-brand-dark" />}
-        label="Other"
-        sublabel="Entered manually"
-        onTap={() => handleMarkAsPaid('other')}
+        label="Keep chasing payment"
+        onTap={() => setSheet(null)}
         isLast
       />
     </BottomSheet>
@@ -2527,6 +2743,8 @@ export default function JobDetail() {
       {renderAddNoteSheet()}
       {renderMarkDoneSheet()}
       {renderMarkPaidSheet()}
+      {renderDepositSheet()}
+      {renderWriteOffSheet()}
       {renderSendReminderSheet()}
       {renderRescheduleSheet()}
       {renderCalloutChargeSheet()}

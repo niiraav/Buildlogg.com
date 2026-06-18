@@ -161,11 +161,7 @@ async function updateSyncStatus(
 
 // Check if any records have pending sync status
 export async function hasPendingSync(): Promise<boolean> {
-  const pendingQueue = await db.sync_queue
-    .where('retry_count')
-    .below(MAX_RETRIES)
-    .count();
-  return pendingQueue > 0;
+  return (await db.sync_queue.count()) > 0;
 }
 
 // Check if any records have error status

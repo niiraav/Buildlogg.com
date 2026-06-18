@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --tab-bar-height: calc(44px + env(safe-area-inset-bottom));
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -11,7 +15,7 @@ body {
   background: var(--app-bg);
   color: var(--app-text);
   min-height: 100dvh;
-  overflow: hidden;
+  /* overflow: hidden; removed for body-scroll proof of concept — the document itself should scroll */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -27,7 +31,7 @@ input, button, textarea, select {
   background: var(--app-shell-bg);
   color: var(--app-text);
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip horizontal without establishing a scroll container, so sticky header/nav works */
   /* No shadow in light mode so the shell blends seamlessly with the body canvas.
      Dark mode keeps a subtle shadow for depth. */
 }

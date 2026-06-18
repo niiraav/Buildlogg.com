@@ -44,7 +44,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -54,7 +54,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
   if (!job || !customer) {
     return (
-      <div className="flex flex-col h-full items-center justify-center px-4">
+      <div className="flex flex-col min-h-[100dvh] items-center justify-center px-4">
         <p className="text-md text-brand-muted">Quote not found</p>
       </div>
     );
@@ -73,7 +73,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
   const customerFirstName = customer.name.split(' ')[0] || 'there';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-[100dvh]">
       {/* Empty header spacer for alignment */}
       <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 flex items-center justify-between opacity-0">
         <div className="min-h-11 pr-4 text-sm font-medium">&nbsp;</div>
@@ -82,7 +82,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
       </div>
 
       {/* Body — centered */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 pb-6 text-center">
         {/* Green check circle */}
         <div className="w-16 h-16 rounded-full bg-status-greenBg flex items-center justify-center mb-5">
           <Check size={28} strokeWidth={3} className="text-status-green" />
