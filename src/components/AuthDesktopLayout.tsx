@@ -1,4 +1,4 @@
-import { Hammer, WifiOff, MessageCircle, Wallet, MapPin, Smartphone } from 'lucide-react';
+import { WifiOff, MessageCircle, Wallet, MapPin, Smartphone } from 'lucide-react';
 
 interface AuthDesktopLayoutProps {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
           {/* Wordmark */}
           <a href="https://buildlogg.com" className="inline-flex items-center gap-2.5 mb-6">
             <span className="w-9 h-9 rounded-lg bg-brand-black text-white grid place-items-center">
-              <Hammer size={20} strokeWidth={2.2} />
+              <img src="/assets/icon-white.png" alt="" className="w-5 h-5" />
             </span>
             <span className="text-[22px] font-extrabold tracking-[-0.03em] text-brand-black">
               Buildlogg
