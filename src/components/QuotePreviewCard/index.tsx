@@ -5,7 +5,7 @@ export interface QuotePreviewCardProps {
   businessName: string;
   customerName: string;
   customerPhone?: string;
-  quoteNumber: string;
+  jobNumber: string;
   jobTitle: string;
   lineItems: LineItem[];
   paymentTerms: string;
@@ -22,7 +22,7 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
     businessName,
     customerName,
     customerPhone,
-    quoteNumber,
+    jobNumber,
     jobTitle,
     lineItems,
     paymentTerms,
@@ -77,7 +77,7 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
       <div className="px-4 pt-3.5 pb-2.5 border-b border-brand-borderLight">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-sm font-medium text-brand-muted">
-            {quoteNumber ? `Quote #${quoteNumber}` : 'Quote'}
+            {jobNumber ? `Quote #${jobNumber}` : 'Quote'}
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full bg-status-blueBg text-status-blue text-micro font-bold tracking-[0.4px]">
             <span className="w-[5px] h-[5px] rounded-full bg-status-blue" />

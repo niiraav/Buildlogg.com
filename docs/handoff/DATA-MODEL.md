@@ -133,7 +133,7 @@ CREATE TABLE jobs (
   deposit_pct         integer CHECK (deposit_pct BETWEEN 0 AND 100),
                                                 -- null unless payment_terms='deposit'
   -- Quote lifecycle
-  quote_number        text,                     -- e.g. Q-1001
+  quote_number        text,                     -- deprecated: job_number is the single canonical reference
   quote_sent_at       timestamptz,
   quote_send_method   text CHECK (quote_send_method IN ('whatsapp', 'sms', 'copy')),
   quote_expires_at    timestamptz,              -- quote_sent_at + quote_valid_days
@@ -366,7 +366,7 @@ export interface Job {
   is_multi_day: boolean;
   payment_terms: 'on_completion' | 'deposit' | 'invoice';
   deposit_pct?: number;
-  quote_number?: string;
+  quote_number?: string;       // deprecated: job_number is the single canonical reference
   quote_sent_at?: string;
   quote_send_method?: 'whatsapp' | 'sms' | 'copy';
   quote_expires_at?: string;
@@ -518,15 +518,16 @@ async function initialSync(userId: string) {
 
 ## 6. Number Sequences
 
-Auto-generated numbers are client-side sequential per user (not global). Pattern:
+Auto-generated numbers are client-side sequential per user (not global).
 
-| Type | Format | Example | Logic |
-|---|---|---|---|
-| Job number | `J-{n}` | J-1001 | Count of existing jobs + 1001 (start offset) |
-| Quote number | `Q-{n}` | Q-1001 | Count of jobs with quote_number + 1001 |
-| Invoice number | `INV-{n}` | INV-1001 | Count of jobs with invoice_number + 1001 |
+**Rule:** one canonical reference follows the job from enquiry → quote → booked → invoice. A separate invoice number is generated only when the job becomes `awaiting_payment`.
 
-These are generated client-side at creation time and stored in the job record.
+| Type | Format | Example | Generated | Logic |
+|---|---|---|---|---|
+| Job reference (lifecycle) | `J-{n}` | J-1001 | At enquiry/job creation | Max existing `job_number` + 1, starting at 1001 |
+| Invoice number | `INV-{n}` | INV-1001 | When status becomes `awaiting_payment` | Max existing `invoice_number` + 1, starting at 1001 |
+
+The `quote_number` column is deprecated and no longer used; the same `J-{n}` reference appears on quotes and jobs.
 
 ---
 

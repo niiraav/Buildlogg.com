@@ -33,7 +33,7 @@ CREATE TABLE jobs (
   deposit_pct         integer CHECK (deposit_pct BETWEEN 0 AND 100),
                                                 -- null unless payment_terms='deposit'
   -- Quote lifecycle
-  quote_number        text,                     -- e.g. Q-1001
+  quote_number        text,                     -- deprecated: job_number is the single canonical reference
   quote_sent_at       timestamptz,
   quote_send_method   text CHECK (quote_send_method IN ('whatsapp', 'sms', 'copy')),
   quote_expires_at    timestamptz,              -- quote_sent_at + quote_valid_days
