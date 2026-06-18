@@ -139,13 +139,13 @@ a { color: inherit; text-decoration: none; }
 }
 .nav.scrolled { border-color: var(--line); box-shadow: 0 1px 0 rgba(16,24,40,.02); }
 .nav-inner { height: 66px; display: flex; align-items: center; justify-content: space-between; }
-.brand { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--ink); letter-spacing: -0.03em; }
+.brand { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--ink); letter-spacing: -0.03em; }
 .brand .mark {
   width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: #fff;
   display: grid; place-items: center; flex: none;
 }
 .brand .mark .lucide { font-size: 16px; }
-.brand-icon { width: 40px; height: 40px; display: block; flex: none; }
+.brand-icon { width: 20px; height: 20px; display: block; flex: none; }
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-link { font-size: 14px; font-weight: 500; color: var(--body); padding: 8px 12px; border-radius: var(--r-btn); transition: background var(--ease) .15s, color var(--ease) .15s; }
 .nav-link:hover { background: var(--surface-card); color: var(--ink); }
