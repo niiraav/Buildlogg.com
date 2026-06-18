@@ -1246,7 +1246,7 @@ Valid for {quoteValidDays} days.
 2. Create customer record (if new)
 3. Create line_items for the job
 4. Create work_log: 'Quote sent via {method}'
-5. Generate quote number: `Q-${(existingQuoteCount + 1001)}`
+5. Ensure job number exists on the job record (`J-${existingJobNumber + 1001}`) for display on the quote
 6. Navigate to QF-8
 
 ## On QF-8 "View job"

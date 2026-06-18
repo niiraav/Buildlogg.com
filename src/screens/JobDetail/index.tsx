@@ -6,7 +6,7 @@ import {
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded } from '../../lib/analytics';
-import { nextJobNumber, ensureJobNumber } from '../../lib/jobNumbers';
+import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
@@ -403,13 +403,12 @@ export default function JobDetail() {
   };
 
   const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
-    if (!job) return;
+    if (!job || !userId) return;
     const n = now();
     if (method === 'not_yet') {
       await db.jobs.update(job.id, {
         status: 'awaiting_payment',
         actual_end: n,
-        invoice_sent_at: n,
         updated_at: n,
         _sync_status: 'pending',
       });
@@ -421,7 +420,8 @@ export default function JobDetail() {
         created_at: n,
         _sync_status: 'pending',
       });
-      await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n });
+      await ensureInvoiceNumber(job, userId);
+      await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, updated_at: n });
     } else {
       const payId = crypto.randomUUID();
       await db.payments.add({
@@ -621,11 +621,16 @@ export default function JobDetail() {
   };
 
   const handleChangeStatus = async (newStatus: 'booked' | 'in_progress' | 'awaiting_payment') => {
-    if (!job) return;
+    if (!job || !userId) return;
     const n = now();
     const prevStatus = job.status;
+    const update: Record<string, unknown> = { status: newStatus, updated_at: n };
+    if (newStatus === 'awaiting_payment') {
+      update.actual_end = n;
+    }
     await db.jobs.update(job.id, {
       status: newStatus,
+      ...(newStatus === 'awaiting_payment' ? { actual_end: n } : {}),
       updated_at: n,
       _sync_status: 'pending',
     });
@@ -637,7 +642,10 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', job.id, { status: newStatus, updated_at: n });
+    await addToSyncQueue('jobs', job.id, update);
+    if (newStatus === 'awaiting_payment') {
+      await ensureInvoiceNumber(job, userId);
+    }
     setSheet(null);
     refresh();
   };
@@ -844,12 +852,13 @@ export default function JobDetail() {
   };
 
   const handleCalloutCharge = async () => {
-    if (!job || !customer) return;
+    if (!job || !customer || !userId) return;
     const amount = parseFloat(calloutAmount);
     if (isNaN(amount) || amount <= 0) return;
     const n = now();
     const newJobId = crypto.randomUUID();
     const jobNumber = await nextJobNumber(job.user_id);
+    const invoiceNumber = await nextInvoiceNumber(userId);
     await db.jobs.add({
       id: newJobId,
       user_id: job.user_id,
@@ -858,6 +867,7 @@ export default function JobDetail() {
       job_number: jobNumber,
       status: 'awaiting_payment',
       payment_terms: 'invoice',
+      invoice_number: invoiceNumber,
       invoice_sent_at: n,
       is_multi_day: false,
       created_at: n,
@@ -883,7 +893,7 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
-    await addToSyncQueue('jobs', newJobId, { user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', job_number: jobNumber, status: 'awaiting_payment', payment_terms: 'invoice', invoice_sent_at: n, is_multi_day: false });
+    await addToSyncQueue('jobs', newJobId, { user_id: job.user_id, customer_id: job.customer_id, title: 'Callout charge', job_number: jobNumber, invoice_number: invoiceNumber, invoice_sent_at: n, status: 'awaiting_payment', payment_terms: 'invoice', is_multi_day: false });
     await addToSyncQueue('line_items', liId, { job_id: newJobId, description: calloutDesc.trim() || 'Callout charge', amount, sort_order: 0 });
     setCalloutDesc('Callout charge');
     setCalloutAmount(profile?.callout_charge ? String(profile.callout_charge) : '75');
@@ -970,7 +980,7 @@ export default function JobDetail() {
   /* ─── render helpers ─── */
 
   const renderPaidFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('send_receipt')}>
           Send receipt
@@ -985,7 +995,7 @@ export default function JobDetail() {
   const renderTerminalFooter = () => (
     <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => navigate("/", { replace: true })}>
+        <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
           Go Home
         </Button>
         <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -996,7 +1006,7 @@ export default function JobDetail() {
   );
 
   const renderHeader = () => (
-    <div className="px-4 py-2 border-b border-brand-borderLight shrink-0">
+    <div className="sticky top-0 z-40 px-4 py-2 bg-[var(--app-shell-bg)] border-b border-brand-borderLight shrink-0">
       {/* Back + options row */}
       <div className="flex items-center justify-between">
         <button
@@ -1111,7 +1121,7 @@ export default function JobDetail() {
     const total = jobTotal(lineItems);
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
         {/* What we know */}
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-3">
@@ -1216,7 +1226,7 @@ export default function JobDetail() {
     const isMissedCall = job?.title === 'Missed call';
 
     return (
-      <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
         {isDraft ? (
           <>
             <Button
@@ -1277,7 +1287,7 @@ export default function JobDetail() {
   const renderBookedBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
         {/* Location card — leads */}
         {customer.address ? (
           <div className="mb-5">
@@ -1396,7 +1406,7 @@ export default function JobDetail() {
   const renderInProgressBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
         {/* Running state */}
         <div className="mb-5">
           <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Running</div>
@@ -1489,7 +1499,7 @@ export default function JobDetail() {
   const renderQuotedBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="mb-4">
           <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">
@@ -1498,7 +1508,7 @@ export default function JobDetail() {
           <div className="border border-brand-border rounded-xl overflow-hidden">
             <div className="px-4 pt-3.5 pb-2.5 border-b border-brand-borderLight">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-brand-muted">{job?.quote_number || 'Quote'}</span>
+                <span className="text-sm font-medium text-brand-muted">{job?.job_number || 'Quote'}</span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full bg-status-blueBg text-status-blue text-micro font-bold tracking-[0.4px]">
                   <span className="w-[5px] h-[5px] rounded-full bg-status-blue" />
                   Quoted
@@ -1552,7 +1562,7 @@ export default function JobDetail() {
   };
 
   const renderBookedFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleStartJob}>
         Start job
       </Button>
@@ -1560,7 +1570,7 @@ export default function JobDetail() {
   );
 
   const renderQuotedFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleMarkAsBooked}>
         Mark as Booked
       </Button>
@@ -1568,7 +1578,7 @@ export default function JobDetail() {
   );
 
   const renderInProgressFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('mark_done')}>
           <Check size={18} className="mr-2" />
@@ -1585,7 +1595,7 @@ export default function JobDetail() {
     if (!job || !customer) return null;
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         {/* Amount card */}
         <div className="border border-amber-200 bg-status-amberBg rounded-xl px-5 py-6 text-center mb-5">
@@ -1598,6 +1608,11 @@ export default function JobDetail() {
           <div className="text-sm text-status-amber mt-2">
             {job.invoice_sent_at ? `Invoice sent · ${formatInvoiceSent(job.invoice_sent_at)}` : 'Payment pending'}
           </div>
+          {job.invoice_number && (
+            <div className="text-xs text-brand-muted mt-1.5">
+              {job.invoice_number}
+            </div>
+          )}
         </div>
 
         {/* Invoice items (locked) */}
@@ -1620,7 +1635,7 @@ export default function JobDetail() {
   const renderNoShowBody = () => {
     if (!job || !customer) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1635,7 +1650,7 @@ export default function JobDetail() {
   };
 
   const renderNoShowFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('reschedule')}>
@@ -1656,7 +1671,7 @@ export default function JobDetail() {
     const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
     const visibleLogs = workLogExpanded ? eventLogs : eventLogs.slice(0, 3);
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1751,7 +1766,7 @@ export default function JobDetail() {
   const renderCancelledBody = () => {
     if (!job) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1784,7 +1799,7 @@ export default function JobDetail() {
   const renderWrittenOffBody = () => {
     if (!job) return null;
     return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
@@ -1849,7 +1864,7 @@ export default function JobDetail() {
   };
 
   const renderAwaitingPaymentFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('mark_paid')}>
@@ -2469,7 +2484,7 @@ export default function JobDetail() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -2479,7 +2494,7 @@ export default function JobDetail() {
 
   if (!job || !customer) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center px-4 md:px-6">
           <p className="text-md text-brand-muted text-center">Job not found</p>
         </div>
@@ -2488,7 +2503,7 @@ export default function JobDetail() {
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col min-h-[100dvh] relative">
       {renderHeader()}
 
       {job.status === 'enquiry' && renderEnquiryBody()}

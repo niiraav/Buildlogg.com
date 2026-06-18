@@ -49,7 +49,7 @@ export interface Job {
   is_multi_day: boolean;
   payment_terms: 'on_completion' | 'deposit' | 'invoice';
   deposit_pct?: number;
-  quote_number?: string;
+  quote_number?: string;       // deprecated: job_number is the single canonical reference
   quote_sent_at?: string;
   quote_send_method?: 'whatsapp' | 'sms' | 'copy';
   quote_expires_at?: string;

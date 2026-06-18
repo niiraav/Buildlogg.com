@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MessageCircle, Clipboard, Phone } from 'lucide-react';
 import { db, type Job, type LineItem, type Customer, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
+import { ensureJobNumber } from '../../lib/jobNumbers';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { BottomSheet } from '../../components/BottomSheet';
 
 /* ─── helpers ─── */
-
-const now = () => new Date().toISOString();
 
 /* ─── types ─── */
 
@@ -49,21 +48,12 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       const p = await db.profiles.get(userId);
       setProfile(p || null);
 
-      // Generate quote number if not set
-      if (!j.quote_number) {
-        const count = await db.jobs.where('user_id').equals(userId).and(j => !!j.quote_number).count();
-        const quoteNum = `Q-${String(count + 1001).padStart(4, '0')}`;
-        const n = now();
-        await db.jobs.update(jobId, { quote_number: quoteNum, updated_at: n, _sync_status: 'pending' });
-        await db.sync_queue.add({
-          operation: 'update',
-          table_name: 'jobs',
-          record_id: jobId,
-          payload: { quote_number: quoteNum, updated_at: n },
-          created_at: n,
-          retry_count: 0,
-        });
-        setJob({ ...j, quote_number: quoteNum });
+      // Ensure a single canonical job number exists for this quote/job
+      if (!j.job_number) {
+        const updated = await ensureJobNumber(j, userId);
+        setJob(updated);
+      } else {
+        setJob(j);
       }
 
       setLoading(false);
@@ -76,7 +66,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const businessName = profile?.business_name || profile?.full_name || 'Your business';
   const hasBusinessName = !!(profile?.business_name?.trim() || profile?.full_name?.trim());
   const isUsingFallbackName = !profile?.business_name && !!profile?.full_name;
-  const quoteNumber = job?.quote_number || '';
+  const jobNumber = job?.job_number || '';
   const quoteValidDays = profile?.quote_valid_days ?? 30;
   const customerName = customer?.name || '';
   const customerFirstName = customerName.split(' ')[0] || 'there';
@@ -172,7 +162,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -182,16 +172,16 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
   if (!job || !customer) {
     return (
-      <div className="flex flex-col h-full items-center justify-center px-4">
+      <div className="flex flex-col min-h-[100dvh] items-center justify-center px-4">
         <p className="text-md text-brand-muted">Quote not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
+      <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
@@ -209,7 +199,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-2">
+      <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-6">
         {/* Business name nudge */}
         {isUsingFallbackName && (
           <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
@@ -233,7 +223,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
             businessName={businessName || 'Your business'}
             customerName={customer.name || 'Customer'}
             customerPhone={customer.phone}
-            quoteNumber={quoteNumber}
+            jobNumber={jobNumber}
             jobTitle={job.title}
             lineItems={items}
             paymentTerms={job.payment_terms}

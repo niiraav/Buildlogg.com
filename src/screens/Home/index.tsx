@@ -11,7 +11,7 @@ import SyncIndicator from '../../components/SyncIndicator';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { TaskCard } from '../../components/TaskCard';
-import { ensureJobNumber } from '../../lib/jobNumbers';
+import { ensureJobNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
@@ -579,6 +579,7 @@ export default function Home() {
         created_at: n,
         _sync_status: 'pending',
       });
+      if (j && userId) await ensureInvoiceNumber(j, userId);
     } else {
       const paymentType = j.payment_terms === 'deposit' ? 'balance' : 'full';
       const paymentAmount = j.payment_terms === 'deposit'
@@ -848,7 +849,7 @@ export default function Home() {
 
   const renderTasks = () => {
     return (
-      <div className="flex-1 pt-4 md:pt-6 pb-4 overflow-y-auto px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
         {/* ACT TODAY: Missed calls + overdue payments */}
         {actTodayTasks.length > 0 && (
           <>
@@ -931,49 +932,51 @@ export default function Home() {
   /* --- main render --- */
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-        </div>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
+        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="bg-[var(--app-shell-bg)]">
       {/* Header */}
-      <div className="px-4 pt-4 pb-2 flex items-start justify-between">
-        <div>
-          <span className="text-lg font-bold text-brand-black block">
-            {getGreeting()}, {firstName}
-          </span>
-          <span className="text-sm text-brand-muted block mt-0.5">
-            {todayLabel} · {subLabel}
-          </span>
-        </div>
-        {totalOwed > 0 && (
-          <div className="text-right">
-            <span className="text-xl font-extrabold text-brand-black block">
-              £{Number(totalOwed).toFixed(2)}
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-2 bg-[var(--app-shell-bg)]">
+        <div className="flex items-start justify-between">
+          <div>
+            <span className="text-lg font-bold text-brand-black block">
+              {getGreeting()}, {firstName}
             </span>
-            <span className="text-label text-brand-muted block mt-0.5">
-              owed to you
+            <span className="text-sm text-brand-muted block mt-0.5">
+              {todayLabel} · {subLabel}
             </span>
           </div>
-        )}
-      </div>
+          {totalOwed > 0 && (
+            <div className="text-right">
+              <span className="text-xl font-extrabold text-brand-black block">
+                £{Number(totalOwed).toFixed(2)}
+              </span>
+              <span className="text-label text-brand-muted block mt-0.5">
+                owed to you
+              </span>
+            </div>
+          )}
+        </div>
 
-      {/* Sync indicator */}
-      <div className="px-4 flex justify-end -mt-1 mb-1">
-        <SyncIndicator />
-      </div>
+        {/* Sync indicator */}
+        <div className="flex justify-end -mt-1 mb-1">
+          <SyncIndicator />
+        </div>
 
-      {/* Tab switcher */}
-      <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} tasksBadgeCount={l2Count} onChange={setActiveTab} />
+        {/* Tab switcher */}
+        <div className="-mx-4">
+          <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} tasksBadgeCount={l2Count} onChange={setActiveTab} />
+        </div>
+      </div>
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-4 overflow-y-auto">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
           {/* Active bar */}
 
           {/* Stale job banner — anti-forgetting nudge */}
@@ -1009,7 +1012,7 @@ export default function Home() {
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
       {activeTab === 'today' && todayState !== 'all_clear' && (
-        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>

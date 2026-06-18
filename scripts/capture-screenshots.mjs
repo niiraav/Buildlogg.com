@@ -46,25 +46,25 @@ const SEED_SCRIPT = `
 
   const jobs = [
     { id: 'job-hero', customer_id: 'cust-001', title: 'Boiler Service & Safety Check', status: 'quoted',
-      payment_terms: 'on_completion', quote_number: 'Q-1001', quote_sent_at: toISO(yesterday),
+      payment_terms: 'on_completion', job_number: 'J-1001', quote_sent_at: toISO(yesterday),
       quote_expires_at: toISO(new Date(yesterday.getTime() + 30 * 86400000)),
       created_at: toISO(lastWeek), updated_at: toISO(yesterday) },
     { id: 'job-002', customer_id: 'cust-002', title: 'Fuse Box Upgrade', status: 'booked',
-      payment_terms: 'on_completion', scheduled_start: toISO(tomorrow),
+      payment_terms: 'on_completion', job_number: 'J-1002', scheduled_start: toISO(tomorrow),
       created_at: toISO(lastWeek), updated_at: toISO(yesterday) },
     { id: 'job-003', customer_id: 'cust-003', title: 'Leak Repair', status: 'awaiting_payment',
-      payment_terms: 'on_completion', actual_end: toISO(today), scheduled_start: toISO(today),
+      payment_terms: 'on_completion', job_number: 'J-1003', invoice_number: 'INV-1001', invoice_sent_at: toISO(today), actual_end: toISO(today), scheduled_start: toISO(today),
       created_at: toISO(lastWeek), updated_at: toISO(today) },
     { id: 'job-004', customer_id: 'cust-004', title: 'New Radiator Install', status: 'in_progress',
-      payment_terms: 'on_completion', actual_start: toISO(today), scheduled_start: toISO(today),
+      payment_terms: 'on_completion', job_number: 'J-1004', actual_start: toISO(today), scheduled_start: toISO(today),
       created_at: toISO(lastWeek), updated_at: toISO(today) },
     { id: 'job-005', customer_id: 'cust-005', title: 'Bathroom Tap Replacement', status: 'enquiry',
-      payment_terms: 'on_completion', created_at: toISO(yesterday), updated_at: toISO(yesterday) },
+      payment_terms: 'on_completion', job_number: 'J-1005', created_at: toISO(yesterday), updated_at: toISO(yesterday) },
     { id: 'job-007', customer_id: 'cust-007', title: 'Shower Valve Fix', status: 'paid',
-      payment_terms: 'on_completion', actual_end: toISO(lastWeek), scheduled_start: toISO(lastWeek),
+      payment_terms: 'on_completion', job_number: 'J-1007', actual_end: toISO(lastWeek), scheduled_start: toISO(lastWeek),
       created_at: toISO(new Date(lastWeek.getTime() - 3 * 86400000)), updated_at: toISO(lastWeek) },
     { id: 'job-missed', customer_id: 'cust-006', title: 'Missed call enquiry', status: 'enquiry',
-      payment_terms: 'on_completion', created_at: toISO(new Date(today.getTime() - 30 * 60000)), updated_at: toISO(new Date(today.getTime() - 30 * 60000)) },
+      payment_terms: 'on_completion', job_number: 'J-1006', created_at: toISO(new Date(today.getTime() - 30 * 60000)), updated_at: toISO(new Date(today.getTime() - 30 * 60000)) },
   ];
   for (const j of jobs) {
     await db.jobs.put({ ...j, user_id: userId, is_multi_day: false, _sync_status: 'synced' });
