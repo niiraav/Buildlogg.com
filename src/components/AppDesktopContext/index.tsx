@@ -190,7 +190,7 @@ function BrandHeader() {
   return (
     <div className="flex flex-col gap-5">
       <div className="inline-flex items-center gap-2.5">
-        <span className="w-9 h-9 rounded-lg bg-brand-black text-white grid place-items-center">
+        <span className="w-9 h-9 rounded-lg bg-brand-black text-white dark:bg-transparent grid place-items-center">
           <img src="/assets/icon-white.png" alt="" className="w-5 h-5" />
         </span>
         <span className="text-[22px] font-extrabold tracking-[-0.03em] text-brand-black">
