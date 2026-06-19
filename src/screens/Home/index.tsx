@@ -85,7 +85,7 @@ function timeAgo(minutes: number): string {
 
 /* --- types --- */
 
-type Tab = 'today' | 'tasks';
+type Tab = 'today' | 'tasks' | 'drafts';
 
 type SheetState =
   | null
@@ -303,7 +303,9 @@ export default function Home() {
           isL2: true,
           type: 'no_show',
           timeAgo: timeAgo(noShowAge),
-          contextLine: j.scheduled_start ? `Was scheduled for ${timeAgo(noShowAge)}` : 'No-show logged',
+          contextLine: j.scheduled_start
+            ? `Was scheduled ${new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}`
+            : 'No-show logged',
         });
       }
 
@@ -322,7 +324,7 @@ export default function Home() {
           flag: 'overdue',
           flagDays: overdueAge,
           timeAgo: `${overdueAge}d overdue`,
-          contextLine: `£${formatAmount(total)} · ${overdueAge}d overdue`,
+          contextLine: '',
         });
       }
 
@@ -360,7 +362,7 @@ export default function Home() {
             isL2: false,
             type: 'draft_quote',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: `£${formatAmount(total)} · saved ${timeAgo(ageMinutes)}`,
+            contextLine: '',
           });
         } else if (ageMs < 2 * 60 * 60 * 1000) {
           // Urgent new enquiries (not missed calls, no line items, < 2 hours)
@@ -375,7 +377,7 @@ export default function Home() {
             isL2: false,
             type: 'urgent_new',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: `${timeAgo(ageMinutes)} · needs follow-up`,
+            contextLine: 'needs follow-up',
           });
         }
       }
@@ -397,7 +399,7 @@ export default function Home() {
             flag: 'chase',
             flagDays: days,
             timeAgo: `${days}d since invoice`,
-            contextLine: `£${formatAmount(total)} · ${days}d since invoice`,
+            contextLine: '',
           });
         }
       }
@@ -417,7 +419,7 @@ export default function Home() {
           flag: 'stale',
           flagDays: days,
           timeAgo: `${days}d since quote`,
-          contextLine: `£${formatAmount(total)} · ${days}d since quote · no reply yet`,
+          contextLine: 'no reply yet',
         });
       }
     });
@@ -426,8 +428,17 @@ export default function Home() {
   }, [jobs, customers, lineItems, userId, tick]);
 
   const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue');
-  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue');
+  const draftTasks = tasks.filter((t) => t.type === 'draft_quote');
+  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue' && t.type !== 'draft_quote');
   const l2Count = actTodayTasks.length;
+  const draftsCount = draftTasks.length;
+
+  // If drafts tab disappears while selected, fall back to Today
+  useEffect(() => {
+    if (activeTab === 'drafts' && draftsCount === 0) {
+      setActiveTab('today');
+    }
+  }, [activeTab, draftsCount]);
 
   /* --- helpers --- */
   const customerFor = (jobId: string) => {
@@ -889,6 +900,8 @@ export default function Home() {
                     job={j}
                     customer={c}
                     timeAgo={task.timeAgo}
+                    jobNumber={task.jobNumber}
+                    amount={task.amount}
                     contextLine={task.contextLine}
                     onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
@@ -918,6 +931,8 @@ export default function Home() {
                     job={j}
                     customer={c}
                     timeAgo={task.timeAgo}
+                    jobNumber={task.jobNumber}
+                    amount={task.amount}
                     contextLine={task.contextLine}
                     onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
@@ -936,6 +951,51 @@ export default function Home() {
               <div className="flex gap-2 mt-5">
                 <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
                 <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDrafts = () => {
+    return (
+      <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
+        {draftTasks.length > 0 ? (
+          <div className="flex flex-col gap-3 mb-6">
+            {draftTasks.map((task) => {
+              const j = jobs.find(x => x.id === task.jobId);
+              const c = j ? customers[j.customer_id] : undefined;
+
+              return (
+                <TaskCard
+                  key={task.id}
+                  type={task.type}
+                  job={j}
+                  customer={c}
+                  timeAgo={task.timeAgo}
+                  jobNumber={task.jobNumber}
+                  amount={task.amount}
+                  contextLine={task.contextLine}
+                  onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'drafts' } })}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-4 mt-6">
+            <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
+              <p className="text-base font-semibold text-brand-black">No drafts</p>
+              <p className="text-sm text-brand-muted mt-1.5">
+                Quotes you start but don&apos;t send will appear here
+              </p>
+              <div className="flex gap-2 mt-5">
+                <div className="flex-1">
+                  <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+                    + New Quote
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -989,7 +1049,14 @@ export default function Home() {
 
         {/* Tab switcher */}
         <div className="-mx-4">
-          <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} tasksBadgeCount={l2Count} onChange={setActiveTab} />
+          <HomeTabSwitcher
+            tabs={draftsCount > 0 ? ['today', 'tasks', 'drafts'] : ['today', 'tasks']}
+            activeTab={activeTab}
+            todayBadgeCount={jobCountToday}
+            tasksBadgeCount={l2Count}
+            draftsBadgeCount={draftsCount}
+            onChange={setActiveTab}
+          />
         </div>
       </div>
 
@@ -1013,21 +1080,21 @@ export default function Home() {
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
 
-          {/* Recent high-level activity */}
-          <RecentActivity />
+          {/* Recent high-level activity — hidden when today has more than 3 jobs or in all-clear state */}
+          {todayState !== 'all_clear' && jobCountToday <= 3 && <RecentActivity />}
 
           {/* No jobs today / All clear */}
           {todayState === 'all_clear' && (
             tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
           )}
-
-          {/* Recent high-level activity — hidden when today has more than 3 jobs */}
-          {jobCountToday <= 3 && <RecentActivity />}
         </div>
       )}
 
       {/* Tasks tab content */}
       {activeTab === 'tasks' && renderTasks()}
+
+      {/* Drafts tab content */}
+      {activeTab === 'drafts' && renderDrafts()}
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
       {activeTab === 'today' && todayState !== 'all_clear' && (

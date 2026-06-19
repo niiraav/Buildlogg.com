@@ -42,24 +42,27 @@ export const JobCard: React.FC<JobCardProps> = ({
         onClick={() => { haptic('light'); onBodyTap?.(); }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {flag && <FlagBadge type={flag} days={flagDays} />}
+            <h3 className="text-lg font-extrabold text-brand-black truncate">{customer.name}</h3>
           </div>
-          {formattedTime && (
-            <div className="flex items-center gap-1.5">
-              <Clock size={14} className="text-brand-muted" />
-              <span className="text-sm text-brand-mid font-medium">{formattedTime}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+            {formattedTime && (
+              <div className="flex items-center gap-1.5">
+                <Clock size={14} className="text-brand-muted" />
+                <span className="text-sm text-brand-mid font-medium">{formattedTime}</span>
+              </div>
+            )}
+            <ArrowRight size={16} className="text-brand-muted" />
+          </div>
         </div>
-        <div className="mt-2">
-          <h3 className="text-lg font-extrabold text-brand-black truncate">{customer.name}</h3>
-          <p className="text-sm text-brand-mid mt-0.5 truncate">{job.title}</p>
-          {job.job_number && <p className="text-xs text-brand-muted mt-0.5">{job.job_number}</p>}
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-sm text-brand-mid truncate">{job.title}</p>
+          <span className="text-md font-bold text-brand-black ml-2 flex-shrink-0">£{lineItemsTotal.toFixed(2)}</span>
         </div>
-        <div className="mt-2.5 flex items-center justify-between">
-          <span className="text-md font-bold text-brand-black">£{lineItemsTotal.toFixed(2)}</span>
-          <span className="text-sm text-brand-muted">
+        <div className="flex items-center justify-between mt-1">
+          {job.job_number && <p className="text-xs text-brand-muted">{job.job_number}</p>}
+          <span className="text-sm text-brand-muted ml-auto">
             {job.payment_terms === 'on_completion' ? 'On completion'
               : job.payment_terms === 'deposit' ? 'Deposit'
               : 'Invoice'}
