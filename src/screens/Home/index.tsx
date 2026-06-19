@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -14,9 +14,26 @@ import { TaskCard } from '../../components/TaskCard';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
+import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
+import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
+import { showToast } from '../../components/Toast/store';
+import {
+  captureStaleJobNudgeShown,
+  captureStaleJobNudgeTapped,
+  captureStaleJobNudgeDismissed,
+  captureOvernightAutoComplete,
+  captureNewJobInterceptShown,
+  captureNewJobInterceptMarkDone,
+  captureNewJobInterceptLeaveInProgress,
+  captureCompletionPhotoTaken,
+  captureCompletionPhotoSkipped,
+} from '../../lib/analytics';
 import RecentActivity from '../../components/RecentActivity';
 
 const now = () => new Date().toISOString();
+
+// Module-level set: dismisses stale job nudges for the current session (resets on page reload)
+const dismissedStaleJobs = new Set<string>();
 
 function isToday(dateStr: string): boolean {
   const d = new Date(dateStr);
@@ -73,7 +90,9 @@ type SheetState =
   | 'mark_done'
   | 'mark_done_deposit'
   | 'not_home'
-  | 'dismiss_confirm';
+  | 'dismiss_confirm'
+  | 'finish_previous'
+  | 'photo_mark_done';
 
 type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote';
 
@@ -119,6 +138,9 @@ export default function Home() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [lateMsg, setLateMsg] = useState('');
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
+  const [staleJobs, setStaleJobs] = useState<StaleJob[]>([]);
+  const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
+  const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -154,13 +176,41 @@ export default function Home() {
     setLoading(false);
   }, [userId]);
 
+
   useEffect(() => {
     refresh();
     // Request notification permission on first home visit (after onboarding)
     requestNotificationPermission();
-  }, [refresh]);
+
+    // Anti-forgetting: fetch stale in-progress jobs + run overnight auto-complete
+    if (userId) {
+      (async () => {
+        // 1. Overnight auto-complete (same-day only)
+        const overnightJobs = await getOvernightAutoCompletableJobs(userId);
+        if (overnightJobs.length > 0) {
+          for (const j of overnightJobs) {
+            await autoCompleteJob(j);
+          }
+          captureOvernightAutoComplete({ count: overnightJobs.length });
+          showToast(
+            `${overnightJobs.length} job${overnightJobs.length > 1 ? "s" : ""} auto-completed — review and record payment`,
+            "info"
+          );
+        }
+
+        // 2. Fetch stale jobs for the banner
+        const stale = await getStaleInProgressJobs(userId);
+        setStaleJobs(stale);
+        if (stale.length > 0 && stale[0].actual_start) {
+          const elapsedH = Math.floor((Date.now() - new Date(stale[0].actual_start).getTime()) / (1000 * 60 * 60));
+          captureStaleJobNudgeShown({ jobId: stale[0].id, staleType: stale[0].staleType, elapsedHours: elapsedH });
+        }
+      })();
+    }
+  }, [refresh, userId]);
 
   /* tick for elapsed timer */
+
   useEffect(() => {
     timerRef.current = setInterval(() => setTick((t) => t + 1), 5000);
     return () => {
@@ -204,6 +254,10 @@ export default function Home() {
     if (!activeJob?.actual_start) return 0;
     return Math.floor((Date.now() - new Date(activeJob.actual_start).getTime()) / 1000);
   }, [activeJob, tick]);
+
+
+  /* Stale jobs — filtered by dismissed set for this session */
+  const visibleStaleJobs = useMemo(() => staleJobs.filter((j) => !dismissedStaleJobs.has(j.id)), [staleJobs, tick]);
 
 
   const totalOwed = useMemo(() => {
@@ -382,6 +436,33 @@ export default function Home() {
 
   const handleImHere = async () => {
     if (!nextUpJob || !userId) return;
+
+    // Anti-forgetting: check for other in-progress non-multi-day jobs
+    const inProgressJobs = await db.jobs
+      .where('status')
+      .equals('in_progress')
+      .filter((j) => j.user_id === userId && j.id !== nextUpJob.id && !j.is_multi_day)
+      .toArray();
+
+    if (inProgressJobs.length > 0) {
+      // Sort by actual_start descending — most recently started first
+      inProgressJobs.sort((a, b) => {
+        const aStart = a.actual_start ? new Date(a.actual_start).getTime() : 0;
+        const bStart = b.actual_start ? new Date(b.actual_start).getTime() : 0;
+        return bStart - aStart;
+      });
+      const oldJob = inProgressJobs[0];
+      const oldCustomer = await db.customers.get(oldJob.customer_id);
+      captureNewJobInterceptShown({ oldJobId: oldJob.id });
+      setInterceptData({
+        oldJob,
+        oldCustomerName: oldCustomer?.name || 'Job',
+        newJobId: nextUpJob.id,
+      });
+      setSheet('finish_previous');
+      return;
+    }
+
     const n = now();
     await db.jobs.update(nextUpJob.id, {
       status: 'in_progress',
@@ -456,6 +537,7 @@ export default function Home() {
   const handleDone = () => {
     if (!activeJob) return;
     setSelectedJobId(activeJob.id);
+    setMarkDoneStep('photo');
     if (activeJob.payment_terms === 'deposit' && activeJob.deposit_pct) {
       setSheet('mark_done_deposit');
     } else {
@@ -556,6 +638,91 @@ export default function Home() {
       </div>
     );
   };
+
+  const renderStaleJobBanner = () => {
+    if (visibleStaleJobs.length === 0) return null;
+    const job = visibleStaleJobs[0];
+    const customerName = job.customer?.name || 'Job';
+    const jobTitle = job.title;
+    const remaining = visibleStaleJobs.length - 1;
+
+    const handleMarkDone = () => {
+      captureStaleJobNudgeTapped({ jobId: job.id, staleType: job.staleType });
+      dismissedStaleJobs.add(job.id);
+      navigate(`/jobs/${job.id}`, { state: { autoOpenMarkDone: true } });
+    };
+
+    const handleStillWorking = async () => {
+      if (job.staleType === 'crossed_midnight') {
+        // Implicitly set multi-day
+        await markJobAsMultiDay(job.id);
+        captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: true });
+      } else {
+        captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: false });
+      }
+      dismissedStaleJobs.add(job.id);
+      setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
+    };
+
+    const handleMultiDay = async () => {
+      await markJobAsMultiDay(job.id);
+      captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: true });
+      dismissedStaleJobs.add(job.id);
+      setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
+    };
+
+    let subtitle: string;
+    let icon = <Clock size={18} className="text-status-amber" />;
+
+    if (job.staleType === 'crossed_midnight') {
+      subtitle = 'Started yesterday. Still working on this?';
+      icon = <Calendar size={18} className="text-status-amber" />;
+    } else if (job.staleType === 'multi_day') {
+      const n = job.actual_start ? daysBetween(job.actual_start) : 1;
+      subtitle = `Been on this one for ${n} day${n > 1 ? 's' : ''}. Finished?`;
+      icon = <Calendar size={18} className="text-status-amber" />;
+    } else {
+      const elapsed = job.actual_start ? formatElapsed(job.actual_start) : '3h+';
+      subtitle = `In progress for ${elapsed}. Still working?`;
+    }
+
+    return (
+      <div className="mt-3">
+        <div className="bg-status-amberBg border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            {icon}
+            <span className="text-sm font-semibold text-status-amber">STILL WORKING?</span>
+          </div>
+          <h3 className="text-base font-bold text-brand-black truncate">
+            {customerName} · {jobTitle}
+          </h3>
+          <p className="text-sm text-brand-mid mt-0.5">{subtitle}</p>
+
+          <div className="flex gap-2 mt-3">
+            <div className="flex-1"><Button variant="primary" onClick={handleMarkDone}><Check size={16} className="mr-1" />Mark as done</Button></div>
+            <div className="flex-1"><Button variant="secondary" onClick={handleStillWorking}>Still working</Button></div>
+          </div>
+
+          {/* "Multi-day job" option — only for same_day stale */}
+          {job.staleType === 'same_day' && (
+            <button
+              onClick={handleMultiDay}
+              className="text-sm text-brand-muted mt-2.5 underline cursor-pointer"
+            >
+              This is a multi-day job
+            </button>
+          )}
+
+          {remaining > 0 && (
+            <p className="text-sm text-brand-muted mt-2">
+              +{remaining} more job still in progress
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
 
   const renderActiveBar = () => {
     if (!activeJob) return null;
@@ -795,6 +962,10 @@ export default function Home() {
       {activeTab === 'today' && (
         <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-4 overflow-y-auto">
           {/* Active bar */}
+
+          {/* Stale job banner — anti-forgetting nudge */}
+          {renderStaleJobBanner()}
+
           {(todayState === 'in_progress' || todayState === 'multi_day') && renderActiveBar()}
 
           {/* Next Up card */}
@@ -872,39 +1043,80 @@ export default function Home() {
       {/* --- Bottom Sheet: Mark Done (no deposit) --- */}
       <BottomSheet
         isOpen={sheet === 'mark_done'}
-        onClose={() => setSheet(null)}
-        title="How were you paid?"
+        onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
+        title={markDoneStep === 'photo' ? 'Job done! 📸' : 'How were you paid?'}
         subtitle={
-          selectedCustomer && selectedJob
-            ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(totalFor(selectedJob.id))}`
-            : undefined
+          markDoneStep === 'photo'
+            ? 'Snap a quick photo for your records?'
+            : selectedCustomer && selectedJob
+              ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(totalFor(selectedJob.id))}`
+              : undefined
         }
       >
-        <div className="flex flex-col">
-          <SheetRow
-            icon={<Banknote size={18} className="text-brand-dark" />}
-            label="Cash"
-            onTap={() => handlePayment('cash')}
-          />
-          <SheetRow
-            icon={<CreditCard size={18} className="text-brand-dark" />}
-            label="Terminal"
-            onTap={() => handlePayment('terminal')}
-          />
-          <SheetRow
-            icon={<CreditCard size={18} className="text-brand-dark" />}
-            label="Bank Transfer"
-            onTap={() => handlePayment('bank_transfer')}
-          />
-          <SheetRow
-            icon={<AlertTriangle size={18} className="text-status-red" />}
-            label="Not yet"
-            sublabel="Chase later"
-            onTap={() => handlePayment('not_yet')}
-            variant="destructive"
-            isLast
-          />
-        </div>
+        {markDoneStep === 'photo' ? (
+          <div className="flex flex-col">
+            <SheetRow
+              icon={<Camera size={18} className="text-brand-dark" />}
+              label="Take photo"
+              onTap={async () => {
+                if (!selectedJobId || !userId) return;
+                const dataUrl = await capturePhoto();
+                if (!dataUrl) return;
+                await saveJobPhoto(selectedJobId, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<ImageIcon size={18} className="text-brand-dark" />}
+              label="Choose from library"
+              onTap={async () => {
+                if (!selectedJobId || !userId) return;
+                const dataUrl = await pickPhotoFromLibrary();
+                if (!dataUrl) return;
+                await saveJobPhoto(selectedJobId, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<X size={18} className="text-brand-muted" />}
+              label="Skip"
+              onTap={() => {
+                if (selectedJobId) captureCompletionPhotoSkipped({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+              variant="destructive"
+              isLast
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <SheetRow
+              icon={<Banknote size={18} className="text-brand-dark" />}
+              label="Cash"
+              onTap={() => handlePayment('cash')}
+            />
+            <SheetRow
+              icon={<CreditCard size={18} className="text-brand-dark" />}
+              label="Terminal"
+              onTap={() => handlePayment('terminal')}
+            />
+            <SheetRow
+              icon={<CreditCard size={18} className="text-brand-dark" />}
+              label="Bank Transfer"
+              onTap={() => handlePayment('bank_transfer')}
+            />
+            <SheetRow
+              icon={<AlertTriangle size={18} className="text-status-red" />}
+              label="Not yet"
+              sublabel="Chase later"
+              onTap={() => handlePayment('not_yet')}
+              variant="destructive"
+              isLast
+            />
+          </div>
+        )}
       </BottomSheet>
 
       {/* --- Bottom Sheet: Mark Done (deposit) --- */}
@@ -979,6 +1191,75 @@ export default function Home() {
             fullWidth
           >
             Dismiss
+          </Button>
+        </div>
+      </BottomSheet>
+
+      {/* --- Bottom Sheet: Finish Previous Job (new-job intercept) --- */}
+      <BottomSheet
+        isOpen={sheet === 'finish_previous'}
+        onClose={() => setSheet(null)}
+        title="Finish the previous job first?"
+        subtitle={
+          interceptData
+            ? `${interceptData.oldCustomerName} · ${interceptData.oldJob.title} — started ${interceptData.oldJob.actual_start ? formatElapsed(interceptData.oldJob.actual_start) : 'earlier'} ago`
+            : undefined
+        }
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!interceptData) return;
+              captureNewJobInterceptMarkDone({ oldJobId: interceptData.oldJob.id });
+              setSheet(null);
+              navigate(`/jobs/${interceptData.oldJob.id}`, {
+                state: {
+                  autoOpenMarkDone: true,
+                  returnToStartJob: { jobId: interceptData.newJobId, from: 'home' },
+                },
+              });
+            }}
+            fullWidth
+          >
+            <Check size={18} className="mr-2" />
+            Mark as done
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (!interceptData) return;
+              captureNewJobInterceptLeaveInProgress({ oldJobId: interceptData.oldJob.id });
+              setSheet(null);
+              // Start the new job directly
+              const n = now();
+              await db.jobs.update(interceptData.newJobId, {
+                status: 'in_progress',
+                actual_start: n,
+                updated_at: n,
+                _sync_status: 'pending',
+              });
+              await db.work_log.add({
+                id: crypto.randomUUID(),
+                job_id: interceptData.newJobId,
+                type: 'status_change',
+                description: 'Job started',
+                created_at: n,
+                _sync_status: 'pending',
+              });
+              await db.sync_queue.add({
+                operation: 'update',
+                table_name: 'jobs',
+                record_id: interceptData.newJobId,
+                payload: { status: 'in_progress', actual_start: n, updated_at: n },
+                created_at: n,
+                retry_count: 0,
+              });
+              refresh();
+            }}
+            fullWidth
+          >
+            Leave in progress
           </Button>
         </div>
       </BottomSheet>

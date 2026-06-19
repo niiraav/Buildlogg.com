@@ -38,10 +38,10 @@ cleanupOutdatedCaches();
 // Take control immediately (but only after activation, which is now manual)
 clientsClaim();
 
-// Notification click handler — navigate to Jobs unpaid filter
+// Notification click handler — deep-link to the job if notification data has a URL,
+// otherwise fall back to the Jobs unpaid filter.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(
-    self.clients.openWindow('/app/jobs?filter=unpaid')
-  );
+  const url = event.notification.data?.url || '/app/jobs?filter=unpaid';
+  event.waitUntil(self.clients.openWindow(url));
 });

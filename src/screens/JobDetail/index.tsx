@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X, MoreVertical, MapPin, Navigation,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -15,6 +15,15 @@ import { MapPreview } from '../../components/MapPreview';
 import { InvoiceItemRow, InvoiceTotalRow } from '../../components/InvoiceItemRow';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PhotoGallery } from '../../components/PhotoGallery';
+import {
+  captureNewJobInterceptShown,
+  captureNewJobInterceptMarkDone,
+  captureNewJobInterceptLeaveInProgress,
+  captureCompletionPhotoTaken,
+  captureCompletionPhotoSkipped,
+} from '../../lib/analytics';
+import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
+import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 
 /* ─── helpers ─── */
 
@@ -118,12 +127,14 @@ type SheetState =
   | 'send_update'
   | 'send_receipt'
   | 'change_status'
-  | 'edit_payment_method';
+  | 'edit_payment_method'
+  | 'finish_previous';
 
 /* ─── component ─── */
 
 export default function JobDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { jobId } = useParams<{ jobId: string }>();
   const userId = useAppStore((s) => s.userId);
 
@@ -141,6 +152,8 @@ export default function JobDetail() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [photos, setPhotos] = useState<JobPhoto[]>([]);
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
+  const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
+  const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
 
   /* Initialize callout amount from profile */
   useEffect(() => {
@@ -200,6 +213,20 @@ export default function JobDetail() {
   }, [jobId, userId]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  /* Anti-forgetting: auto-open mark_done sheet or auto-start job based on navigation state */
+  useEffect(() => {
+    const routeState = location.state as { autoOpenMarkDone?: boolean; autoStart?: boolean; returnToStartJob?: { jobId: string; from: string } } | null;
+    if (!routeState || !job) return;
+
+    if (routeState.autoOpenMarkDone && job.status === 'in_progress') {
+      setMarkDoneStep('photo');
+      setSheet('mark_done');
+    }
+    if (routeState.autoStart && job.status === 'booked') {
+      handleStartJob();
+    }
+  }, [job, location.state]);
 
   /* ─── derived ─── */
   const total = useMemo(() => jobTotal(lineItems), [lineItems]);
@@ -426,6 +453,14 @@ export default function JobDetail() {
       await addToSyncQueue('jobs', job.id, { status: 'paid', actual_end: n, updated_at: n });
     }
     setSheet(null);
+
+    // Anti-forgetting: if we were sent here from a new-job intercept, navigate back and auto-start the new job
+    const routeState = location.state as { returnToStartJob?: { jobId: string; from: string } } | null;
+    if (routeState?.returnToStartJob) {
+      navigate(`/jobs/${routeState.returnToStartJob.jobId}`, { state: { autoStart: true } });
+      return;
+    }
+
     refresh();
   };
 
@@ -506,6 +541,34 @@ export default function JobDetail() {
 
   const handleStartJob = async () => {
     if (!job) return;
+
+    // Anti-forgetting: check for other in-progress non-multi-day jobs
+    if (userId) {
+      const inProgressJobs = await db.jobs
+        .where('status')
+        .equals('in_progress')
+        .filter((j) => j.user_id === userId && j.id !== job.id && !j.is_multi_day)
+        .toArray();
+
+      if (inProgressJobs.length > 0) {
+        inProgressJobs.sort((a, b) => {
+          const aStart = a.actual_start ? new Date(a.actual_start).getTime() : 0;
+          const bStart = b.actual_start ? new Date(b.actual_start).getTime() : 0;
+          return bStart - aStart;
+        });
+        const oldJob = inProgressJobs[0];
+        const oldCustomer = await db.customers.get(oldJob.customer_id);
+        captureNewJobInterceptShown({ oldJobId: oldJob.id });
+        setInterceptData({
+          oldJob,
+          oldCustomerName: oldCustomer?.name || 'Job',
+          newJobId: job.id,
+        });
+        setSheet('finish_previous');
+        return;
+      }
+    }
+
     const n = now();
     await db.jobs.update(job.id, {
       status: 'in_progress',
@@ -1912,42 +1975,100 @@ export default function JobDetail() {
     </BottomSheet>
   );
 
-  const renderMarkDoneSheet = () => (
+  const renderMarkDoneSheet = () => {
+    // If job already has 10 photos, skip the photo step
+    const photoStep = markDoneStep === 'photo' && photos.length < 10;
+
+    return (
     <BottomSheet
       isOpen={sheet === 'mark_done'}
-      onClose={() => setSheet(null)}
-      title="How were you paid?"
-      subtitle={job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined}
+      onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
+      title={photoStep ? 'Job done! 📸' : 'How were you paid?'}
+      subtitle={
+        photoStep
+          ? 'Snap a quick photo for your records?'
+          : job && customer ? `${customer.name} · ${job.title} · £${total.toFixed(2)}` : undefined
+      }
     >
-      <SheetRow
-        icon={<Banknote size={18} className="text-brand-dark" />}
-        label="Cash"
-        onTap={() => handleMarkDone('cash')}
-      />
-      <SheetRow
-        icon={<Building2 size={18} className="text-brand-dark" />}
-        label="Bank Transfer"
-        onTap={() => handleMarkDone('bank_transfer')}
-      />
-      <SheetRow
-        icon={<Pencil size={18} className="text-brand-dark" />}
-        label="Other"
-        sublabel="Entered manually"
-        onTap={() => handleMarkDone('other')}
-      />
-      <SheetRow
-        icon={<Clock size={18} className="text-brand-muted" />}
-        label="Not yet"
-        sublabel="Chase later"
-        onTap={() => handleMarkDone('not_yet')}
-        variant="destructive"
-        isLast
-      />
-      <p className="text-label text-brand-muted px-4 pt-1 pb-2">
-        → Chase payment added to tasks
-      </p>
+      {photoStep ? (
+        <>
+          <SheetRow
+            icon={<Camera size={18} className="text-brand-dark" />}
+            label="Take photo"
+            onTap={async () => {
+              if (!job || !userId) return;
+              const dataUrl = await capturePhoto();
+              if (!dataUrl) return;
+              await saveJobPhoto(job.id, userId, dataUrl);
+              captureCompletionPhotoTaken({ jobId: job.id });
+              setPhotos((prev) => [...prev, {
+                id: crypto.randomUUID(), job_id: job.id, user_id: userId,
+                data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
+              }]);
+              setMarkDoneStep('payment');
+            }}
+          />
+          <SheetRow
+            icon={<ImageIcon size={18} className="text-brand-dark" />}
+            label="Choose from library"
+            onTap={async () => {
+              if (!job || !userId) return;
+              const dataUrl = await pickPhotoFromLibrary();
+              if (!dataUrl) return;
+              await saveJobPhoto(job.id, userId, dataUrl);
+              captureCompletionPhotoTaken({ jobId: job.id });
+              setPhotos((prev) => [...prev, {
+                id: crypto.randomUUID(), job_id: job.id, user_id: userId,
+                data_url: dataUrl, taken_at: now(), created_at: now(), _sync_status: 'pending',
+              }]);
+              setMarkDoneStep('payment');
+            }}
+          />
+          <SheetRow
+            icon={<X size={18} className="text-brand-muted" />}
+            label="Skip"
+            onTap={() => {
+              if (job) captureCompletionPhotoSkipped({ jobId: job.id });
+              setMarkDoneStep('payment');
+            }}
+            variant="destructive"
+            isLast
+          />
+        </>
+      ) : (
+        <>
+          <SheetRow
+            icon={<Banknote size={18} className="text-brand-dark" />}
+            label="Cash"
+            onTap={() => handleMarkDone('cash')}
+          />
+          <SheetRow
+            icon={<Building2 size={18} className="text-brand-dark" />}
+            label="Bank Transfer"
+            onTap={() => handleMarkDone('bank_transfer')}
+          />
+          <SheetRow
+            icon={<Pencil size={18} className="text-brand-dark" />}
+            label="Other"
+            sublabel="Entered manually"
+            onTap={() => handleMarkDone('other')}
+          />
+          <SheetRow
+            icon={<Clock size={18} className="text-brand-muted" />}
+            label="Not yet"
+            sublabel="Chase later"
+            onTap={() => handleMarkDone('not_yet')}
+            variant="destructive"
+            isLast
+          />
+          <p className="text-label text-brand-muted px-4 pt-1 pb-2">
+            → Chase payment added to tasks
+          </p>
+        </>
+      )}
     </BottomSheet>
-  );
+    );
+  };
 
   const renderMarkPaidSheet = () => (
     <BottomSheet
@@ -2387,6 +2508,68 @@ export default function JobDetail() {
       {renderEditDetailsSheet()}
       {renderSendUpdateSheet()}
       {renderSendReceiptSheet()}
+
+      {/* --- Bottom Sheet: Finish Previous Job (new-job intercept) --- */}
+      <BottomSheet
+        isOpen={sheet === 'finish_previous'}
+        onClose={() => setSheet(null)}
+        title="Finish the previous job first?"
+        subtitle={
+          interceptData
+            ? `${interceptData.oldCustomerName} · ${interceptData.oldJob.title} — started ${interceptData.oldJob.actual_start ? formatStaleElapsed(interceptData.oldJob.actual_start) : 'earlier'} ago`
+            : undefined
+        }
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!interceptData) return;
+              captureNewJobInterceptMarkDone({ oldJobId: interceptData.oldJob.id });
+              setSheet(null);
+              navigate(`/jobs/${interceptData.oldJob.id}`, {
+                state: {
+                  autoOpenMarkDone: true,
+                  returnToStartJob: { jobId: interceptData.newJobId, from: 'jobDetail' },
+                },
+              });
+            }}
+            fullWidth
+          >
+            <Check size={18} className="mr-2" />
+            Mark as done
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (!interceptData) return;
+              captureNewJobInterceptLeaveInProgress({ oldJobId: interceptData.oldJob.id });
+              setSheet(null);
+              // Start the new job directly
+              const n = now();
+              await db.jobs.update(interceptData.newJobId, {
+                status: 'in_progress',
+                actual_start: n,
+                updated_at: n,
+                _sync_status: 'pending',
+              });
+              await db.work_log.add({
+                id: crypto.randomUUID(),
+                job_id: interceptData.newJobId,
+                type: 'status_change',
+                description: 'Job started',
+                created_at: n,
+                _sync_status: 'pending',
+              });
+              await addToSyncQueue('jobs', interceptData.newJobId, { status: 'in_progress', actual_start: n, updated_at: n });
+              refresh();
+            }}
+            fullWidth
+          >
+            Leave in progress
+          </Button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

@@ -55,3 +55,33 @@ async function resizeImage(file: File, maxWidth: number, quality: number): Promi
     img.onerror = reject;
   });
 }
+
+/* ─── Shared photo save helper ─── */
+
+import { db } from './db';
+
+/**
+ * Save a photo (data URL) to the job_photos table and sync queue.
+ * Used by PhotoGallery, mark_done sheet in Home, and mark_done sheet in JobDetail.
+ */
+export async function saveJobPhoto(jobId: string, userId: string, dataUrl: string): Promise<void> {
+  const photo = {
+    id: crypto.randomUUID(),
+    job_id: jobId,
+    user_id: userId,
+    data_url: dataUrl,
+    taken_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    _sync_status: 'pending' as const,
+  };
+
+  await db.job_photos.add(photo);
+  await db.sync_queue.add({
+    operation: 'insert',
+    table_name: 'job_photos',
+    record_id: photo.id,
+    payload: { ...photo },
+    created_at: photo.created_at,
+    retry_count: 0,
+  });
+}

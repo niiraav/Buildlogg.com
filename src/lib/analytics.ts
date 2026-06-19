@@ -129,3 +129,43 @@ export function captureMaterialAdded() {
 export function captureActivityViewed() {
   capture('activity_viewed');
 }
+
+/* ─── Anti-Forgetting System events ─── */
+
+import type { StaleType } from './jobStaleness';
+
+export function captureStaleJobNudgeShown(data: { jobId: string; staleType: StaleType; elapsedHours: number }) {
+  capture('stale_job_nudge_shown', data);
+}
+
+export function captureStaleJobNudgeTapped(data: { jobId: string; staleType: StaleType }) {
+  capture('stale_job_nudge_tapped', data);
+}
+
+export function captureStaleJobNudgeDismissed(data: { jobId: string; staleType: StaleType; multiDaySet: boolean }) {
+  capture('stale_job_nudge_dismissed', data);
+}
+
+export function captureOvernightAutoComplete(data: { count: number }) {
+  capture('overnight_auto_complete', data);
+}
+
+export function captureNewJobInterceptShown(data: { oldJobId: string }) {
+  capture('new_job_intercept_shown', data);
+}
+
+export function captureNewJobInterceptMarkDone(data: { oldJobId: string }) {
+  capture('new_job_intercept_mark_done', data);
+}
+
+export function captureNewJobInterceptLeaveInProgress(data: { oldJobId: string }) {
+  capture('new_job_intercept_leave_in_progress', data);
+}
+
+export function captureCompletionPhotoTaken(data: { jobId: string }) {
+  capture('completion_photo_taken', data);
+}
+
+export function captureCompletionPhotoSkipped(data: { jobId: string }) {
+  capture('completion_photo_skipped', data);
+}
