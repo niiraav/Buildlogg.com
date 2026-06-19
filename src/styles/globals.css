@@ -14,8 +14,7 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--app-bg);
   color: var(--app-text);
-  min-height: 100dvh;
-  /* overflow: hidden; removed for body-scroll proof of concept — the document itself should scroll */
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -26,12 +25,12 @@ input, button, textarea, select {
 
 #app-shell {
   max-width: 430px;
-  min-height: 100dvh;
+  height: 100svh;
   margin: 0 auto;
   background: var(--app-shell-bg);
   color: var(--app-text);
   position: relative;
-  overflow-x: clip; /* clip horizontal without establishing a scroll container, so sticky header/nav works */
+  overflow: hidden;
   /* No shadow in light mode so the shell blends seamlessly with the body canvas.
      Dark mode keeps a subtle shadow for depth. */
 }

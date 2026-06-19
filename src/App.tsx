@@ -276,24 +276,24 @@ function AppRoutes() {
   );
 
   const appContent = (
-    <div className="flex flex-col min-h-[100dvh]">
-      <div className="flex-1">{routes}</div>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto min-h-0">{routes}</div>
       {isTab(location.pathname) && (
-        <div className="sticky bottom-0 z-50 flex-shrink-0">
+        <div className="flex-shrink-0 z-50">
           <TabBar activeTab={activeTab} onNavigate={handleTabNavigate} />
         </div>
       )}
     </div>
   );
 
-  const rightPanelClass = 'relative flex flex-col flex-1 min-h-[100dvh] bg-[var(--app-shell-bg)]';
+  const rightPanelClass = 'relative flex flex-col flex-1 min-h-0 bg-[var(--app-shell-bg)]';
 
   if (isAuthOrOnboarding) {
-    return <div className="relative flex flex-col flex-1 min-h-[100dvh]">{appContent}</div>;
+    return <div className="relative flex flex-col flex-1 min-h-0">{appContent}</div>;
   }
 
   return (
-    <div className="flex-1 min-h-[100dvh] flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
+    <div className="flex-1 min-h-0 flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
       <div className="flex-1 flex flex-col md:flex-row md:max-w-[1440px]">
         {/* Left panel — contextual help (40%) */}
         <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto md:w-[40%]">
@@ -321,7 +321,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col overflow-x-clip">
+    <div id="app-shell" className="flex flex-col overflow-hidden">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">

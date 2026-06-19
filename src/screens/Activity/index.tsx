@@ -105,7 +105,7 @@ export default function Activity() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
+      <div className="h-full flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );

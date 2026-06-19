@@ -165,7 +165,7 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-brand-surface">
+      <div className="h-full flex items-center justify-center bg-brand-surface">
         <div className="text-sm text-brand-muted">Loading…</div>
       </div>
     );

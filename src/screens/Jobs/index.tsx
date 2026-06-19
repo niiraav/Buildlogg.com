@@ -354,7 +354,7 @@ export default function Jobs() {
   /* ─── main render ─── */
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
+      <div className="h-full flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
@@ -418,7 +418,7 @@ export default function Jobs() {
 
       {/* Footer — only when there are jobs */}
       {hasAnyJobs && (
-        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
           <div className="flex gap-2 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
             <div className="flex-1"><Button variant="primary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>

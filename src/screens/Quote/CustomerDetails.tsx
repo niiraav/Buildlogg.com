@@ -100,7 +100,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-[100dvh]">
+      <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -124,7 +124,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   ) : null;
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
