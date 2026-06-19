@@ -20,7 +20,6 @@ import { showToast } from '../../components/Toast/store';
 import { requestNotificationPermission } from '../../lib/notifications';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
-import { showToast } from '../../components/Toast/store';
 import {
   captureStaleJobNudgeShown,
   captureStaleJobNudgeTapped,
