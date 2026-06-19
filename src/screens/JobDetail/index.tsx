@@ -965,17 +965,27 @@ export default function JobDetail() {
 
   const renderPaidFooter = () => (
     <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
-      <Button variant="primary" onClick={() => setSheet('send_receipt')}>
-        Send receipt
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="primary" onClick={() => setSheet("send_receipt")}>
+          Send receipt
+        </Button>
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Close
+        </Button>
+      </div>
     </div>
   );
 
   const renderTerminalFooter = () => (
     <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
-      <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
-        Go Home
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="primary" onClick={() => navigate("/", { replace: true })}>
+          Go Home
+        </Button>
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Close
+        </Button>
+      </div>
     </div>
   );
 
