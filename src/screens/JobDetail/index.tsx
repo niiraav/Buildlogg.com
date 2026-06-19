@@ -2251,7 +2251,6 @@ export default function JobDetail() {
         )}
       </BottomSheet>
     );
-    );
   };
 
   const renderMarkPaidSheet = () => {
