@@ -1013,9 +1013,6 @@ export default function Home() {
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
 
-          {/* Recent high-level activity */}
-          <RecentActivity />
-
           {/* No jobs today / All clear */}
           {todayState === 'all_clear' && (
             tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
