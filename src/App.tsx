@@ -312,7 +312,7 @@ function AppRoutes() {
 /* ─── App root ─── */
 export default function App() {
   useEffect(() => {
-    initAnalytics();
+    initAnalytics().catch(() => {});
     checkEndOfDay().catch(() => {});
     const interval = setInterval(() => {
       checkEndOfDay().catch(() => {});

@@ -5,22 +5,39 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://eu.posthog.co
 
 let isReady = false;
 
-export function initAnalytics() {
+export async function initAnalytics() {
   if (!POSTHOG_KEY) {
     console.warn('[Analytics] PostHog key not set — events will be no-ops');
     return;
   }
+
+  // Check if the PostHog host is reachable before initializing.
+  // Ad-blockers / privacy extensions block the host at the network level,
+  // which causes PostHog's internal retry queue to spam console errors.
+  // By detecting the block upfront, we skip init entirely.
   try {
-    // Cast to `any` because this version's TypeScript types don't include
-    // the newer remote-disable options (they still work at runtime).
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${POSTHOG_HOST}/e`, {
+      method: 'HEAD',
+      signal: controller.signal,
+      mode: 'no-cors',
+    });
+    clearTimeout(timeout);
+    // Any response (even opaque) means the host is reachable.
+    void res;
+  } catch {
+    console.warn('[Analytics] PostHog host blocked — analytics disabled to prevent console errors.');
+    isReady = false;
+    return;
+  }
+
+  try {
     const posthogConfig: any = {
       api_host: POSTHOG_HOST,
       person_profiles: 'identified_only',
-      capture_pageview: false, // SPA — we capture manually if needed
-      autocapture: false,      // Keep noise low; we fire explicit events
-      // Disable remote features that load extra scripts and hit /decide.
-      // This prevents ad-blockers/content-blockers from logging errors for
-      // dead-clicks-autocapture.js and the PostHog decide endpoint.
+      capture_pageview: false,
+      autocapture: false,
       dead_clicks_autocapture: false,
       advanced_disable_decide: true,
       advanced_disable_feature_flags: true,
@@ -28,8 +45,6 @@ export function initAnalytics() {
     posthog.init(POSTHOG_KEY, posthogConfig);
     isReady = true;
   } catch (err) {
-    // Ad-blockers or strict privacy extensions may block the PostHog host
-    // before init completes. Analytics should never break the app.
     console.warn('[Analytics] PostHog init failed; events will be no-ops.', err);
     isReady = false;
   }
