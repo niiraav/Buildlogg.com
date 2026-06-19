@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, FileText } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -85,7 +85,7 @@ function timeAgo(minutes: number): string {
 
 /* --- types --- */
 
-type Tab = 'today' | 'tasks';
+type Tab = 'today' | 'drafts' | 'tasks';
 
 type SheetState =
   | null
@@ -426,7 +426,8 @@ export default function Home() {
   }, [jobs, customers, lineItems, userId, tick]);
 
   const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue');
-  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue');
+  const draftTasks = tasks.filter((t) => t.type === 'draft_quote');
+  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue' && t.type !== 'draft_quote');
   const l2Count = actTodayTasks.length;
 
   /* --- helpers --- */
@@ -866,6 +867,51 @@ export default function Home() {
     </div>
   );
 
+  const renderDrafts = () => {
+    return (
+      <div className="pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))] px-4 md:px-6">
+        {draftTasks.length > 0 ? (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">
+                Draft quotes
+              </span>
+            </div>
+            <div className="flex flex-col gap-3 mb-6">
+              {draftTasks.map((task) => {
+                const j = jobs.find(x => x.id === task.jobId);
+                const c = j ? customers[j.customer_id] : undefined;
+
+                return (
+                  <TaskCard
+                    key={task.id}
+                    type={task.type}
+                    job={j}
+                    customer={c}
+                    timeAgo={task.timeAgo}
+                    contextLine={task.contextLine}
+                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'drafts' } })}
+                  />
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="px-4 mt-6">
+            <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
+              <p className="text-base font-semibold text-brand-black">No draft quotes</p>
+              <div className="w-14 h-14 rounded-full bg-brand-borderLight flex items-center justify-center mb-3 mx-auto"><FileText size={24} className="text-brand-muted" /></div>
+              <p className="text-sm text-brand-muted mt-1.5">Start a quote and save it — it'll show up here</p>
+              <div className="flex gap-2 mt-5">
+                <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderTasks = () => {
     return (
       <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
@@ -989,7 +1035,7 @@ export default function Home() {
 
         {/* Tab switcher */}
         <div className="-mx-4">
-          <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} tasksBadgeCount={l2Count} onChange={setActiveTab} />
+          <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} draftsBadgeCount={draftTasks.length} tasksBadgeCount={l2Count} onChange={setActiveTab} />
         </div>
       </div>
 
@@ -1023,15 +1069,27 @@ export default function Home() {
         </div>
       )}
 
+      {/* Drafts tab content */}
+      {activeTab === 'drafts' && renderDrafts()}
+
       {/* Tasks tab content */}
       {activeTab === 'tasks' && renderTasks()}
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
-      {activeTab === 'today' && todayState !== 'all_clear' && (
+      {(activeTab === 'today' && todayState !== 'all_clear') && (
         <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
+          </div>
+        </div>
+      )}
+
+      {/* Drafts tab footer — New Quote CTA */}
+      {activeTab === 'drafts' && draftTasks.length > 0 && (
+        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+          <div className="flex gap-2 px-4 py-2.5 pb-3">
+            <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
           </div>
         </div>
       )}
