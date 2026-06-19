@@ -216,6 +216,12 @@ export default function Home() {
     }
   }, [refresh, userId]);
 
+  /* Recompute stale-job banner whenever the job list changes */
+  useEffect(() => {
+    if (!userId) return;
+    getStaleInProgressJobs(userId).then(setStaleJobs);
+  }, [jobs, userId]);
+
   /* tick for elapsed timer */
 
   useEffect(() => {
