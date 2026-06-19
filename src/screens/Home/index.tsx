@@ -92,7 +92,6 @@ type SheetState =
   | 'not_home'
   | 'dismiss_confirm'
   | 'finish_previous'
-  | 'photo_mark_done';
 
 type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote';
 
@@ -600,6 +599,7 @@ export default function Home() {
     }
 
     setSheet(null);
+    setMarkDoneStep('photo');
     refresh();
   };
 
@@ -1122,8 +1122,8 @@ export default function Home() {
       {/* --- Bottom Sheet: Mark Done (deposit) --- */}
       <BottomSheet
         isOpen={sheet === 'mark_done_deposit'}
-        onClose={() => setSheet(null)}
-        title={`Balance to collect: £${formatAmount(
+        onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
+        title={markDoneStep === 'photo' ? 'Job done! 📸' : `Balance to collect: £${formatAmount(
           selectedJob
             ? totalFor(selectedJob.id) -
                 (selectedJob.deposit_pct
@@ -1132,35 +1132,76 @@ export default function Home() {
             : 0
         )}`}
         subtitle={
-          selectedCustomer && selectedJob
-            ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(
-                selectedJob.deposit_pct
-                  ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
-                  : 0
-              )} deposit already paid`
-            : undefined
+          markDoneStep === 'photo'
+            ? 'Snap a quick photo for your records?'
+            : selectedCustomer && selectedJob
+              ? `${selectedCustomer.name} · ${selectedJob.title} · £${formatAmount(
+                  selectedJob.deposit_pct
+                    ? (selectedJob.deposit_pct / 100) * totalFor(selectedJob.id)
+                    : 0
+                )} deposit already paid`
+              : undefined
         }
       >
-        <div className="flex flex-col">
-          <SheetRow
-            icon={<CreditCard size={18} className="text-brand-dark" />}
-            label="Terminal"
-            onTap={() => handlePayment('terminal')}
-          />
-          <SheetRow
-            icon={<Banknote size={18} className="text-brand-dark" />}
-            label="Cash"
-            onTap={() => handlePayment('cash')}
-          />
-          <SheetRow
-            icon={<AlertTriangle size={18} className="text-status-red" />}
-            label="Not yet"
-            sublabel="Chase later"
-            onTap={() => handlePayment('not_yet')}
-            variant="destructive"
-            isLast
-          />
-        </div>
+        {markDoneStep === 'photo' ? (
+          <div className="flex flex-col">
+            <SheetRow
+              icon={<Camera size={18} className="text-brand-dark" />}
+              label="Take photo"
+              onTap={async () => {
+                if (!selectedJobId || !userId) return;
+                const dataUrl = await capturePhoto();
+                if (!dataUrl) return;
+                await saveJobPhoto(selectedJobId, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<ImageIcon size={18} className="text-brand-dark" />}
+              label="Choose from library"
+              onTap={async () => {
+                if (!selectedJobId || !userId) return;
+                const dataUrl = await pickPhotoFromLibrary();
+                if (!dataUrl) return;
+                await saveJobPhoto(selectedJobId, userId, dataUrl);
+                captureCompletionPhotoTaken({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+            />
+            <SheetRow
+              icon={<X size={18} className="text-brand-muted" />}
+              label="Skip"
+              onTap={() => {
+                if (selectedJobId) captureCompletionPhotoSkipped({ jobId: selectedJobId });
+                setMarkDoneStep('payment');
+              }}
+              variant="destructive"
+              isLast
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <SheetRow
+              icon={<CreditCard size={18} className="text-brand-dark" />}
+              label="Terminal"
+              onTap={() => handlePayment('terminal')}
+            />
+            <SheetRow
+              icon={<Banknote size={18} className="text-brand-dark" />}
+              label="Cash"
+              onTap={() => handlePayment('cash')}
+            />
+            <SheetRow
+              icon={<AlertTriangle size={18} className="text-status-red" />}
+              label="Not yet"
+              sublabel="Chase later"
+              onTap={() => handlePayment('not_yet')}
+              variant="destructive"
+              isLast
+            />
+          </div>
+        )}
       </BottomSheet>
 
       {/* --- Bottom Sheet: Dismiss Confirm --- */}

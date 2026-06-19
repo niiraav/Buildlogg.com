@@ -453,6 +453,7 @@ export default function JobDetail() {
       await addToSyncQueue('jobs', job.id, { status: 'paid', actual_end: n, updated_at: n });
     }
     setSheet(null);
+    setMarkDoneStep('photo');
 
     // Anti-forgetting: if we were sent here from a new-job intercept, navigate back and auto-start the new job
     const routeState = location.state as { returnToStartJob?: { jobId: string; from: string } } | null;
