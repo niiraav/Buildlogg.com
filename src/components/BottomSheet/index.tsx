@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { haptic } from '../../lib/haptics';
 
@@ -6,6 +7,7 @@ export interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  titleIcon?: React.ReactNode;
   subtitle?: string;
   children: React.ReactNode;
 }
@@ -14,13 +16,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
+  titleIcon,
   subtitle,
   children,
 }) => {
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="absolute inset-0 z-50 flex flex-col justify-end">
+        <div className="fixed inset-0 z-[55] flex flex-col justify-end">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -36,22 +39,26 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative z-[51] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet"
+            className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] overflow-y-auto"
           >
             <div className="w-9 h-1 bg-brand-border rounded-sm mx-auto mt-3 mb-5" />
             {title && (
-              <h2 className="text-md font-bold text-brand-black px-6">{title}</h2>
+              <div className="flex items-center gap-2 px-6">
+                {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
+                <h2 className="text-md font-bold text-brand-black">{title}</h2>
+              </div>
             )}
             {subtitle && (
               <p className="text-sm text-brand-mid mt-1 px-6">{subtitle}</p>
             )}
-            <div className="px-6 pb-10 pt-2">
+            <div className="px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
               {children}
             </div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

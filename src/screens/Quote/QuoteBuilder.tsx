@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, X, Plus, Calendar, Clock } from 'lucide-react';
+import { ChevronLeft, X, Plus, Calendar, Clock, Save } from 'lucide-react';
 import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { nextJobNumber } from '../../lib/jobNumbers';
@@ -782,9 +782,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             <div className="mb-4">
               <button
                 onClick={() => saveToLibrary(firstNewItem.description, firstNewItem.amountNum)}
-                className="text-sm text-brand-mid underline underline-offset-2 cursor-pointer hover:text-brand-dark transition-colors"
+                className="flex items-center gap-1.5 text-sm text-brand-mid underline underline-offset-2 cursor-pointer hover:text-brand-dark transition-colors"
               >
-                💾 Save "{firstNewItem.description}" to library
+                <Save size={14} />
+                Save "{firstNewItem.description}" to library
               </button>
             </div>
           ) : null;

@@ -1146,7 +1146,8 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'mark_done'}
         onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
-        title={markDoneStep === 'photo' ? 'Job done! 📸' : 'How were you paid?'}
+        title={markDoneStep === 'photo' ? 'Job done' : 'How were you paid?'}
+        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'
@@ -1225,7 +1226,7 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'mark_done_deposit'}
         onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
-        title={markDoneStep === 'photo' ? 'Job done! 📸' : `Balance to collect: £${formatAmount(
+        title={markDoneStep === 'photo' ? 'Job done' : `Balance to collect: £${formatAmount(
           selectedJob
             ? totalFor(selectedJob.id) -
                 (selectedJob.deposit_pct
@@ -1233,6 +1234,7 @@ export default function Home() {
                   : 0)
             : 0
         )}`}
+        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'
