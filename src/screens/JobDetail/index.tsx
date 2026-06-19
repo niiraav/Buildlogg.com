@@ -1099,7 +1099,7 @@ export default function JobDetail() {
   /* ─── render helpers ─── */
 
   const renderPaidFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('send_receipt')}>
           Send receipt
@@ -1112,7 +1112,7 @@ export default function JobDetail() {
   );
 
   const renderTerminalFooter = () => (
-    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="shrink-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
           Go Home
@@ -1345,7 +1345,7 @@ export default function JobDetail() {
     const isMissedCall = job?.title === 'Missed call';
 
     return (
-      <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
         {isDraft ? (
           <>
             <Button
@@ -1681,7 +1681,7 @@ export default function JobDetail() {
   };
 
   const renderBookedFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleStartJob}>
         Start job
       </Button>
@@ -1689,7 +1689,7 @@ export default function JobDetail() {
   );
 
   const renderQuotedFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleMarkAsBooked}>
         Mark as Booked
       </Button>
@@ -1697,7 +1697,7 @@ export default function JobDetail() {
   );
 
   const renderInProgressFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('mark_done')}>
           <Check size={18} className="mr-2" />
@@ -1769,7 +1769,7 @@ export default function JobDetail() {
   };
 
   const renderNoShowFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('reschedule')}>
@@ -1983,7 +1983,7 @@ export default function JobDetail() {
   };
 
   const renderAwaitingPaymentFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('mark_paid')}>
