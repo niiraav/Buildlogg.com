@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { db } from './db';
-import type { Profile, Customer, Job, LineItem, WorkLogEntry, Payment } from './db';
+import type { Profile, Customer, Job, LineItem, WorkLogEntry, Payment, JobPhoto } from './db';
 import type { Table } from 'dexie';
 
 async function safeBulkPut<T extends { id: string; _sync_status: string }>(
@@ -18,13 +18,14 @@ async function safeBulkPut<T extends { id: string; _sync_status: string }>(
 }
 
 export async function initialSync(userId: string) {
-  const [profile, customers, jobs, lineItems, workLog, payments] = await Promise.all([
+  const [profile, customers, jobs, lineItems, workLog, payments, jobPhotos] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single(),
     supabase.from('customers').select('*').eq('user_id', userId),
     supabase.from('jobs').select('*').eq('user_id', userId),
     supabase.from('line_items').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
     supabase.from('work_log').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
     supabase.from('payments').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
+    supabase.from('job_photos').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
   ]);
 
   if (profile.error) console.error('[initialSync] profiles fetch failed:', profile.error);
@@ -33,8 +34,9 @@ export async function initialSync(userId: string) {
   if (lineItems.error) console.error('[initialSync] line_items fetch failed:', lineItems.error);
   if (workLog.error) console.error('[initialSync] work_log fetch failed:', workLog.error);
   if (payments.error) console.error('[initialSync] payments fetch failed:', payments.error);
+  if (jobPhotos.error) console.error('[initialSync] job_photos fetch failed:', jobPhotos.error);
 
-  await db.transaction('rw', [db.profiles, db.customers, db.jobs, db.line_items, db.work_log, db.payments], async () => {
+  await db.transaction('rw', [db.profiles, db.customers, db.jobs, db.line_items, db.work_log, db.payments, db.job_photos], async () => {
     if (profile.data) {
       const local = await db.profiles.get(profile.data.id);
       if (!local || local._sync_status !== 'pending') {
@@ -55,6 +57,9 @@ export async function initialSync(userId: string) {
     }
     if (payments.data) {
       await safeBulkPut(db.payments, payments.data as Payment[]);
+    }
+    if (jobPhotos.data) {
+      await safeBulkPut(db.job_photos, jobPhotos.data as JobPhoto[]);
     }
   });
 }

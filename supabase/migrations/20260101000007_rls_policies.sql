@@ -51,3 +51,14 @@ CREATE POLICY "payments: own via job" ON payments
   WITH CHECK (EXISTS (
     SELECT 1 FROM jobs WHERE jobs.id = payments.job_id AND jobs.user_id = auth.uid()
   ));
+
+-- job_photos
+ALTER TABLE job_photos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "job_photos: own via job" ON job_photos;
+CREATE POLICY "job_photos: own via job" ON job_photos
+  USING (EXISTS (
+    SELECT 1 FROM jobs WHERE jobs.id = job_photos.job_id AND jobs.user_id = auth.uid()
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM jobs WHERE jobs.id = job_photos.job_id AND jobs.user_id = auth.uid()
+  ));
