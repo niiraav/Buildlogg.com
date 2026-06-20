@@ -45,11 +45,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             {title && (
               <div className="flex items-center gap-2 px-6">
                 {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
-                <h2 className="text-md font-bold text-brand-black">{title}</h2>
+                <h2 className="text-lg font-bold text-brand-black tracking-tight">{title}</h2>
               </div>
             )}
             {subtitle && (
-              <p className="text-sm text-brand-mid mt-1 px-6">{subtitle}</p>
+              <p className="text-sm text-brand-muted mt-1 px-6">{subtitle}</p>
             )}
             <div className="px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
               {children}
@@ -98,7 +98,7 @@ export const SheetRow: React.FC<SheetRowProps> = ({
     >
       {icon}
       <div className="flex flex-col">
-        <span className={`text-md font-medium ${labelClass}`}>{label}</span>
+        <span className={`text-sm font-medium ${labelClass}`}>{label}</span>
         {sublabel && <span className="text-sm text-brand-muted">{sublabel}</span>}
       </div>
     </div>

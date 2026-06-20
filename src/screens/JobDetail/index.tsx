@@ -2163,7 +2163,7 @@ export default function JobDetail() {
         isOpen={sheet === 'mark_done'}
         onClose={() => { !paymentProcessing && setSheet(null); setMarkDoneStep('photo'); }}
         title={photoStep ? 'Job done' : 'How were you paid?'}
-        titleIcon={photoStep ? <Camera size={20} /> : undefined}
+
         subtitle={
           photoStep
             ? 'Snap a quick photo for your records?'
