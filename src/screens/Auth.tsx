@@ -339,7 +339,7 @@ export default function Auth() {
       <div className="flex flex-col min-h-[100dvh]">
         {/* Mobile brand wordmark */}
         <a href="https://buildlogg.com" className="inline-flex items-center gap-2 text-[22px] font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8">
-          <img src="/assets/icon-black-square.png" alt="" className="w-[54px] h-[54px]" />
+          <img src="/assets/icon-black-square.png" alt="" className="w-[34px] h-[34px]" />
           Buildlogg
         </a>
 

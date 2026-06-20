@@ -146,9 +146,9 @@ a { color: inherit; text-decoration: none; }
 }
 .brand .mark .lucide { font-size: 16px; }
 <<<<<<< HEAD
-.brand-icon { width: 54px !important; height: 54px !important; display: block; flex: none; }
+.brand-icon { width: 34px !important; height: 34px !important; display: block; flex: none; }
 =======
-.brand-icon { width: 40px !important; height: 40px !important; display: block; flex: none; }
+.brand-icon { width: 34px !important; height: 34px !important; display: block; flex: none; }
 >>>>>>> origin/main
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-link { font-size: 14px; font-weight: 500; color: var(--body); padding: 8px 12px; border-radius: var(--r-btn); transition: background var(--ease) .15s, color var(--ease) .15s; }
@@ -655,3 +655,312 @@ a { color: inherit; text-decoration: none; }
 .install-modal-action:hover { background: var(--primary-active); }
 .install-modal-action[hidden] { display: none; }
 .install-modal-installed { background: var(--green-bg); color: var(--green); border-radius: var(--r-card); padding: 12px; font-size: 14px; font-weight: 500; margin-bottom: 18px; }
+
+/* ─── Micro-commitment strip ─── */
+.micro-strip {
+  padding: 0;
+  background: var(--body);
+  border-top: 1px solid var(--surface-strong);
+}
+
+.micro-strip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0;
+}
+
+.micro-strip-copy {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.micro-strip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--p-orange);
+  white-space: nowrap;
+}
+
+.micro-strip-time .lucide {
+  width: 16px;
+  height: 16px;
+}
+
+.micro-strip-text {
+  font-size: 17px;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.micro-strip-cta {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .micro-strip-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+    padding: 24px 0;
+  }
+  .micro-strip-copy {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .micro-strip-text {
+    font-size: 15px;
+  }
+  .micro-strip-cta {
+    width: 100%;
+  }
+}
+
+/* ─── Hero demo animation — 3 frame cycle ─── */
+/* Total cycle: 15s (5s per frame with smooth fade transitions) */
+
+/* Give the phone a fixed height so absolute children have a container */
+.demo-phone {
+  position: relative;
+  height: 640px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Push tabbar to the bottom of the phone */
+.demo-phone > .tabbar {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* Status bar stays at top */
+.demo-phone > .statusbar {
+  flex-shrink: 0;
+}
+
+.demo-frame {
+  position: absolute;
+  top: 40px;           /* below status bar */
+  left: 10px;          /* account for phone padding */
+  right: 10px;
+  bottom: 68px;        /* above tabbar (58px + 10px padding) */
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Make the statusbar and tabbar sit above the frames */
+.demo-phone > .statusbar,
+.demo-phone > .tabbar {
+  position: relative;
+  z-index: 2;
+}
+
+/* ─── Frame animations (16s cycle, seamless crossfades) ─── */
+/* Frame 1: visible 0s–4s, crossfade out 3.5s–4.5s */
+.demo-frame-1 {
+  animation: demoFade1 16s infinite ease-in-out;
+}
+
+/* Frame 2: crossfade in 3.5s–4.5s, visible 4.5s–10.5s, crossfade out 10.5s–11.5s */
+.demo-frame-2 {
+  animation: demoFade2 16s infinite ease-in-out;
+}
+
+/* Frame 3: crossfade in 10.5s–11.5s, visible 11.5s–15.5s, crossfade out 15.5s–16s */
+.demo-frame-3 {
+  animation: demoFade3 16s infinite ease-in-out;
+}
+
+@keyframes demoFade1 {
+  0%, 3%       { opacity: 0; }
+  6%, 22%      { opacity: 1; }
+  28%          { opacity: 0; }
+  100%         { opacity: 0; }
+}
+
+@keyframes demoFade2 {
+  0%, 22%      { opacity: 0; }
+  28%, 66%     { opacity: 1; }
+  72%          { opacity: 0; }
+  100%         { opacity: 0; }
+}
+
+@keyframes demoFade3 {
+  0%, 66%      { opacity: 0; }
+  72%, 97%     { opacity: 1; }
+  100%         { opacity: 0; }
+}
+
+/* ─── #1a: "New quote" button gentle tap (Frame 1) ─── */
+.demo-frame-1 .app-foot .abtn.primary {
+  animation: btnTapFrame1 16s infinite ease-in-out;
+}
+
+@keyframes btnTapFrame1 {
+  0%, 12%      { transform: scale(1); }
+  15%          { transform: scale(0.96); }
+  18%          { transform: scale(1); }
+  22%          { transform: scale(1); }
+  100%         { transform: scale(1); }
+}
+
+/* ─── #1b: "Send quote" button gentle pulse (Frame 2) ─── */
+.demo-frame-2 .app-foot .abtn.primary {
+  animation: btnPulseFrame2 16s infinite ease-in-out;
+}
+
+@keyframes btnPulseFrame2 {
+  0%, 52%      { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+  55%          { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.08); }
+  58%          { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+  62%          { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.08); }
+  65%          { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+  100%         { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+}
+
+/* ─── #4: Progress dots ─── */
+.demo-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 0;
+}
+
+.demo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d1d5db;
+  transition: transform 0.3s ease;
+}
+
+.demo-dot-1 { animation: dotActive1 16s infinite ease-in-out; }
+.demo-dot-2 { animation: dotActive2 16s infinite ease-in-out; }
+.demo-dot-3 { animation: dotActive3 16s infinite ease-in-out; }
+
+@keyframes dotActive1 {
+  0%, 6%, 22%, 100%   { background: #374151; transform: scale(1.3); }
+  28%, 97%            { background: #d1d5db; transform: scale(1); }
+}
+
+@keyframes dotActive2 {
+  0%, 22%             { background: #d1d5db; transform: scale(1); }
+  28%, 66%            { background: #374151; transform: scale(1.3); }
+  72%, 100%           { background: #d1d5db; transform: scale(1); }
+}
+
+@keyframes dotActive3 {
+  0%, 66%             { background: #d1d5db; transform: scale(1); }
+  72%, 97%            { background: #374151; transform: scale(1.3); }
+  100%                { background: #d1d5db; transform: scale(1); }
+}
+
+/* ─── #2: Subtle fade-in for quote fields (Frame 2) ─── */
+/* Instead of typewriter, fields fade in sequentially — smoother and more subtle */
+.demo-type-customer {
+  opacity: 0;
+  animation: fieldFadeIn 16s infinite ease-out;
+  animation-delay: 0s;
+}
+
+.demo-type-item1 {
+  opacity: 0;
+  animation: fieldFadeIn1 16s infinite ease-out;
+}
+
+.demo-type-item2 {
+  opacity: 0;
+  animation: fieldFadeIn2 16s infinite ease-out;
+}
+
+@keyframes fieldFadeIn {
+  0%, 28%    { opacity: 0; transform: translateY(4px); }
+  32%        { opacity: 1; transform: translateY(0); }
+  66%        { opacity: 1; transform: translateY(0); }
+  72%, 100%  { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes fieldFadeIn1 {
+  0%, 34%    { opacity: 0; transform: translateY(4px); }
+  38%        { opacity: 1; transform: translateY(0); }
+  66%        { opacity: 1; transform: translateY(0); }
+  72%, 100%  { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes fieldFadeIn2 {
+  0%, 40%    { opacity: 0; transform: translateY(4px); }
+  44%        { opacity: 1; transform: translateY(0); }
+  66%        { opacity: 1; transform: translateY(0); }
+  72%, 100%  { opacity: 0; transform: translateY(4px); }
+}
+
+/* ─── #3: WhatsApp badge subtle slide-in (Frame 3) ─── */
+.demo-wa-badge {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: waBadgeIn 16s infinite ease-out;
+}
+
+@keyframes waBadgeIn {
+  0%, 75%    { opacity: 0; transform: translateY(6px); }
+  79%        { opacity: 1; transform: translateY(0); }
+  97%        { opacity: 1; transform: translateY(0); }
+  100%       { opacity: 0; transform: translateY(6px); }
+}
+
+/* On mobile, reduce the demo phone size slightly */
+@media (max-width: 700px) {
+  .demo-phone {
+    width: 280px;
+    transform: scale(0.9);
+    transform-origin: top center;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .demo-frame-2,
+  .demo-frame-3 {
+    display: none;
+    animation: none;
+  }
+  .demo-frame-1 {
+    position: relative;
+    opacity: 1;
+    animation: none;
+  }
+  .demo-frame-1 .app-foot .abtn.primary,
+  .demo-frame-2 .app-foot .abtn.primary,
+  .demo-dot-1,
+  .demo-dot-2,
+  .demo-dot-3,
+  .demo-type-customer,
+  .demo-type-item1,
+  .demo-type-item2,
+  .demo-wa-badge {
+    animation: none;
+    opacity: 1;
+  }
+  .demo-dots {
+    display: flex;
+  }
+  .demo-dot {
+    background: #d1d5db;
+    transform: scale(1);
+  }
+}
