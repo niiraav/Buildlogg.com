@@ -2698,7 +2698,7 @@ export default function JobDetail() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -2708,7 +2708,7 @@ export default function JobDetail() {
 
   if (!job || !customer) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-full">
         <div className="flex-1 flex items-center justify-center px-4 md:px-6">
           <p className="text-md text-brand-muted text-center">Job not found</p>
         </div>
@@ -2717,7 +2717,7 @@ export default function JobDetail() {
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col min-h-full relative">
       {renderHeader()}
 
       {job.status === 'enquiry' && renderEnquiryBody()}

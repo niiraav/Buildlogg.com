@@ -224,7 +224,7 @@ export default function Onboarding() {
 
   return (
     <AuthDesktopLayout variant="onboarding">
-      <div className="flex flex-col h-full w-full md:max-w-xl md:mx-auto">
+      <div className="flex flex-col min-h-full w-full md:max-w-xl md:mx-auto">
         <ProgressDots total={4} current={step} />
 
         {/* ── S1: Welcome ── */}

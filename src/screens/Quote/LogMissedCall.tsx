@@ -131,7 +131,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
   const canSave = phoneValid && !saving;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-full">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
