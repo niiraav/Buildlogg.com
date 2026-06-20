@@ -35,8 +35,35 @@ import RecentActivity from '../../components/RecentActivity';
 
 const now = () => new Date().toISOString();
 
-// Module-level set: dismisses stale job nudges for the current session (resets on page reload)
-const dismissedStaleJobs = new Set<string>();
+// localStorage-backed set: dismisses stale job nudges, persists across page reloads
+// TTL: 12 hours — after that, the nudge can show again
+const DISMISSED_STALE_KEY = 'buildlogg_dismissed_stale_jobs';
+const DISMISSED_STALE_TTL = 12 * 60 * 60 * 1000; // 12 hours
+
+function loadDismissedStaleJobs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_STALE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as { id: string; ts: number }[];
+    const now = Date.now();
+    return new Set(parsed.filter((e) => now - e.ts < DISMISSED_STALE_TTL).map((e) => e.id));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissedStaleJob(jobId: string) {
+  try {
+    const raw = localStorage.getItem(DISMISSED_STALE_KEY);
+    const existing = raw ? JSON.parse(raw) as { id: string; ts: number }[] : [];
+    const now = Date.now();
+    const filtered = existing.filter((e) => now - e.ts < DISMISSED_STALE_TTL);
+    filtered.push({ id: jobId, ts: now });
+    localStorage.setItem(DISMISSED_STALE_KEY, JSON.stringify(filtered));
+  } catch {}
+}
+
+const dismissedStaleJobs = loadDismissedStaleJobs();
 
 function isToday(dateStr: string): boolean {
   const d = new Date(dateStr);
@@ -699,6 +726,7 @@ export default function Home() {
     const handleMarkDone = () => {
       captureStaleJobNudgeTapped({ jobId: job.id, staleType: job.staleType });
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       navigate(`/jobs/${job.id}`, { state: { autoOpenMarkDone: true } });
     };
 
@@ -711,6 +739,7 @@ export default function Home() {
         captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: false });
       }
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
     };
 
@@ -718,6 +747,7 @@ export default function Home() {
       await markJobAsMultiDay(job.id);
       captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: true });
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
     };
 
@@ -885,7 +915,7 @@ export default function Home() {
 
   const renderTasks = () => {
     return (
-      <div className="pt-4 md:pt-6 pb-[calc(56px + env(safe-area-inset-bottom))] px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-4 px-4 md:px-6">
         {/* ACT TODAY: Missed calls + overdue payments */}
         {actTodayTasks.length > 0 && (
           <>
@@ -967,7 +997,7 @@ export default function Home() {
 
   const renderDrafts = () => {
     return (
-      <div className="pt-4 md:pt-6 pb-[calc(56px + env(safe-area-inset-bottom))] px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-4 px-4 md:px-6">
         {draftTasks.length > 0 ? (
           <div className="flex flex-col gap-3 mb-6">
             {draftTasks.map((task) => {
@@ -1068,7 +1098,7 @@ export default function Home() {
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(122px + env(safe-area-inset-bottom))]">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
           {/* Active bar */}
 
           {/* Stale job banner — anti-forgetting nudge */}
@@ -1104,7 +1134,7 @@ export default function Home() {
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
       {activeTab === 'today' && todayState !== 'all_clear' && (
-        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+        <div className="mt-auto sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>

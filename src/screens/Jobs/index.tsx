@@ -344,7 +344,7 @@ export default function Jobs() {
     const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
 
     return (
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(122px + env(safe-area-inset-bottom))]">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>
@@ -361,7 +361,7 @@ export default function Jobs() {
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-full">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
@@ -418,7 +418,7 @@ export default function Jobs() {
 
       {/* Footer — only when there are jobs */}
       {hasAnyJobs && (
-        <div className="sticky bottom-[var(--tab-bar-height)] z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight">
+        <div className="mt-auto sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="primary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
