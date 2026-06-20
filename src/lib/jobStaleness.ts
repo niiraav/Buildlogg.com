@@ -52,8 +52,11 @@ export function getStaleType(job: Job, now = new Date()): StaleType | null {
   }
 
   // Crossed midnight but not flagged as multi-day yet
+  // Only trigger if at least 3 hours have elapsed — prevents false positive
+  // when a job is started near midnight and it's now just past midnight
   if (!sameDay) {
-    return 'crossed_midnight';
+    if (elapsed > SAME_DAY_STALE_MS) return 'crossed_midnight';
+    return null;
   }
 
   // Same day — check 3h fixed threshold

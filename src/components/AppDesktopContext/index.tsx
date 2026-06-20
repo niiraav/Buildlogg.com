@@ -41,6 +41,7 @@ export default function AppDesktopContext() {
   const screen = useMemo(() => getScreen(location.pathname), [location.pathname]);
   const [isNew, setIsNew] = useState(() => isNewUser());
   const [activeJobs, setActiveJobs] = useState(0);
+  const [inProgressJobs, setInProgressJobs] = useState(0);
   const [unpaidTotal, setUnpaidTotal] = useState(0);
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -61,9 +62,9 @@ export default function AppDesktopContext() {
       const allItems = await db.line_items.toArray();
       const prof = await db.profiles.get(uid);
 
-      const active = allJobs.filter(
-        (j) => j.status === 'in_progress' || j.status === 'booked'
-      ).length;
+      const inProgress = allJobs.filter((j) => j.status === 'in_progress').length;
+      const booked = allJobs.filter((j) => j.status === 'booked').length;
+      const active = inProgress + booked;
       const unpaid = allJobs
         .filter((j) => j.status === 'awaiting_payment')
         .reduce((sum, j) => {
@@ -73,6 +74,7 @@ export default function AppDesktopContext() {
 
       if (!mounted) return;
       setActiveJobs(active);
+      setInProgressJobs(inProgress);
       setUnpaidTotal(unpaid);
       setProfile(prof || null);
     }
@@ -95,6 +97,7 @@ export default function AppDesktopContext() {
             screen={screen}
             mode={mode}
             activeJobs={activeJobs}
+            inProgressJobs={inProgressJobs}
             unpaidTotal={unpaidTotal}
             profile={profile}
           />
@@ -110,12 +113,14 @@ function ContextModule({
   screen,
   mode,
   activeJobs,
+  inProgressJobs,
   unpaidTotal,
   profile,
 }: {
   screen: Screen;
   mode: Mode;
   activeJobs: number;
+  inProgressJobs: number;
   unpaidTotal: number;
   profile: Profile | null;
 }) {
@@ -125,7 +130,7 @@ function ContextModule({
     return (
       <Frame>
         {tag}
-        {mode === 'new' ? <HomeNew /> : <HomeReturning activeJobs={activeJobs} unpaidTotal={unpaidTotal} profile={profile} />}
+        {mode === 'new' ? <HomeNew /> : <HomeReturning activeJobs={activeJobs} inProgressJobs={inProgressJobs} unpaidTotal={unpaidTotal} profile={profile} />}
       </Frame>
     );
   }
@@ -232,10 +237,12 @@ function HomeNew() {
 
 function HomeReturning({
   activeJobs,
+  inProgressJobs,
   unpaidTotal,
   profile,
 }: {
   activeJobs: number;
+  inProgressJobs: number;
   unpaidTotal: number;
   profile: Profile | null;
 }) {
@@ -244,7 +251,7 @@ function HomeReturning({
       <Heading>Since you were last in…</Heading>
       <Lede>A calm summary, no bouncing red numbers.</Lede>
       <div className="grid grid-cols-2 gap-3">
-        <Stat label="Active jobs" value={String(activeJobs)} delta={activeJobs > 0 ? 'In progress' : 'No active jobs'} tone={activeJobs > 0 ? 'up' : 'neutral'} />
+        <Stat label="Active jobs" value={String(activeJobs)} delta={inProgressJobs > 0 ? 'In progress' : activeJobs > 0 ? 'Booked' : 'No active jobs'} tone={activeJobs > 0 ? 'up' : 'neutral'} />
         <Stat label="Unpaid" value={`£${unpaidTotal.toFixed(0)}`} delta={unpaidTotal > 0 ? 'Awaiting payment' : 'All paid up'} tone={unpaidTotal > 0 ? 'warn' : 'neutral'} />
       </div>
       {profile && (

@@ -23,7 +23,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[55] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[55] flex flex-col justify-end md:items-end md:justify-end md:inset-y-0 md:right-0 md:left-[40%]">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -39,7 +39,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] overflow-y-auto"
+            className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] overflow-y-auto md:max-w-md md:mx-auto md:w-full"
           >
             <div className="w-9 h-1 bg-brand-border rounded-sm mx-auto mt-3 mb-5" />
             {title && (

@@ -885,7 +885,7 @@ export default function Home() {
 
   const renderTasks = () => {
     return (
-      <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-[calc(56px + env(safe-area-inset-bottom))] px-4 md:px-6">
         {/* ACT TODAY: Missed calls + overdue payments */}
         {actTodayTasks.length > 0 && (
           <>
@@ -967,7 +967,7 @@ export default function Home() {
 
   const renderDrafts = () => {
     return (
-      <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-[calc(56px + env(safe-area-inset-bottom))] px-4 md:px-6">
         {draftTasks.length > 0 ? (
           <div className="flex flex-col gap-3 mb-6">
             {draftTasks.map((task) => {
@@ -1068,7 +1068,7 @@ export default function Home() {
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(122px + env(safe-area-inset-bottom))]">
           {/* Active bar */}
 
           {/* Stale job banner — anti-forgetting nudge */}

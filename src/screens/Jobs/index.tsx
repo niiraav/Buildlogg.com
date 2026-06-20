@@ -344,7 +344,7 @@ export default function Jobs() {
     const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
 
     return (
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(122px + env(safe-area-inset-bottom))]">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>

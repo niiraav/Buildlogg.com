@@ -1210,17 +1210,20 @@ export default function JobDetail() {
             <span className="text-sm font-bold text-brand-black">£{materialsTotal.toFixed(2)}</span>
           </div>
           {editable ? (
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-brand-muted">£</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                defaultValue={materialsTotal > 0 ? materialsTotal.toFixed(2) : ''}
-                placeholder="Total spent at merchant"
-                className="w-full h-11 pl-7 pr-3 border border-brand-border rounded-lg text-base text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black"
-                onBlur={(e) => handleSaveMaterialsCost(e.target.value)}
-              />
-            </div>
+            <>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-brand-muted">£</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  defaultValue={materialsTotal > 0 ? materialsTotal.toFixed(2) : ''}
+                  placeholder="Total spent at merchant"
+                  className="w-full h-11 pl-7 pr-3 border border-brand-border rounded-lg text-base text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black"
+                  onBlur={(e) => handleSaveMaterialsCost(e.target.value)}
+                />
+              </div>
+              <p className="text-label text-brand-muted mt-1.5 italic">For your reference only — not included in the customer invoice.</p>
+            </>
           ) : materialsTotal > 0 ? (
             <p className="text-sm text-brand-muted">Recorded for your reference</p>
           ) : null}
