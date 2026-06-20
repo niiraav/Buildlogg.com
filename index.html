@@ -154,7 +154,18 @@
   </div>
 </section>
 
-
+<!-- ============================================================ MICRO-COMMITMENT STRIP -->
+<section class="micro-strip">
+  <div class="container">
+    <div class="micro-strip-inner">
+      <div class="micro-strip-copy">
+        <span class="micro-strip-time"><i data-lucide="timer" class="lucide"></i> 60 seconds</span>
+        <p class="micro-strip-text">Enter your email, see a sample quote, send your first real one today.</p>
+      </div>
+      <a class="btn btn-primary btn-lg micro-strip-cta" href="/app/auth?action=signup&source=micro">Try it now <i data-lucide="arrow-right" class="lucide"></i></a>
+    </div>
+  </div>
+</section>
 
 <!-- ============================================================ PROBLEM -->
 <section class="section problem">
@@ -544,6 +555,20 @@
     deferredInstallPrompt = null;
   });
 
+</script>
+<script>
+// Pass ?source= param through to /app/auth links for conversion tracking
+(function() {
+  var source = new URLSearchParams(window.location.search).get('source');
+  if (!source) return;
+  document.querySelectorAll('a[href*="/app/auth"]').forEach(function(link) {
+    try {
+      var url = new URL(link.href, window.location.origin);
+      if (!url.searchParams.has('source')) url.searchParams.set('source', source);
+      link.href = url.pathname + '?' + url.searchParams.toString();
+    } catch(e) {}
+  });
+})();
 </script>
 </body>
 </html>

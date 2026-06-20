@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/db';
 import { useAppStore } from '../store/useAppStore';
-import { identifyUser, captureUserSignedIn } from '../lib/analytics';
+import { identifyUser, captureUserSignedIn, captureUserSignedUp, capture } from '../lib/analytics';
 import { showSuccess, showError, showToast } from '../components/Toast/store';
 import { haptic, hapticError, hapticSuccess } from '../lib/haptics';
 import { Button } from '../components/Button';
@@ -30,6 +30,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') === 'signup' ? 'signup' : 'signin';
+  const source = searchParams.get('source') || 'organic';
   const [mode, setMode] = useState<AuthMode>(action);
 
   const [emailInput, setEmailInput] = useState('');
@@ -163,6 +164,7 @@ export default function Auth() {
         showSuccess('Signed in');
         identifyUser(data.session.user.id, { email });
         captureUserSignedIn();
+        if (source !== 'organic') capture('user_signed_in_from_email', { source });
 
         const profile = await db.profiles.get(data.session.user.id);
         navigate(profile ? '/' : '/onboarding', { replace: true });
@@ -188,6 +190,7 @@ export default function Auth() {
           // Email confirmation is required on the Supabase side.
           hapticSuccess();
           showToast('Account created. Check your email to confirm.', 'info', 4000);
+          captureUserSignedUp(undefined, source);
           setEmailConfirmed(true);
           setLoading(false);
           return;
@@ -196,6 +199,7 @@ export default function Auth() {
         hapticSuccess();
         showSuccess('Account created');
         identifyUser(data.session.user.id, { email });
+        captureUserSignedUp(undefined, source);
         captureUserSignedIn();
 
         navigate('/onboarding', { replace: true });

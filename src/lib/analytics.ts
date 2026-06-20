@@ -18,13 +18,15 @@ export async function initAnalytics() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${POSTHOG_HOST}/e`, {
-      method: 'HEAD',
+    // Use a simple GET to the host root — no-cors mode returns an opaque response
+    // if the host is reachable, regardless of HTTP status code.
+    // Avoids the 400 Bad Request from HEAD /e (which expects POST).
+    const res = await fetch(`${POSTHOG_HOST}/`, {
+      method: 'GET',
       signal: controller.signal,
       mode: 'no-cors',
     });
     clearTimeout(timeout);
-    // Any response (even opaque) means the host is reachable.
     void res;
   } catch {
     console.warn('[Analytics] PostHog host blocked — analytics disabled to prevent console errors.');
