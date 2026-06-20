@@ -142,7 +142,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
       {/* Full-screen viewer */}
       {viewerOpen && (
-        <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center md:left-[40%]">
           <button
             onClick={() => setViewerOpen(false)}
             className="absolute top-4 right-4 text-white cursor-pointer"

@@ -361,7 +361,7 @@ export default function Jobs() {
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-full">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">

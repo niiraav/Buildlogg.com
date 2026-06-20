@@ -1054,7 +1054,7 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-2 bg-[var(--app-shell-bg)]">
         <div className="flex items-start justify-between">
