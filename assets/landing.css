@@ -737,6 +737,8 @@ a { color: inherit; text-decoration: none; }
   height: 640px;
   display: flex;
   flex-direction: column;
+  --demo-rev: 3; /* build marker: forces a new content-hashed asset URL so the
+                    landing CSS isn't served from a stale Cloudflare edge cache */
 }
 
 /* Push tabbar to the bottom of the phone */
