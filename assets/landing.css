@@ -325,6 +325,11 @@ a { color: inherit; text-decoration: none; }
 .app-foot { flex: none; padding: 11px 18px 9px; display: flex; gap: 9px; border-top: 1px solid var(--line); background: #fff; }
 .app-foot .abtn { flex: 1; }
 .app-foot.single { flex-direction: column; }
+/* In the column ("single") variant, `flex: 1` from .app-foot .abtn would grow
+   the button vertically with flex-basis 0%, overriding its explicit height and
+   squashing it. Use width:100% + flex:none so the button keeps its real height
+   (e.g. 48px from .abtn.lg) and stretches to full width instead. */
+.app-foot.single .abtn { flex: none; width: 100%; }
 .app-foot .exception { display: block; text-align: center; margin-top: 9px; font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 .tabbar { flex: none; height: 58px; border-top: 1px solid var(--line); background: #fff; display: flex; align-items: center; justify-content: space-around; }
 .tabitem { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--muted-soft); }
