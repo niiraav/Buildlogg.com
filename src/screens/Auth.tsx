@@ -179,7 +179,21 @@ export default function Auth() {
 
         if (signUpError) {
           hapticError();
-          const message = signUpError?.message || 'Could not create account';
+          // Supabase returns 429 / "over_email_send_rate_limit" when its built-in email service
+          // is throttled (or no custom SMTP is configured). Surface a clear, actionable message
+          // instead of the raw "email rate limit exceeded". See docs/SUPABASE-EMAIL-SETUP.md
+          // for the permanent SMTP (Resend) fix.
+          const code = (signUpError as { code?: string; status?: number })?.code;
+          const raw = (signUpError?.message || '').toLowerCase();
+          const isEmailSendError =
+            code === '429' ||
+            code === 'over_email_send_rate_limit' ||
+            raw.includes('rate limit') ||
+            raw.includes('email_send') ||
+            raw.includes('over_email_send');
+          const message = isEmailSendError
+            ? 'We could not send your confirmation email right now. Please try again in a few minutes.'
+            : signUpError?.message || 'Could not create account';
           showError(message);
           setError(message);
           setLoading(false);
@@ -189,7 +203,7 @@ export default function Auth() {
         if (!data.session) {
           // Email confirmation is required on the Supabase side.
           hapticSuccess();
-          showToast('Account created. Check your email to confirm.', 'info', 4000);
+          showToast('Account created. Check your email (and spam folder) to confirm.', 'info', 5000);
           captureUserSignedUp(undefined, source);
           setEmailConfirmed(true);
           setLoading(false);
@@ -379,7 +393,7 @@ export default function Auth() {
               {emailConfirmed ? (
                 <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
                   <p className="text-sm text-brand-dark leading-relaxed">
-                    Check your email for a confirmation link. Once confirmed, you can sign in.
+                    Check your email (and spam folder) for a confirmation link. Once confirmed, you can sign in.
                   </p>
                 </div>
               ) : (
