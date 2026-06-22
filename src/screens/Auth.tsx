@@ -26,6 +26,32 @@ function validatePassword(password: string): string | null {
   return null;
 }
 
+// Map a recipient domain to its webmail inbox so the "Check email" button can
+// deep-link straight to the mailbox for known providers. For unknown domains we
+// fall back to `mailto:` which launches the OS default email client.
+function getInboxUrl(domain: string): string {
+  const map: Record<string, string> = {
+    'gmail.com': 'https://mail.google.com/mail/',
+    'googlemail.com': 'https://mail.google.com/mail/',
+    'outlook.com': 'https://outlook.live.com/mail/',
+    'hotmail.com': 'https://outlook.live.com/mail/',
+    'live.com': 'https://outlook.live.com/mail/',
+    'msn.com': 'https://outlook.live.com/mail/',
+    'yahoo.com': 'https://mail.yahoo.com/',
+    'yahoo.co.uk': 'https://mail.yahoo.com/',
+    'icloud.com': 'https://www.icloud.com/mail/',
+    'me.com': 'https://www.icloud.com/mail/',
+    'mac.com': 'https://www.icloud.com/mail/',
+    'proton.me': 'https://mail.proton.me/',
+    'protonmail.com': 'https://mail.proton.me/',
+    'zoho.com': 'https://mail.zoho.com/',
+    'aol.com': 'https://mail.aol.com/',
+    'gmx.com': 'https://www.gmx.com/mail/',
+    'mail.com': 'https://www.mail.com/mail/',
+  };
+  return map[domain] || 'mailto:';
+}
+
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -352,6 +378,33 @@ export default function Auth() {
     setConfirmPassword('');
   };
 
+  // "Check email" button: open the user's inbox. Deep-links to webmail for
+  // known providers (Gmail/Outlook/iCloud/etc.); otherwise launches the OS
+  // default email client via a hidden mailto: anchor (avoids a blank tab).
+  const handleCheckEmail = () => {
+    const email = emailInput.trim().toLowerCase();
+    const domain = email.split('@')[1]?.toLowerCase() || '';
+    const inboxUrl = getInboxUrl(domain);
+    if (inboxUrl.startsWith('http')) {
+      window.open(inboxUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      const a = document.createElement('a');
+      a.href = inboxUrl;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  // "Back to signup" button: return to the signup form (keep the entered email
+  // so the user doesn't have to retype it).
+  const handleBackToSignup = () => {
+    setEmailConfirmed(false);
+    setMode('signup');
+    setError('');
+  };
+
   return (
     <AuthDesktopLayout variant="auth">
       <div className="flex flex-col min-h-[100dvh]">
@@ -379,25 +432,57 @@ export default function Auth() {
         <main className="flex-1 flex flex-col md:justify-center px-6 md:px-10">
           <div className="w-full md:max-w-sm mx-auto">
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
-                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
-                </h1>
-                <p className="text-base text-brand-mid mt-2">
-                  {mode === 'signin'
-                    ? 'Sign in to continue to your Buildlogg dashboard.'
-                    : 'Enter your email and password to get started.'}
-                </p>
-              </div>
-
               {emailConfirmed ? (
-                <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
-                  <p className="text-sm text-brand-dark leading-relaxed">
-                    Check your email (and spam folder) for a confirmation link. Once confirmed, you can sign in.
+                <>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
+                      Check your email
+                    </h1>
+                    <p className="text-base text-brand-mid mt-2">
+                      We've sent you a confirmation link to activate your account. Check your inbox at{' '}
+                      <span className="font-semibold text-brand-dark break-all">
+                        {emailInput.trim().toLowerCase()}
+                      </span>.
+                    </p>
+                  </div>
+
+                  <div className="mt-1 flex flex-col gap-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleCheckEmail}
+                      fullWidth
+                      size="sm"
+                    >
+                      Check email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleBackToSignup}
+                      fullWidth
+                      size="sm"
+                    >
+                      Back to signup
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-brand-muted text-center mt-2">
+                    Didn't get it? Check your spam folder or try again in a minute.
                   </p>
-                </div>
+                </>
               ) : (
                 <>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
+                      {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+                    </h1>
+                    <p className="text-base text-brand-mid mt-2">
+                      {mode === 'signin'
+                        ? 'Sign in to continue to your Buildlogg dashboard.'
+                        : 'Enter your email and password to get started.'}
+                    </p>
+                  </div>
                   <div className="flex flex-col gap-2">
                     <label htmlFor="email" className="text-sm font-medium text-brand-black">
                       Email
