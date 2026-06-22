@@ -27,7 +27,11 @@ Resend's shared sandbox address `onboarding@resend.dev` **only delivers to the R
 owner's own inbox**, so it is useless for real signups. You must verify your own domain.
 
 1. Sign in to https://resend.com/domains
-2. Add domain: `buildlogg.com` (or a subdomain like `mail.buildlogg.com`).
+2. Add a domain to verify. **Buildlogg uses the subdomain `mail.buildlogg.com`** (verified
+   2026-06-22). You can verify the apex `buildlogg.com` instead if you prefer, but whatever you
+   verify here **must match the "Sender email" domain in Step 2** -- Resend rejects any `from`
+   address whose domain is not verified (Supabase then surfaces this as
+   `500 "Error sending confirmation email"`).
 3. Add the DNS records Resend shows you (SPF / DKIM / DMARC). Wait for status **Verified**.
 4. Use the **send-only API key** already in `.env` (`RESEND_API_KEY`, prefix `re_NEN...`) -- this
    key is restricted to sending, which is exactly what SMTP needs. It is also the **SMTP password**.
@@ -47,11 +51,24 @@ Supabase Dashboard -> **Authentication -> SMTP Settings** (a.k.a. "Email Provide
 | Port               | `465` (SSL) -- or `587` for STARTTLS       |
 | Username           | `resend`                                   |
 | Password           | `<paste your RESEND_API_KEY, e.g. re_NEN...>` |
-| Sender email       | `noreply@buildlogg.com` (domain from Step 1) |
+| Sender email       | `no-reply@mail.buildlogg.com` (must be on a **Resend-verified** domain) |
 | Sender name        | `Buildlogg`                                |
-| Minimum interval   | `0` seconds (let Resend handle rate limits) |
+| Minimum interval   | `1` second (Supabase requires > 0; 1s = effectively no throttle) |
 
 Click **Save**, then use Supabase's "Send test email" button to confirm credentials work.
+
+> **If you see `500 "Error sending confirmation email"` after enabling SMTP:** the Sender email's
+> domain is not verified in Resend (or doesn't match the verified domain). Diagnose with the
+> Resend API directly:
+> ```bash
+> RESEND_KEY=$(grep '^RESEND_API_KEY=' .env | cut -d= -f2-)
+> curl -sS -X POST https://api.resend.com/emails -H "Authorization: Bearer $RESEND_KEY" \
+>   -H "Content-Type: application/json" \
+>   -d '{"from":"no-reply@mail.buildlogg.com","to":"<your-email>","subject":"t","text":"t"}'
+> ```
+> A `403 "domain is not verified"` means the `from` domain isn't verified -- fix the Sender email
+> in Supabase SMTP Settings to use your verified domain. A `200 {"id":"..."}` means Resend is fine
+> and the issue is elsewhere (host/port/credentials).
 
 After this, `over_email_send_rate_limit` is gone and confirmations are delivered by Resend.
 
