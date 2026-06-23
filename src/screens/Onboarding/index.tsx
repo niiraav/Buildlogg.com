@@ -13,6 +13,7 @@ import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
 import AuthDesktopLayout from '../../components/AuthDesktopLayout';
 import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle } from 'lucide-react';
+import AddToHomeScreen from '../../components/AddToHomeScreen';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -33,9 +34,9 @@ const TRADE_OPTIONS: Array<{ value: TradeType; label: string; icon: React.ReactN
 ];
 
 const PAYMENT_TERMS: Array<{ value: PaymentTerms; label: string; description: string }> = [
-  { value: 'on_completion', label: 'On completion', description: 'Customer pays after the job is finished' },
-  { value: 'deposit', label: 'Deposit', description: 'Ask for a deposit upfront, then balance on completion' },
-  { value: 'invoice', label: 'Invoice', description: 'Send an invoice after the job is done' },
+  { value: 'on_completion', label: 'On completion', description: 'Customer pays the full amount once the job is done — in cash, by card, or bank transfer.' },
+  { value: 'deposit', label: 'Deposit', description: 'Customer pays a percentage upfront (e.g. 20%) to secure the booking. The rest is collected when the job is finished.' },
+  { value: 'invoice', label: 'Invoice', description: 'You send an invoice after the job. The customer pays within agreed terms (usually 7–14 days). The app tracks who has paid and who needs chasing.' },
 ];
 
 export default function Onboarding() {
@@ -243,7 +244,7 @@ export default function Onboarding() {
               <div className="flex flex-col gap-6">
                 {/* Full name */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Your Name
                   </label>
                   <div
@@ -268,7 +269,7 @@ export default function Onboarding() {
 
                 {/* Email (read-only, pre-filled from auth) */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Your Email
                   </label>
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden bg-brand-surface border-brand-border">
@@ -311,7 +312,7 @@ export default function Onboarding() {
               <div className="flex flex-col gap-6">
                 {/* Business Name */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Business Name <span className="font-normal normal-case tracking-normal text-label ml-1">(optional)</span>
                   </label>
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
@@ -329,7 +330,7 @@ export default function Onboarding() {
 
                 {/* Trade Type — 2×2 grid */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-2 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-2 block">
                     Trade Type
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -354,7 +355,7 @@ export default function Onboarding() {
 
                   {trade === 'other' && (
                     <div className="mt-3">
-                      <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                      <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                         What Trade?
                       </label>
                       <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
@@ -403,7 +404,7 @@ export default function Onboarding() {
               <div className="flex flex-col gap-5">
                 {/* Callout Charge */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Callout Charge
                   </label>
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
@@ -417,13 +418,13 @@ export default function Onboarding() {
                     />
                   </div>
                   <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">
-                    Charged when customer not home
+                    A fee you charge when you turn up but can't do the job — e.g. customer isn't home. Most tradespeople charge £50–£100.
                   </p>
                 </div>
 
                 {/* Default Labour Charge */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Default Labour Charge
                   </label>
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
@@ -446,6 +447,10 @@ export default function Onboarding() {
                       className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent px-4"
                     />
                   </div>
+                  <p className="text-sm text-brand-mid mt-1.5 leading-relaxed">
+                    The label shown next to your labour charge on the quote. Common choices: 'Labour', 'Day rate', 'Call-out fee'.
+                  </p>
+
                   {/* Toggle */}
                   <div className="flex items-center gap-3 mt-3">
                     <button
@@ -468,15 +473,15 @@ export default function Onboarding() {
 
                   <p className="text-sm text-brand-muted mt-2 leading-relaxed">
                     {autoFillDefault
-                      ? "Automatically added to every new quote. Edit or remove per quote."
-                      : "You can always add items manually when building a quote."}
+                      ? "Automatically adds this labour charge to every new quote so you don't type it each time. Edit or remove it per quote."
+                      : "You'll start each quote with a blank items list. You can still add saved items from your library."}
                   </p>
                 </div>
 
                 {/* Payment terms — radio cards with descriptions */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <label className="text-label font-bold tracking-[0.4px] text-brand-muted">
+                    <label className="text-label font-bold tracking-[0.4px] text-brand-dark">
                       Default Payment Terms
                     </label>
                     <button
@@ -523,7 +528,7 @@ export default function Onboarding() {
 
                 {/* Quote Valid For */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-muted mb-1.5 block">
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
                     Quote Valid For
                   </label>
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
@@ -537,7 +542,7 @@ export default function Onboarding() {
                     <span className="text-md text-brand-mid pr-4 shrink-0">days</span>
                   </div>
                   <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">
-                    After this, the quote expires automatically. Common choices: 7, 14, 30, 60, or 90 days.
+                    After this many days, the quote is automatically marked as expired. The customer sees it's no longer valid. Most tradespeople use 30 days.
                   </p>
                 </div>
               </div>
@@ -572,6 +577,10 @@ export default function Onboarding() {
                   Your jobs will appear on the home screen as soon as they're booked.
                 </p>
               </div>
+            </div>
+
+            <div className="px-6 w-full">
+              <AddToHomeScreen />
             </div>
 
             <StickyFooter className="px-0">

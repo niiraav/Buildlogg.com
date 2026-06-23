@@ -153,7 +153,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
           </div>
 
           <div className="mb-4">
-            <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
               Name
             </label>
             <input
@@ -172,7 +172,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
           </div>
 
           <div className="mb-4">
-            <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
               Phone number
             </label>
             <input
@@ -194,8 +194,8 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
           </div>
 
           <div>
-            <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
-              Address <span className="text-label text-brand-muted font-normal normal-case tracking-0 ml-1">(optional · used for navigation)</span>
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
+              Address <span className="text-label text-brand-dark font-normal normal-case tracking-0 ml-1">(optional · used for navigation)</span>
             </label>
             <input
               type="text"

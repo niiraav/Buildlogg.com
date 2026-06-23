@@ -16,7 +16,7 @@ export const AmountCard: React.FC<AmountCardProps> = ({
 }) => {
   return (
     <div className="border border-brand-border rounded-xl p-4">
-      <span className="text-label font-bold tracking-wider text-brand-muted">
+      <span className="text-label font-bold tracking-wider text-brand-dark">
         {label}
       </span>
       <div className="mt-1 text-hero font-extrabold text-brand-black tracking-tight">

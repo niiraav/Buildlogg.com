@@ -90,6 +90,9 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
     items.forEach((item) => {
       lines.push(`• ${item.description} — £${item.amount.toFixed(2)}`);
+      if (item.detail && item.detail.trim()) {
+        lines.push(`  ${item.detail.trim()}`);
+      }
     });
 
     if (job.notes) {
@@ -276,7 +279,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
               <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">
                 {messageText}
               </p>
-              <p className="text-label text-brand-muted mt-1 italic">
+              <p className="text-label text-brand-dark mt-1 italic">
                 Tap to edit before sending
               </p>
             </div>

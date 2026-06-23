@@ -23,9 +23,9 @@ export function showToast(message: string, type: ToastState['type'] = 'info', du
 }
 
 export function showSuccess(message: string, duration?: number) {
-  showToast(message, 'success', duration ?? 2000);
+  showToast(message, 'success', duration ?? 3000);
 }
 
 export function showError(message: string, duration?: number) {
-  showToast(message, 'error', duration ?? 4000);
+  showToast(message, 'error', duration ?? 5000);
 }

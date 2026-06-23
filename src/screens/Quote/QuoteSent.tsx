@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { db, type Job, type Customer } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
+import AddToHomeScreen from '../../components/AddToHomeScreen';
 
 /* ─── helpers ─── */
 
@@ -101,7 +102,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
         {/* What happens next card */}
         <div className="w-full bg-brand-surface border border-brand-border rounded-lg p-4 mb-7 text-left">
-          <div className="text-micro font-bold text-brand-muted tracking-[0.5px] mb-2">
+          <div className="text-micro font-bold text-brand-mid tracking-[0.5px] mb-2">
             What happens next
           </div>
           <div className="text-sm text-brand-dark leading-relaxed">
@@ -109,6 +110,11 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
             <br /><br />
             When {customerFirstName} confirms, open the job and tap <strong className="text-brand-black">Mark as Booked</strong> to move it forward.
           </div>
+        </div>
+
+        {/* Add to Home Screen — peak moment: user just sent a quote */}
+        <div className="w-full mb-6">
+          <AddToHomeScreen compact />
         </div>
       </div>
 

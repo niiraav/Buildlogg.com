@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, X, Plus, Calendar, Clock, Save } from 'lucide-react';
+import { ChevronLeft, X, Plus, Calendar, Clock, BookmarkPlus } from 'lucide-react';
 import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { nextJobNumber } from '../../lib/jobNumbers';
@@ -8,6 +7,7 @@ import { SegmentedControl } from '../../components/SegmentedControl';
 import { VoiceInputButton } from '../../components/VoiceInputButton';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
+import { showToast } from '../../components/Toast/store';
 
 /* ─── helpers ─── */
 
@@ -58,6 +58,7 @@ const DEPOSIT_PRESETS = [10, 20, 25, 50];
 interface EditableItem {
   id: string;
   description: string;
+  detail?: string;   // optional sub-text (what's included)
   amount: string; // raw string for input
   amountNum: number;
 }
@@ -73,7 +74,6 @@ interface QuoteBuilderProps {
 /* ─── component ─── */
 
 export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onSaveDraft }: QuoteBuilderProps) {
-  const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [_customerHistory, setCustomerHistory] = useState<{
@@ -161,6 +161,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               dbItems.map((i) => ({
                 id: i.id,
                 description: i.description,
+                detail: i.detail || '',
                 amount: i.amount ? i.amount.toFixed(2) : '',
                 amountNum: i.amount || 0,
               }))
@@ -349,6 +350,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         id: i.id,
         job_id: currentJobId,
         description: i.description.trim(),
+        detail: i.detail?.trim() || undefined,
         amount: i.amountNum,
         sort_order: idx,
         added_on_site: false,
@@ -362,6 +364,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         payload: {
           id: i.id, job_id: currentJobId,
           description: i.description.trim(),
+          detail: i.detail?.trim() || undefined,
           amount: i.amountNum,
           sort_order: idx,
           added_on_site: false, created_at: n,
@@ -470,7 +473,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   const addQuickItem = (customItem: CustomItem) => {
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), description: customItem.description, amount: customItem.amount.toFixed(2), amountNum: customItem.amount },
+      { id: crypto.randomUUID(), description: customItem.description, detail: customItem.detail, amount: customItem.amount.toFixed(2), amountNum: customItem.amount },
     ]);
   };
 
@@ -488,13 +491,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     return displayItems.some((ci) => ci.description === description && ci.amount === amount);
   };
 
-  const saveToLibrary = async (description: string, amount: number) => {
+  const saveToLibrary = async (description: string, amount: number, detail?: string) => {
     if (!userId || isInLibrary(description, amount)) return;
     const n = new Date().toISOString();
-    const item: CustomItem = { id: crypto.randomUUID(), user_id: userId, description, amount, sort_order: customItems.length, created_at: n, updated_at: n, _sync_status: 'pending' };
+    const item: CustomItem = { id: crypto.randomUUID(), user_id: userId, description, detail, amount, sort_order: customItems.length, created_at: n, updated_at: n, _sync_status: 'pending' };
     await db.custom_items.add(item);
     await db.sync_queue.add({ operation: 'insert', table_name: 'custom_items', record_id: item.id, payload: { ...item }, created_at: n, retry_count: 0 });
     setCustomItems((prev) => [...prev, item]);
+    showToast(`Saved "${description}" to your items`, 'success', 3000);
   };
 
   const handleRemoveEmptyItems = () => {
@@ -514,6 +518,10 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           : i
       )
     );
+  };
+
+  const updateItemDetail = (id: string, detail: string) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, detail } : i)));
   };
 
   const removeItem = (id: string) => {
@@ -592,7 +600,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
               Job title
             </label>
             <input
@@ -609,7 +617,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           </div>
 
           <div className="mb-2.5">
-            <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
               Date <span className="normal-case font-normal tracking-0">(optional)</span>
             </label>
             <div className="relative">
@@ -626,7 +634,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
           <div className="flex gap-2.5">
             <div className="flex-1">
-              <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+              <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
                 Start <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
               <div className="relative">
@@ -641,7 +649,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               </div>
             </div>
             <div className="flex-1">
-              <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+              <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
                 End <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
               {/* End time: show "Add end time" button when empty, time input when set */}
@@ -688,44 +696,56 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             {items.map((item, idx) => (
               <div
                 key={item.id}
-                className={`flex items-center gap-2 px-3.5 py-2.5 min-w-0 ${idx < items.length - 1 ? 'border-b border-brand-borderLight' : ''}`}
+                className={`px-3.5 py-2.5 min-w-0 ${idx < items.length - 1 ? 'border-b border-brand-borderLight' : ''}`}
               >
-                <div className="flex-1 min-w-0 flex items-center gap-1">
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) => updateItemDesc(item.id, e.target.value)}
-                    onBlur={saveItemBlur}
-                    placeholder="Item description"
-                    className={`flex-1 min-w-0 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black ${
-                      item.description.trim() ? 'border-brand-border' : 'border-status-error'
-                    }`}
-                  />
-                  <VoiceInputButton
-                    onResult={(text) => updateItemDesc(item.id, (item.description ? item.description + ' ' : '') + text)}
-                  />
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={(e) => updateItemDesc(item.id, e.target.value)}
+                      onBlur={saveItemBlur}
+                      placeholder="Item description"
+                      className={`flex-1 min-w-0 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black ${
+                        item.description.trim() ? 'border-brand-border' : 'border-status-error'
+                      }`}
+                    />
+                    <VoiceInputButton
+                      onResult={(text) => updateItemDesc(item.id, (item.description ? item.description + ' ' : '') + text)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-sm text-brand-mid">£</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={item.amount}
+                      onChange={(e) => updateItemAmount(item.id, e.target.value)}
+                      onBlur={saveItemBlur}
+                      placeholder="0.00"
+                      className={`w-20 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black text-right outline-none focus:border-brand-black placeholder:text-brand-muted ${
+                        (item.amount === '' || item.amountNum === 0) ? 'border-status-error' : 'border-brand-border'
+                      }`}
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="w-7 h-7 rounded-full border border-brand-border bg-brand-surface flex items-center justify-center shrink-0 cursor-pointer"
+                    aria-label="Remove item"
+                  >
+                    <X size={14} className="text-brand-muted" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-sm text-brand-mid">£</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={item.amount}
-                    onChange={(e) => updateItemAmount(item.id, e.target.value)}
-                    onBlur={saveItemBlur}
-                    placeholder="0.00"
-                    className={`w-20 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black text-right outline-none focus:border-brand-black placeholder:text-brand-muted ${
-                      (item.amount === '' || item.amountNum === 0) ? 'border-status-error' : 'border-brand-border'
-                    }`}
-                  />
-                </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="w-7 h-7 rounded-full border border-brand-border bg-brand-surface flex items-center justify-center shrink-0 cursor-pointer"
-                  aria-label="Remove item"
-                >
-                  <X size={14} className="text-brand-muted" />
-                </button>
+                {/* Detail sub-text input (Issue E) */}
+                <input
+                  type="text"
+                  value={item.detail || ''}
+                  onChange={(e) => updateItemDetail(item.id, e.target.value)}
+                  onBlur={saveItemBlur}
+                  placeholder="Add detail (optional) — e.g. what's included"
+                  className="w-full min-h-9 mt-1.5 px-2 text-sm text-brand-mid bg-brand-surface border border-brand-borderLight rounded-md outline-none focus:border-brand-mid placeholder:text-brand-muted placeholder:italic"
+                />
+
               </div>
             ))}
           </div>
@@ -754,13 +774,17 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   )}
                 </button>
               ))}
-              <button
-                onClick={() => navigate('/settings')}
-                className="inline-flex items-center gap-1 h-9 px-3 rounded-full bg-transparent text-sm font-medium text-brand-muted cursor-pointer border border-dashed border-brand-border hover:border-brand-mid transition-colors"
-              >
-                <Plus size={12} />
-                Add items
-              </button>
+              {/* Save to library pill — shows when an item isn't in the library yet */}
+              {items.filter((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum)).slice(0, 1).map((item) => (
+                <button
+                  key={`save-${item.id}`}
+                  onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-white text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
+                >
+                  <BookmarkPlus size={14} />
+                  <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>
+                </button>
+              ))}
             </div>
           )}
 
@@ -775,25 +799,9 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           )}
         </div>
 
-        {/* Save to library nudge */}
-        {(() => {
-          const firstNewItem = items.find((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum));
-          return firstNewItem ? (
-            <div className="mb-4">
-              <button
-                onClick={() => saveToLibrary(firstNewItem.description, firstNewItem.amountNum)}
-                className="flex items-center gap-1.5 text-sm text-brand-mid underline underline-offset-2 cursor-pointer hover:text-brand-dark transition-colors"
-              >
-                <Save size={14} />
-                Save "{firstNewItem.description}" to library
-              </button>
-            </div>
-          ) : null;
-        })()}
-
         {/* Notes / What's included */}
         <div className="mb-5">
-          <label className="block text-label font-semibold text-brand-muted tracking-[0.3px] mb-1">
+          <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
             Notes <span className="normal-case font-normal tracking-0">(optional)</span>
           </label>
           <div className="relative">

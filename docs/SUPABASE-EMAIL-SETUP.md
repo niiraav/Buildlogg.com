@@ -148,3 +148,53 @@ curl -sS -X POST https://<project-ref>.supabase.co/auth/v1/signup \
 
 Test signups create real rows in `auth.users`. Delete them in
 Supabase Dashboard -> Authentication -> Users (filter by the test email).
+
+---
+
+## Step 6 — Hotmail / Outlook Deliverability (Issue A)
+
+Outlook.com / Hotmail / Live.com use **aggressive spam filtering** and a feature called
+**Link Protection** that rewrites URLs in emails from unfamiliar senders. This can cause:
+
+1. **Confirmation emails landing in Junk** — especially for new sender domains with no
+   reputation. The first few emails to any Outlook/Hotmail recipient may go to Junk until
+   the domain builds reputation.
+2. **Broken confirmation links** — Outlook Link Protection wraps `href` URLs in a
+   `safelinks.protection.outlook.com` redirect. If the original URL has query parameters
+   (like PKCE `?code=...`), the redirect can sometimes mangle them.
+
+### Fixes already in place
+
+- **Bulletproof email template** (`supabase/email-templates/confirm-signup.html`):
+  - Uses VML button for Outlook desktop (`<!--[if mso]>` conditional)
+  - Shows the confirmation URL as **plain visible text** in a styled code block, so users
+    can copy-paste it if the button is broken by Link Protection
+  - Includes `x-apple-disable-message-reformatting` meta for iOS Mail
+- **Resend button in Auth.tsx**: users can resend the confirmation email if the first one
+  is lost/blocked, with a 30-second rate-limit countdown.
+- **Provider-specific hint**: when the user's email domain is hotmail.com / outlook.com /
+  live.com / msn.com, the "Check your email" screen shows a note about checking Junk.
+- **"Check email" deep-link**: the app deep-links to `https://outlook.live.com/mail/`
+  for all Microsoft-owned domains (hotmail.com, outlook.com, live.com, msn.com).
+
+### DNS recommendations for Outlook/Hotmail deliverability
+
+Ensure these DNS records are set on `mail.buildlogg.com` (or the apex `buildlogg.com`):
+
+| Record | Purpose | Notes |
+|--------|---------|-------|
+| **SPF** | Authorise Resend to send | `v=spf1 include:amazonses.com ~all` (Resend uses AWS SES) |
+| **DKIM** | Cryptographic signing | Set up via Resend domain verification (3 CNAME records) |
+| **DMARC** | Policy for failing auth | `v=DMARC1; p=quarantine; rua=mailto:dmarc@buildlogg.com` (start with `p=none`, upgrade to `quarantine` after monitoring) |
+
+Without DMARC alignment, Outlook may silently drop emails from new sender domains even
+when SPF/DKIM pass. Check Resend → Logs → Deliverability to see if Outlook is accepting
+or bouncing the emails.
+
+### Testing with Hotmail
+
+1. Sign up with a `@hotmail.com` address in the app.
+2. Check **Inbox** → **Junk** → **Other** tabs (Outlook's Focused Inbox splits mail).
+3. If the email is in Junk, mark it "Not junk" — this helps future deliverability.
+4. Click the confirmation button OR copy-paste the URL from the code block.
+5. The app should redirect to `https://buildlogg.com/app/auth` and auto-sign-in.

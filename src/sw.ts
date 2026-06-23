@@ -8,8 +8,11 @@ declare const self: ServiceWorkerGlobalScope;
 // Only skip waiting when explicitly told to (via message from app)
 // This prevents aggressive page reloads on mobile when app returns from background
 self.addEventListener('install', () => {
-  // Don't auto-skip-waiting — let the app control when to update
-  // self.skipWaiting();
+  // Auto-skip-waiting so new deployments activate immediately.
+  // Without this, the PWA serves stale cached assets when opened from
+  // the home screen — the user would never get updates without manually
+  // closing and reopening the app.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

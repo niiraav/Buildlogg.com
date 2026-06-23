@@ -38,7 +38,7 @@ export default function SyncIndicator() {
   // Offline with pending work
   if (!isOnline) {
     return (
-      <span className="text-micro font-medium text-brand-muted">
+      <span className="text-micro font-medium text-brand-mid">
         Saved offline · will sync when online
       </span>
     );
@@ -55,7 +55,7 @@ export default function SyncIndicator() {
 
   // Actively syncing
   return (
-    <span className="text-micro font-medium text-brand-muted">
+    <span className="text-micro font-medium text-brand-mid">
       Syncing…
     </span>
   );
