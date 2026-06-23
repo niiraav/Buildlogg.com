@@ -25,10 +25,10 @@ export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
             <button
               key={tab.key}
               onClick={() => { haptic('light'); onNavigate(tab.key); }}
-              className={`flex-1 min-h-11 flex flex-col items-center justify-center pt-2.5 pb-1.5 gap-1 cursor-pointer active:scale-95 transition-transform duration-100 ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}
+              className={`flex-1 min-h-11 flex flex-col items-center justify-center pt-2.5 pb-1.5 gap-1 cursor-pointer active:scale-95 transition-transform duration-100 ${isActive ? 'text-brand-black' : 'text-brand-dark'}`}
             >
-              <Icon size={22} className={isActive ? "text-brand-black" : "text-brand-muted"} />
-              <span className={`text-micro font-medium ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}>
+              <Icon size={22} className={isActive ? "text-brand-black" : "text-brand-dark"} />
+              <span className={`text-micro font-medium ${isActive ? 'text-brand-black' : 'text-brand-dark'}`}>
                 {tab.label}
               </span>
             </button>

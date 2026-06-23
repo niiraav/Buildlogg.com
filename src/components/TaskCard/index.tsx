@@ -58,7 +58,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       className={`bg-white border border-brand-border rounded-2xl overflow-hidden mb-3 cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 border-l-4 ${urgencyBorder}`}
     >
       {/* Header row: icon + name, time + chevron */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-brand-mid flex-shrink-0">{config.icon}</span>
           <h3 className="text-base font-bold text-brand-black truncate">{title}</h3>

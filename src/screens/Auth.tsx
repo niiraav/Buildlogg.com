@@ -67,6 +67,8 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resending, setResending] = useState(false);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -405,11 +407,46 @@ export default function Auth() {
     setError('');
   };
 
+  // "Resend confirmation email" — calls Supabase resend for signup type.
+  // Rate-limited with a 30-second countdown to prevent spamming.
+  const handleResend = async () => {
+    if (resendCountdown > 0 || resending) return;
+    const email = emailInput.trim().toLowerCase();
+    if (!email) return;
+    setResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        email,
+        type: 'signup',
+      });
+      if (resendError) {
+        showError(resendError.message || 'Could not resend email');
+      } else {
+        showToast('Confirmation email resent', 'info', 3000);
+        setResendCountdown(30);
+        // Countdown timer
+        const interval = setInterval(() => {
+          setResendCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch {
+      showError('Could not resend email. Try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <AuthDesktopLayout variant="auth">
       <div className="flex flex-col min-h-[100dvh]">
         {/* Mobile brand wordmark */}
-        <a href="https://buildlogg.com" className="inline-flex items-center gap-2 text-[22px] font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8">
+        <a href="https://buildlogg.com" className="inline-flex items-center gap-2 text-[22px] font-extrabold text-brand-black mb-8 md:hidden px-4 pt-8">
           <img src="/assets/icon-black-square.png" alt="" className="w-[34px] h-[34px]" />
           Buildlogg
         </a>
@@ -429,7 +466,7 @@ export default function Auth() {
         </header>
 
         {/* Main form */}
-        <main className="flex-1 flex flex-col md:justify-center px-6 md:px-10">
+        <main className="flex-1 flex flex-col md:justify-center px-4 md:px-10">
           <div className="w-full md:max-w-sm mx-auto">
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
               {emailConfirmed ? (
@@ -467,9 +504,35 @@ export default function Auth() {
                     </Button>
                   </div>
 
-                  <p className="text-sm text-brand-muted text-center mt-2">
-                    Didn't get it? Check your spam folder or try again in a minute.
+                  {/* Provider-specific hint for Outlook/Hotmail */}
+                  {(() => {
+                    const domain = emailInput.trim().toLowerCase().split('@')[1] || '';
+                    const isOutlook = ['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain);
+                    return isOutlook ? (
+                      <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mt-2">
+                        <p className="text-sm text-status-blue text-left leading-relaxed">
+                          Outlook sometimes sends new senders to <strong>Junk</strong>. Check there if you don't see it in your inbox.
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <p className="text-sm text-brand-mid text-center mt-2">
+                    Didn't get it? Check your spam folder or resend.
                   </p>
+
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendCountdown > 0 || resending}
+                    className="w-full h-11 flex items-center justify-center text-sm font-medium text-brand-mid cursor-pointer underline underline-offset-2 disabled:opacity-50 disabled:no-underline mt-1"
+                  >
+                    {resending
+                      ? 'Sending...'
+                      : resendCountdown > 0
+                      ? `Resend in ${resendCountdown}s`
+                      : 'Resend confirmation email'}
+                  </button>
                 </>
               ) : (
                 <>
@@ -595,7 +658,7 @@ export default function Auth() {
 
                   {import.meta.env.DEV && (
                     <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
-                      <p className="text-label font-bold tracking-[0.4px] text-brand-muted text-center">Dev Testing</p>
+                      <p className="text-label font-bold tracking-[0.4px] text-brand-dark text-center">Dev Testing</p>
                       <Button
                         variant="secondary"
                         onClick={handleMockSignIn}

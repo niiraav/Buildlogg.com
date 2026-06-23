@@ -153,14 +153,14 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-brand-surface">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="text-sm text-brand-muted">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-surface flex flex-col min-h-[100dvh]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">

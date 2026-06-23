@@ -2,8 +2,8 @@
   /* ── Brand colours (light) — inspired by Cal.com clean SaaS palette ───────── */
   --brand-black:        #111827;   /* ink / primary text */
   --brand-dark:         #374151;   /* body text */
-  --brand-mid:          #6B7280;   /* muted secondary */
-  --brand-muted:        #9CA3AF;   /* tertiary / placeholder */
+  --brand-mid:          #6B7280;   /* muted secondary — WCAG AA on white (4.83:1) */
+  --brand-muted:        #6B7280;   /* tertiary — was #9CA3AF (2.54:1 FAILED AA); now matches mid */
   --brand-border:       #E5E7EB;   /* hairline borders */
   --brand-border-light: #F3F4F6;   /* soft dividers */
   --brand-surface:      #F9FAFB;   /* surface-soft: nav-pill bg, sections */
@@ -43,6 +43,7 @@
   --color-amber-bg:     #FFFBEB;
   --color-red:          #DC2626;
   --color-red-bg:       #FEF2F2;
+  --color-red-text:     #B91C1C;  /* WCAG 1.4.3: 5.76:1 on #FEF2F2 — passes AA */
   --color-blue:         #1D4ED8;
   --color-blue-bg:      #EFF6FF;
 
@@ -57,21 +58,24 @@
   --touch-min:          44px;
   --touch-row:          56px;
 
-  --radius-card:        12px;
-  --radius-input:       10px;
-  --radius-sheet:       16px;
-  --radius-chip:        9999px;
+  --radius-card:        12px;   /* cards, inputs, buttons, sheet panels (WCAG 3.2.4) */
+  --radius-pill:        9999px; /* badges, status pills, toggles, chips */
 
   --shadow-sheet:       0 -4px 12px rgba(0,0,0,.06);
   --shadow-seg:         0 1px 3px rgba(0,0,0,.10);
 }
 
 .dark {
+
+  /* ── Icon sizes — 3-tier (WCAG 3.2.4 Consistent Identification) ── */
+  --icon-sm:            16px;   /* inline icons within text rows */
+  --icon-md:            20px;   /* standalone icons: sheet titles, card headers */
+  --icon-lg:            24px;   /* tab bar, large feature icons */
   /* Cal.com surface-dark → near-black canvas */
   --brand-black:        #ffffff;   /* on-dark: white text on dark surfaces */
   --brand-dark:         #e5e5e5;   /* on-dark-soft: slightly muted white */
-  --brand-mid:          #a1a1aa;   /* body muted on dark (Cal on-dark-soft) */
-  --brand-muted:        #6b6b6b;   /* tertiary on dark */
+  --brand-mid:          #a1a1aa;   /* body muted on dark — 7.72:1 on #0a0a0a */
+  --brand-muted:        #909090;   /* tertiary on dark — was #6b6b6b (3.72:1 FAILED AA); now ~5.0:1 */
   --brand-border:       #333333;   /* hairline on dark */
   --brand-border-light: #1f1f1f;   /* soft dividers on dark */
   --brand-surface:      #1a1a1a;   /* surface-dark-elevated: cards, nav-pill, sections */

@@ -43,15 +43,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           >
             <div className="w-9 h-1 bg-brand-border rounded-sm mx-auto mt-3 mb-5" />
             {title && (
-              <div className="flex items-center gap-2 px-6">
+              <div className="flex items-center gap-2 px-4">
                 {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
                 <h2 className="text-lg font-bold text-brand-black tracking-tight">{title}</h2>
               </div>
             )}
             {subtitle && (
-              <p className="text-sm text-brand-muted mt-1 px-6">{subtitle}</p>
+              <p className="text-sm text-brand-muted mt-1 px-4">{subtitle}</p>
             )}
-            <div className="px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
+            <div className="px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
               {children}
             </div>
           </motion.div>

@@ -44,7 +44,7 @@ export const HomeTabSwitcher: React.FC<HomeTabSwitcherProps> = ({
           className={`flex items-center h-11 text-xs font-medium cursor-pointer transition-all duration-150 gap-1.5 pr-4 active:opacity-70 ${
             activeTab === 'today'
               ? 'text-brand-black font-bold'
-              : 'text-brand-muted'
+              : 'text-brand-dark'
           }`}
         >
           Today
@@ -62,7 +62,7 @@ export const HomeTabSwitcher: React.FC<HomeTabSwitcherProps> = ({
           className={`flex items-center h-11 text-xs font-medium cursor-pointer transition-all duration-150 gap-1.5 pl-4 active:opacity-70 ${
             activeTab === 'tasks'
               ? 'text-brand-black font-bold'
-              : 'text-brand-muted'
+              : 'text-brand-dark'
           }`}
         >
           Tasks
@@ -80,7 +80,7 @@ export const HomeTabSwitcher: React.FC<HomeTabSwitcherProps> = ({
           className={`flex items-center h-11 text-xs font-medium cursor-pointer transition-all duration-150 gap-1.5 pl-4 active:opacity-70 ${
             activeTab === 'drafts'
               ? 'text-brand-black font-bold'
-              : 'text-brand-muted'
+              : 'text-brand-dark'
           }`}
         >
           Drafts

@@ -44,7 +44,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             {flag && <FlagBadge type={flag} days={flagDays} />}
-            <h3 className="text-lg font-extrabold text-brand-black truncate">{customer.name}</h3>
+            <h3 className="text-base font-bold text-brand-black truncate">{customer.name}</h3>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
             {formattedTime && (
