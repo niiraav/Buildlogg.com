@@ -195,7 +195,7 @@ function BrandHeader() {
   return (
     <div className="flex flex-col gap-5">
       <div className="inline-flex items-center gap-2.5">
-        <span className="w-9 h-9 rounded-lg bg-brand-black text-white dark:bg-transparent grid place-items-center">
+        <span className="w-9 h-9 rounded-lg bg-brand-primary text-brand-primaryText grid place-items-center">
           <img src="/assets/icon-white-square.png" alt="" className="w-5 h-5" />
         </span>
         <span className="text-[22px] font-extrabold tracking-[-0.03em] text-brand-black">
@@ -509,8 +509,8 @@ function SetupRow({ n, title, hint }: { n: number; title: string; hint: string }
   return (
     <div className="flex gap-3 py-2.5 items-start">
       <span
-        className="w-[22px] h-[22px] rounded-full text-white text-xs font-semibold grid place-items-center shrink-0 mt-0.5"
-        style={{ background: 'var(--ink)' }}
+        className="w-[22px] h-[22px] rounded-full text-xs font-semibold grid place-items-center shrink-0 mt-0.5"
+        style={{ background: 'var(--surface-primary)', color: 'var(--surface-primary-text)' }}
       >
         {n}
       </span>
@@ -528,12 +528,12 @@ function SettingsCheck({ label, done = false }: { label: string; done?: boolean 
       <span
         className="w-[18px] h-[18px] rounded-full grid place-items-center shrink-0"
         style={{
-          background: done ? 'var(--ink)' : 'transparent',
+          background: done ? 'var(--surface-primary)' : 'transparent',
           border: done ? '0' : '1.5px dashed #c8ccd3',
         }}
       >
         {done && (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--surface-primary-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
@@ -573,8 +573,8 @@ function FlowDiagram() {
           <div
             className="px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap"
             style={{
-              background: i === 0 ? 'var(--ink)' : 'var(--surface-card)',
-              color: i === 0 ? '#fff' : 'var(--ink)',
+              background: i === 0 ? 'var(--surface-primary)' : 'var(--surface-card)',
+              color: i === 0 ? 'var(--surface-primary-text)' : 'var(--ink)',
             }}
           >
             {s}

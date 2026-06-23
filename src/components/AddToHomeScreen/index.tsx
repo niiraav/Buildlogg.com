@@ -79,7 +79,7 @@ const InstallModal: React.FC<{
               </p>
               <button
                 onClick={() => { haptic('light'); onNativeInstall(); onClose(); }}
-                className="w-full h-12 bg-brand-black text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity"
+                className="w-full h-12 bg-brand-primary text-brand-primaryText rounded-xl text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity"
               >
                 <Plus size={18} />
                 Install Buildlogg
@@ -94,7 +94,7 @@ const InstallModal: React.FC<{
                   { icon: <Check size={14} />, text: 'Tap Add in the top-right corner.' },
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 py-2.5 border-b border-brand-borderLight last:border-b-0">
-                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-black text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-primary text-brand-primaryText text-xs font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="text-sm text-brand-dark leading-relaxed flex-1">
@@ -128,7 +128,7 @@ const InstallModal: React.FC<{
                   { text: 'Tap Add or Install when prompted.' },
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 py-2.5 border-b border-brand-borderLight last:border-b-0">
-                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-black text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-primary text-brand-primaryText text-xs font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="text-sm text-brand-dark leading-relaxed flex-1">
@@ -155,7 +155,7 @@ const InstallModal: React.FC<{
                   'The app will open in its own window from your desktop or taskbar.',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 py-2.5 border-b border-brand-borderLight last:border-b-0">
-                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-black text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    <span className="shrink-0 w-6 h-6 rounded-full bg-brand-primary text-brand-primaryText text-xs font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="text-sm text-brand-dark leading-relaxed">{step}</span>
@@ -220,7 +220,7 @@ export const AddToHomeScreen: React.FC<AddToHomeScreenProps> = ({
           </div>
           <button
             onClick={handleInstallClick}
-            className="shrink-0 h-9 px-3 bg-brand-black text-white text-sm font-semibold rounded-lg active:opacity-80 transition-opacity cursor-pointer"
+            className="shrink-0 h-9 px-3 bg-brand-primary text-brand-primaryText text-sm font-semibold rounded-lg active:opacity-80 transition-opacity cursor-pointer"
           >
             Add
           </button>
@@ -290,7 +290,7 @@ export const AddToHomeScreen: React.FC<AddToHomeScreenProps> = ({
         {/* CTA button — opens modal on all platforms */}
         <button
           onClick={handleInstallClick}
-          className={`w-full ${compact ? 'h-11' : 'h-12'} bg-brand-black text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity mt-3`}
+          className={`w-full ${compact ? 'h-11' : 'h-12'} bg-brand-primary text-brand-primaryText rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity mt-3`}
         >
           <Plus size={18} />
           Show instructions
