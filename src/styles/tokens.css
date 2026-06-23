@@ -29,6 +29,11 @@
   --badge-orange:       #fb923c;
   --brand-accent:       #3b82f6;
 
+  /* ── Fixed primary surface — stays dark in BOTH modes ─────────── */
+  /* Use for buttons, step circles, icon chips: dark bg + white text    */
+  --surface-primary:      #111827;
+  --surface-primary-text: #ffffff;
+
   --color-black:        var(--brand-black);
   --color-dark:         var(--brand-dark);
   --color-mid:          var(--brand-mid);
@@ -111,8 +116,3 @@
   --shadow-sheet:       0 -4px 12px rgba(0,0,0,.60);
   --shadow-seg:         0 1px 3px rgba(0,0,0,.50);
 }
-
-  /* ── Fixed primary surface — stays dark in BOTH modes ────────────── */
-  /* Use for buttons, step circles, icon chips that need dark bg + white text */
-  --surface-primary: #111827;
-  --surface-primary-text: #ffffff;
