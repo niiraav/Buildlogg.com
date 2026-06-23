@@ -779,7 +779,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 <button
                   key={`save-${item.id}`}
                   onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-white text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-brand-surface text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
                 >
                   <BookmarkPlus size={14} />
                   <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>

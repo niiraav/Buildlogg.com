@@ -18,6 +18,8 @@ export default {
           surface:     'var(--brand-surface)',
           surfaceCard: 'var(--brand-surface-card)',
           darkBg:      'var(--brand-dark-bg)',
+          primary:     'var(--surface-primary)',
+          primaryText: 'var(--surface-primary-text)',
         },
         status: {
           success:     '#10B981',
