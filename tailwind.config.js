@@ -30,6 +30,7 @@ export default {
           amberMid:    '#FEF3C7',
           error:       '#EF4444',
           red:         '#DC2626',
+          redText:     'var(--color-red-text)',   // WCAG 1.4.3 safe: #B91C1C on redBg
           redBg:       'var(--color-red-bg)',
           blue:        '#1D4ED8',
           blueBg:      'var(--color-blue-bg)',
@@ -41,20 +42,21 @@ export default {
         'lg':    ['22px', { lineHeight: '1.2',  fontWeight: '800' }],
         'title': ['20px', { lineHeight: '1.3',  fontWeight: '700' }],
         'base':  ['16px', { lineHeight: '1.5',  fontWeight: '500' }],
-        'md':    ['15px', { lineHeight: '1.5',  fontWeight: '400' }],
+        'md':    ['14px', { lineHeight: '1.4',  fontWeight: '500' }],  // merged 15px→14px
         'sm':    ['14px', { lineHeight: '1.4',  fontWeight: '500' }],
-        'xs':    ['13px', { lineHeight: '1.4',  fontWeight: '400' }],
+        'xs':    ['12px', { lineHeight: '1.2',  fontWeight: '500' }],      // merged 13px→12px
         'xxs':   ['12px', { lineHeight: '1.3',  fontWeight: '500' }],
-        'label': ['12px', { lineHeight: '1',    fontWeight: '700', letterSpacing: '0.5px' }],
-        'micro': ['11px', { lineHeight: '1',    fontWeight: '700', letterSpacing: '0.7px' }],
+        'label': ['14px', { lineHeight: '1.3',  fontWeight: '600', letterSpacing: '0.3px' }],
+        'micro': ['12px', { lineHeight: '1.2',  fontWeight: '700', letterSpacing: '0.5px' }],
       },
       borderRadius: {
         'xs':   '4px',
         'sm':   '6px',
         'md':   '8px',
-        'lg':   '12px',
-        'xl':   '16px',
-        'full': '9999px',
+        'lg':   'var(--radius-card)',   // 12px — cards, inputs, buttons
+        'xl':   'var(--radius-card)',   // 12px — alias for consistency
+        '2xl':  'var(--radius-card)',   // 12px — alias for consistency
+        'full': 'var(--radius-pill)',   // 9999px — badges, pills, toggles
       },
       boxShadow: {
         'card':   '0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08)',
@@ -67,7 +69,12 @@ export default {
         '11.5': '46px',
         '13': '52px',
         '14': '56px',
-      }
+      },
+      iconSize: {
+        'sm': 'var(--icon-sm)',   // 16px — inline icons
+        'md': 'var(--icon-md)',   // 20px — sheet titles, card headers
+        'lg': 'var(--icon-lg)',   // 24px — tab bar
+      },
     }
   },
   plugins: []

@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { db, type Job, type Customer } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
+import AddToHomeScreen from '../../components/AddToHomeScreen';
 
 /* ─── helpers ─── */
 
@@ -44,7 +45,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
         </div>
@@ -54,7 +55,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
   if (!job || !customer) {
     return (
-      <div className="flex flex-col min-h-full items-center justify-center px-4">
+      <div className="flex flex-col min-h-[100dvh] items-center justify-center px-4">
         <p className="text-md text-brand-muted">Quote not found</p>
       </div>
     );
@@ -73,7 +74,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
   const customerFirstName = customer.name.split(' ')[0] || 'there';
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col min-h-[100dvh]">
       {/* Empty header spacer for alignment */}
       <div className="px-4 py-2 border-b border-brand-borderLight shrink-0 flex items-center justify-between opacity-0">
         <div className="min-h-11 pr-4 text-sm font-medium">&nbsp;</div>
@@ -101,7 +102,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
         {/* What happens next card */}
         <div className="w-full bg-brand-surface border border-brand-border rounded-lg p-4 mb-7 text-left">
-          <div className="text-micro font-bold text-brand-muted tracking-[0.5px] mb-2">
+          <div className="text-micro font-bold text-brand-mid tracking-[0.5px] mb-2">
             What happens next
           </div>
           <div className="text-sm text-brand-dark leading-relaxed">
@@ -109,6 +110,11 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
             <br /><br />
             When {customerFirstName} confirms, open the job and tap <strong className="text-brand-black">Mark as Booked</strong> to move it forward.
           </div>
+        </div>
+
+        {/* Add to Home Screen — peak moment: user just sent a quote */}
+        <div className="w-full mb-6">
+          <AddToHomeScreen compact />
         </div>
       </div>
 

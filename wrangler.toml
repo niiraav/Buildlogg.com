@@ -1,0 +1,17 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "tradepadapp"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets — serves the Vite build output
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+# SPA routing — all non-asset requests serve index.html
+not_found_handling = "single-page-application"
+
+# Build configuration for Cloudflare Workers Git integration
+[build]
+command = "npm run build"

@@ -75,7 +75,7 @@ export default function CustomItems() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-full bg-[var(--app-shell-bg)]">
+      <div className="flex flex-col min-h-[100dvh] bg-[var(--app-shell-bg)]">
         <div className="sticky top-0 z-40 px-4 pt-2 pb-2 bg-[var(--app-shell-bg)] flex items-center gap-3">
           <button onClick={() => window.history.back()} className="p-1 -ml-1">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,7 +92,7 @@ export default function CustomItems() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-[var(--app-shell-bg)]">
+    <div className="flex flex-col min-h-[100dvh] bg-[var(--app-shell-bg)]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-2 pb-2 bg-[var(--app-shell-bg)] flex items-center gap-3 flex-shrink-0">
         <button onClick={() => window.history.back()} className="p-1 -ml-1 text-brand-dark">

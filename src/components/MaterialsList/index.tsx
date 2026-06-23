@@ -296,7 +296,7 @@ export const MaterialsList: React.FC<MaterialsListProps> = ({
           />
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-micro text-brand-muted mb-1">Qty</label>
+              <label className="block text-micro text-brand-mid mb-1">Qty</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -306,7 +306,7 @@ export const MaterialsList: React.FC<MaterialsListProps> = ({
               />
             </div>
             <div>
-              <label className="block text-micro text-brand-muted mb-1">Unit cost</label>
+              <label className="block text-micro text-brand-mid mb-1">Unit cost</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-brand-muted">£</span>
                 <input
@@ -320,7 +320,7 @@ export const MaterialsList: React.FC<MaterialsListProps> = ({
               </div>
             </div>
             <div>
-              <label className="block text-micro text-brand-muted mb-1">Markup %</label>
+              <label className="block text-micro text-brand-mid mb-1">Markup %</label>
               <input
                 type="text"
                 inputMode="decimal"

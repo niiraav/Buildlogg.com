@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronRight, ClipboardList, Search, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
@@ -82,7 +82,6 @@ const statusDotClasses: Record<JobStatus, string> = {
   written_off: 'bg-brand-border',
 };
 
-const terminalStatuses: JobStatus[] = ['paid', 'cancelled', 'written_off'];
 
 const filters: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -101,7 +100,7 @@ export default function Jobs() {
     const urlFilter = searchParams.get('filter') as Filter;
     return urlFilter && ['all', 'active', 'unpaid'].includes(urlFilter) ? urlFilter : 'all';
   });
-  const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set());
+  const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set(['in_progress', 'booked', 'quoted', 'awaiting_payment']));
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customers, setCustomers] = useState<Record<string, Customer>>({});
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -220,7 +219,7 @@ export default function Jobs() {
         <span className="flex items-center gap-1.5 flex-wrap">
           Invoice sent {days === 0 ? 'today' : `${days} day${days !== 1 ? 's' : ''} ago`}
           {days >= 30 && (
-            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-red-200 bg-status-redBg text-status-red">
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-red-200 bg-status-redBg text-status-redText">
               Overdue
             </span>
           )}
@@ -261,14 +260,14 @@ export default function Jobs() {
     <div
       key={job.id}
       onClick={() => navigate(`/jobs/${job.id}`)}
-      className="flex items-center gap-2.5 py-3 border-b border-brand-surface cursor-pointer last:border-b-0"
+      className="flex items-center gap-2.5 p-4 bg-white border border-brand-border rounded-lg cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 mb-2.5"
     >
       <div className="flex-1 min-w-0">
         <div className="text-base font-semibold text-brand-black truncate">
           {job.customer.name} · {job.title}
         </div>
-        <div className="text-sm text-brand-muted mt-0.5">
-          {job.job_number && <span className="font-medium text-brand-mid">{job.job_number} · </span>}
+        <div className="text-sm text-brand-dark mt-0.5">
+          {job.job_number && <span className="font-medium text-brand-dark">{job.job_number} · </span>}
           {renderSubLine(job)}
         </div>
       </div>
@@ -282,14 +281,18 @@ export default function Jobs() {
   );
 
   const renderGroupHeader = (status: JobStatus, count: number) => (
-    <div className="flex items-center gap-2 pb-2 border-b border-brand-borderLight mb-0">
+    <div
+      onClick={() => toggleGroup(status)}
+      className="flex items-center gap-2 py-2.5 px-1 mb-1 cursor-pointer active:opacity-60 transition-opacity"
+    >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-label font-bold tracking-[0.5px] text-brand-dark flex-1">
         {statusLabels[status]}
       </span>
-      <span className="text-label text-brand-muted font-medium">
+      <span className="text-label text-brand-dark font-medium">
         {count} job{count !== 1 ? 's' : ''}
       </span>
+      <ChevronDown size={16} className="shrink-0 text-brand-muted transition-transform duration-200" />
     </div>
   );
 
@@ -297,13 +300,13 @@ export default function Jobs() {
     <div
       key={status}
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 py-3 border-b border-brand-borderLight cursor-pointer last:border-b-0"
+      className="flex items-center gap-2 py-3 px-1 cursor-pointer active:opacity-60 transition-opacity"
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
-      <span className="text-sm font-semibold text-brand-muted flex-1">
+      <span className="text-sm font-semibold text-brand-dark flex-1">
         {statusLabels[status]}
       </span>
-      <span className="text-sm text-brand-muted">
+      <span className="text-sm text-brand-dark">
         {count} job{count !== 1 ? 's' : ''}
       </span>
       <ChevronRight size={16} className="shrink-0 text-brand-muted" />
@@ -325,7 +328,7 @@ export default function Jobs() {
         <div className="min-h-[50dvh] flex flex-col items-center justify-center px-6 py-8 text-center">
           <ClipboardList size={40} className="mb-4 opacity-40 text-brand-muted" />
           <p className="text-lg font-bold text-brand-black mb-2">No jobs yet</p>
-          <p className="text-sm text-brand-muted leading-relaxed mb-7">
+          <p className="text-sm text-brand-dark leading-relaxed mb-7">
             Log a missed call or create a quote to get your first job on the books.
           </p>
           <Button variant="primary" onClick={() => navigate('/quote')} fullWidth>
@@ -340,11 +343,11 @@ export default function Jobs() {
     }
 
     const visibleStatuses = statusOrder.filter((s) => groups[s].length > 0);
-    const expandedGroups = visibleStatuses.filter((s) => !terminalStatuses.includes(s) || expanded.has(s));
-    const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
+    const expandedGroups = visibleStatuses.filter((s) => expanded.has(s));
+    const collapsedGroups = visibleStatuses.filter((s) => !expanded.has(s));
 
     return (
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>
@@ -354,14 +357,14 @@ export default function Jobs() {
   /* ─── main render ─── */
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--app-shell-bg)]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
@@ -418,8 +421,8 @@ export default function Jobs() {
 
       {/* Footer — only when there are jobs */}
       {hasAnyJobs && (
-        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
-          <div className="flex gap-2 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+        <div className="mt-auto sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight">
+          <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="primary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
           </div>

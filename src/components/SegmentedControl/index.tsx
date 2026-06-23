@@ -27,7 +27,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             className={`flex-1 ${height} ${fontSize} flex items-center justify-center rounded-md transition-all font-medium cursor-pointer ${
               isActive
                 ? 'bg-white text-brand-black font-bold shadow-seg'
-                : 'text-brand-mid'
+                : 'text-brand-dark'
             }`}
           >
             {opt.label}

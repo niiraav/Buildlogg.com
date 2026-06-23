@@ -34,6 +34,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   job,
   customer,
   timeAgo,
+  amount,
   title: titleOverride,
   subtitle: subtitleOverride,
   jobNumber,
@@ -56,30 +57,34 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       onClick={() => { haptic('light'); onTap(); }}
       className={`bg-white border border-brand-border rounded-2xl overflow-hidden mb-3 cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 border-l-4 ${urgencyBorder}`}
     >
-      {/* Header row */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+      {/* Header row: icon + name, time + chevron */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-brand-mid flex-shrink-0">{config.icon}</span>
           <h3 className="text-base font-bold text-brand-black truncate">{title}</h3>
         </div>
-        {timeAgo && (
-          <span className="text-sm font-medium text-brand-mid flex-shrink-0 ml-2">{timeAgo}</span>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {timeAgo && (
+            <span className="text-sm font-medium text-brand-mid">{timeAgo}</span>
+          )}
+          <ArrowRight size={16} className="text-brand-muted" />
+        </div>
       </div>
 
-      {/* Subtitle / context */}
+      {/* Type + ref, amount */}
       <div className="px-4 pb-3">
-        <p className="text-sm text-brand-mid mt-0.5">
-          {subtitle}
-          {displayJobNumber && <span className="text-brand-muted"> · {displayJobNumber}</span>}
-        </p>
+        <div className="flex items-center justify-between mt-0.5">
+          <p className="text-sm text-brand-mid truncate">
+            {subtitle}
+            {displayJobNumber && <span className="text-brand-muted"> · {displayJobNumber}</span>}
+          </p>
+          {amount && (
+            <span className="text-sm font-bold text-brand-black ml-2 flex-shrink-0">{amount}</span>
+          )}
+        </div>
         {contextLine && (
           <p className="text-sm text-brand-mid mt-1 truncate">{contextLine}</p>
         )}
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-xs font-medium text-brand-muted uppercase tracking-wider">View details</span>
-          <ArrowRight size={14} className="text-brand-muted" />
-        </div>
       </div>
     </div>
   );

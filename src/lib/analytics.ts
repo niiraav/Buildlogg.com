@@ -11,23 +11,26 @@ export async function initAnalytics() {
     return;
   }
 
-  // Check if the PostHog host is reachable before initializing.
-  // Ad-blockers / privacy extensions block the host at the network level,
-  // which causes PostHog's internal retry queue to spam console errors.
-  // By detecting the block upfront, we skip init entirely.
+  // Check if the PostHog event endpoint is reachable before initializing.
+  // Ad-blockers / privacy extensions block POST requests to /e/ at the network level,
+  // which causes PostHog's internal retry queue to spam console errors (ERR_BLOCKED_BY_CLIENT).
+  // By testing the actual /e/ endpoint, we detect the block and skip init entirely.
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${POSTHOG_HOST}/e`, {
-      method: 'HEAD',
+    // POST to /e/ — the actual event endpoint. no-cors mode means we get an opaque
+    // response if the request goes through, but a network error if blocked.
+    // A 400/404 response is fine — it means the endpoint is reachable, just malformed.
+    await fetch(`${POSTHOG_HOST}/e/`, {
+      method: 'POST',
       signal: controller.signal,
       mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
     });
     clearTimeout(timeout);
-    // Any response (even opaque) means the host is reachable.
-    void res;
   } catch {
-    console.warn('[Analytics] PostHog host blocked — analytics disabled to prevent console errors.');
+    console.warn('[Analytics] PostHog event endpoint blocked by client (ad-blocker or privacy extension). Analytics disabled to prevent console errors.');
     isReady = false;
     return;
   }
@@ -41,6 +44,21 @@ export async function initAnalytics() {
       dead_clicks_autocapture: false,
       advanced_disable_decide: true,
       advanced_disable_feature_flags: true,
+      // Limit retries to prevent console spam if events are blocked after init
+      loaded: (posthog: any) => {
+        // Override the retry mechanism to fail fast on network errors
+        if (posthog._retriableRequest) {
+          const original = posthog._retriableRequest;
+          posthog._retriableRequest = function(...args: any[]) {
+            try {
+              return original.apply(this, args);
+            } catch (e) {
+              // Silently fail on network errors
+              return Promise.resolve();
+            }
+          };
+        }
+      },
     };
     posthog.init(POSTHOG_KEY, posthogConfig);
     isReady = true;

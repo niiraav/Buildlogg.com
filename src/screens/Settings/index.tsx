@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, Moon, Sun } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { InlineEditRow } from '../../components/InlineEditRow';
 import SyncIndicator from '../../components/SyncIndicator';
+import AddToHomeScreen from '../../components/AddToHomeScreen';
+import FeedbackSheet from '../../components/FeedbackSheet';
 
 const TRADE_OPTIONS: Array<{ value: Profile['trade']; label: string }> = [
   { value: 'plumber', label: 'Plumber' },
@@ -57,12 +59,13 @@ export default function Settings() {
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [nudgeDismissed] = useState(false);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
+  const [feedbackSheetOpen, setFeedbackSheetOpen] = useState(false);
   const { isDark, toggle } = useTheme();
   
   // Detect active quote draft for quick resume
   const [draftInfo, setDraftInfo] = useState<{ customerName: string; step: string; jobId: string } | null>(null);
   const [customItemCount, setCustomItemCount] = useState(0);
-  const [wasRedirectedFromQuote, setWasRedirectedFromQuote] = useState(false);
+
 
   useEffect(() => {
     if (!userId) return;
@@ -73,16 +76,8 @@ export default function Settings() {
     db.custom_items.where('user_id').equals(userId).count().then(setCustomItemCount);
   }, [userId]);
   
-  // Check if user was redirected from quote flow (missing required info)
+  // Check for active quote draft in localStorage (always check, not just when redirected)
   useEffect(() => {
-    const redirected = localStorage.getItem('buildlogg_redirected_from_quote') === 'true';
-    setWasRedirectedFromQuote(redirected);
-  }, []);
-  
-  // Check for active quote draft in localStorage (only if redirected from quote)
-  useEffect(() => {
-    if (!wasRedirectedFromQuote) return;
-    
     const saved = localStorage.getItem('buildlogg_quote_state');
     if (!saved) return;
     try {
@@ -107,13 +102,6 @@ export default function Settings() {
     } catch {
       // ignore parse errors
     }
-  }, [wasRedirectedFromQuote]);
-
-  // Clear the redirect flag when leaving Settings (if not clicking Resume)
-  useEffect(() => {
-    return () => {
-      localStorage.removeItem('buildlogg_redirected_from_quote');
-    };
   }, []);
 
   const saveField = useCallback(
@@ -165,14 +153,14 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-brand-surface">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="text-sm text-brand-muted">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-brand-surface">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
@@ -210,6 +198,9 @@ export default function Settings() {
           </div>
         )}
 
+        {/* Add to Home Screen — dismissible inline banner */}
+        <AddToHomeScreen banner />
+
         {/* Nudge banner */}
         {showNudge && (
           <div className="bg-status-redBg border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2.5">
@@ -222,7 +213,7 @@ export default function Settings() {
 
         {/* Business profile */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Business profile
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -322,7 +313,7 @@ export default function Settings() {
 
         {/* My Items */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             My items
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -343,7 +334,7 @@ export default function Settings() {
 
         {/* Quote defaults */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Quote defaults
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -382,7 +373,7 @@ export default function Settings() {
 
         {/* Job defaults */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Job defaults
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -408,7 +399,7 @@ export default function Settings() {
 
         {/* Appearance */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Appearance
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -440,7 +431,7 @@ export default function Settings() {
 
         {/* About */}
         <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 px-0.5">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             About
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
@@ -465,6 +456,16 @@ export default function Settings() {
               <div className="flex items-center gap-2">
                 <ExternalLink size={14} className="text-brand-muted" />
               </div>
+            </div>
+            <div
+              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
+              onClick={() => setFeedbackSheetOpen(true)}
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare size={16} className="text-brand-mid" />
+                <span className="text-sm text-brand-dark">Send feedback</span>
+              </div>
+              <ChevronRight size={14} className="text-brand-muted" />
             </div>
             <div
               className="min-h-13 flex items-center justify-between px-4 cursor-pointer"
@@ -497,7 +498,7 @@ export default function Settings() {
           ))}
           {tradeOtherMode && (
             <div className="mt-4 pt-4 border-t border-brand-borderLight">
-              <label className="text-micro font-bold tracking-[0.7px] text-brand-muted mb-2 block">
+              <label className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 block">
                 Your trade
               </label>
               <input
@@ -571,6 +572,9 @@ export default function Settings() {
           })}
         </div>
       </BottomSheet>
+
+      {/* Feedback sheet */}
+      <FeedbackSheet isOpen={feedbackSheetOpen} onClose={() => setFeedbackSheetOpen(false)} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, FileText } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -35,8 +35,35 @@ import RecentActivity from '../../components/RecentActivity';
 
 const now = () => new Date().toISOString();
 
-// Module-level set: dismisses stale job nudges for the current session (resets on page reload)
-const dismissedStaleJobs = new Set<string>();
+// localStorage-backed set: dismisses stale job nudges, persists across page reloads
+// TTL: 12 hours — after that, the nudge can show again
+const DISMISSED_STALE_KEY = 'buildlogg_dismissed_stale_jobs';
+const DISMISSED_STALE_TTL = 12 * 60 * 60 * 1000; // 12 hours
+
+function loadDismissedStaleJobs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_STALE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as { id: string; ts: number }[];
+    const now = Date.now();
+    return new Set(parsed.filter((e) => now - e.ts < DISMISSED_STALE_TTL).map((e) => e.id));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissedStaleJob(jobId: string) {
+  try {
+    const raw = localStorage.getItem(DISMISSED_STALE_KEY);
+    const existing = raw ? JSON.parse(raw) as { id: string; ts: number }[] : [];
+    const now = Date.now();
+    const filtered = existing.filter((e) => now - e.ts < DISMISSED_STALE_TTL);
+    filtered.push({ id: jobId, ts: now });
+    localStorage.setItem(DISMISSED_STALE_KEY, JSON.stringify(filtered));
+  } catch {}
+}
+
+const dismissedStaleJobs = loadDismissedStaleJobs();
 
 function isToday(dateStr: string): boolean {
   const d = new Date(dateStr);
@@ -85,7 +112,7 @@ function timeAgo(minutes: number): string {
 
 /* --- types --- */
 
-type Tab = 'today' | 'drafts' | 'tasks';
+type Tab = 'today' | 'tasks' | 'drafts';
 
 type SheetState =
   | null
@@ -216,6 +243,12 @@ export default function Home() {
     }
   }, [refresh, userId]);
 
+  /* Recompute stale-job banner whenever the job list changes */
+  useEffect(() => {
+    if (!userId) return;
+    getStaleInProgressJobs(userId).then(setStaleJobs);
+  }, [jobs, userId]);
+
   /* tick for elapsed timer */
 
   useEffect(() => {
@@ -303,7 +336,9 @@ export default function Home() {
           isL2: true,
           type: 'no_show',
           timeAgo: timeAgo(noShowAge),
-          contextLine: j.scheduled_start ? `Was scheduled for ${timeAgo(noShowAge)}` : 'No-show logged',
+          contextLine: j.scheduled_start
+            ? `Was scheduled ${new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}`
+            : 'No-show logged',
         });
       }
 
@@ -322,7 +357,7 @@ export default function Home() {
           flag: 'overdue',
           flagDays: overdueAge,
           timeAgo: `${overdueAge}d overdue`,
-          contextLine: `£${formatAmount(total)} · ${overdueAge}d overdue`,
+          contextLine: '',
         });
       }
 
@@ -360,7 +395,7 @@ export default function Home() {
             isL2: false,
             type: 'draft_quote',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: `£${formatAmount(total)} · saved ${timeAgo(ageMinutes)}`,
+            contextLine: '',
           });
         } else if (ageMs < 2 * 60 * 60 * 1000) {
           // Urgent new enquiries (not missed calls, no line items, < 2 hours)
@@ -375,7 +410,7 @@ export default function Home() {
             isL2: false,
             type: 'urgent_new',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: `${timeAgo(ageMinutes)} · needs follow-up`,
+            contextLine: 'needs follow-up',
           });
         }
       }
@@ -397,7 +432,7 @@ export default function Home() {
             flag: 'chase',
             flagDays: days,
             timeAgo: `${days}d since invoice`,
-            contextLine: `£${formatAmount(total)} · ${days}d since invoice`,
+            contextLine: '',
           });
         }
       }
@@ -417,7 +452,7 @@ export default function Home() {
           flag: 'stale',
           flagDays: days,
           timeAgo: `${days}d since quote`,
-          contextLine: `£${formatAmount(total)} · ${days}d since quote · no reply yet`,
+          contextLine: 'no reply yet',
         });
       }
     });
@@ -429,6 +464,14 @@ export default function Home() {
   const draftTasks = tasks.filter((t) => t.type === 'draft_quote');
   const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue' && t.type !== 'draft_quote');
   const l2Count = actTodayTasks.length;
+  const draftsCount = draftTasks.length;
+
+  // If drafts tab disappears while selected, fall back to Today
+  useEffect(() => {
+    if (activeTab === 'drafts' && draftsCount === 0) {
+      setActiveTab('today');
+    }
+  }, [activeTab, draftsCount]);
 
   /* --- helpers --- */
   const customerFor = (jobId: string) => {
@@ -683,6 +726,7 @@ export default function Home() {
     const handleMarkDone = () => {
       captureStaleJobNudgeTapped({ jobId: job.id, staleType: job.staleType });
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       navigate(`/jobs/${job.id}`, { state: { autoOpenMarkDone: true } });
     };
 
@@ -695,6 +739,7 @@ export default function Home() {
         captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: false });
       }
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
     };
 
@@ -702,6 +747,7 @@ export default function Home() {
       await markJobAsMultiDay(job.id);
       captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: true });
       dismissedStaleJobs.add(job.id);
+      saveDismissedStaleJob(job.id);
       setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
     };
 
@@ -867,54 +913,9 @@ export default function Home() {
     </div>
   );
 
-  const renderDrafts = () => {
-    return (
-      <div className="pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))] px-4 md:px-6">
-        {draftTasks.length > 0 ? (
-          <>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">
-                Draft quotes
-              </span>
-            </div>
-            <div className="flex flex-col gap-3 mb-6">
-              {draftTasks.map((task) => {
-                const j = jobs.find(x => x.id === task.jobId);
-                const c = j ? customers[j.customer_id] : undefined;
-
-                return (
-                  <TaskCard
-                    key={task.id}
-                    type={task.type}
-                    job={j}
-                    customer={c}
-                    timeAgo={task.timeAgo}
-                    contextLine={task.contextLine}
-                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'drafts' } })}
-                  />
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="px-4 mt-6">
-            <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
-              <p className="text-base font-semibold text-brand-black">No draft quotes</p>
-              <div className="w-14 h-14 rounded-full bg-brand-borderLight flex items-center justify-center mb-3 mx-auto"><FileText size={24} className="text-brand-muted" /></div>
-              <p className="text-sm text-brand-muted mt-1.5">Start a quote and save it — it'll show up here</p>
-              <div className="flex gap-2 mt-5">
-                <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const renderTasks = () => {
     return (
-      <div className="pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))] px-4 md:px-6">
+      <div className="pt-4 md:pt-6 pb-4 px-4 md:px-6">
         {/* ACT TODAY: Missed calls + overdue payments */}
         {actTodayTasks.length > 0 && (
           <>
@@ -935,6 +936,8 @@ export default function Home() {
                     job={j}
                     customer={c}
                     timeAgo={task.timeAgo}
+                    jobNumber={task.jobNumber}
+                    amount={task.amount}
                     contextLine={task.contextLine}
                     onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
@@ -964,6 +967,8 @@ export default function Home() {
                     job={j}
                     customer={c}
                     timeAgo={task.timeAgo}
+                    jobNumber={task.jobNumber}
+                    amount={task.amount}
                     contextLine={task.contextLine}
                     onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
                   />
@@ -990,6 +995,51 @@ export default function Home() {
     );
   };
 
+  const renderDrafts = () => {
+    return (
+      <div className="pt-4 md:pt-6 pb-4 px-4 md:px-6">
+        {draftTasks.length > 0 ? (
+          <div className="flex flex-col gap-3 mb-6">
+            {draftTasks.map((task) => {
+              const j = jobs.find(x => x.id === task.jobId);
+              const c = j ? customers[j.customer_id] : undefined;
+
+              return (
+                <TaskCard
+                  key={task.id}
+                  type={task.type}
+                  job={j}
+                  customer={c}
+                  timeAgo={task.timeAgo}
+                  jobNumber={task.jobNumber}
+                  amount={task.amount}
+                  contextLine={task.contextLine}
+                  onTap={() => navigate('/quote', { state: { jobId: j?.id, customerId: j?.customer_id, entryPoint: 'new_quote' } })}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-4 mt-6">
+            <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
+              <p className="text-base font-semibold text-brand-black">No drafts</p>
+              <p className="text-sm text-brand-muted mt-1.5">
+                Quotes you start but don&apos;t send will appear here
+              </p>
+              <div className="flex gap-2 mt-5">
+                <div className="flex-1">
+                  <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+                    + New Quote
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   /* --- selected for sheets --- */
   const selectedCustomer = selectedJobId ? customerFor(selectedJobId) : null;
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) : null;
@@ -997,16 +1047,16 @@ export default function Home() {
   /* --- main render --- */
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--app-shell-bg)]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-2 bg-[var(--app-shell-bg)]">
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-4 bg-[var(--app-shell-bg)]">
         <div className="flex items-start justify-between">
           <div>
             <span className="text-lg font-bold text-brand-black block">
@@ -1021,7 +1071,7 @@ export default function Home() {
               <span className="text-xl font-extrabold text-brand-black block">
                 £{Number(totalOwed).toFixed(2)}
               </span>
-              <span className="text-label text-brand-muted block mt-0.5">
+              <span className="text-label text-brand-dark block mt-0.5">
                 owed to you
               </span>
             </div>
@@ -1035,13 +1085,20 @@ export default function Home() {
 
         {/* Tab switcher */}
         <div className="-mx-4">
-          <HomeTabSwitcher activeTab={activeTab} todayBadgeCount={jobCountToday} draftsBadgeCount={draftTasks.length} tasksBadgeCount={l2Count} onChange={setActiveTab} />
+          <HomeTabSwitcher
+            tabs={draftsCount > 0 ? ['today', 'tasks', 'drafts'] : ['today', 'tasks']}
+            activeTab={activeTab}
+            todayBadgeCount={jobCountToday}
+            tasksBadgeCount={l2Count}
+            draftsBadgeCount={draftsCount}
+            onChange={setActiveTab}
+          />
         </div>
       </div>
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(110px + env(safe-area-inset-bottom))]">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
           {/* Active bar */}
 
           {/* Stale job banner — anti-forgetting nudge */}
@@ -1059,37 +1116,28 @@ export default function Home() {
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
 
+          {/* Recent high-level activity — hidden when today has more than 3 jobs or in all-clear state */}
+          {todayState !== 'all_clear' && jobCountToday <= 3 && <RecentActivity />}
+
           {/* No jobs today / All clear */}
           {todayState === 'all_clear' && (
             tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
           )}
-
-          {/* Recent high-level activity — hidden when today has more than 3 jobs */}
-          {jobCountToday <= 3 && <RecentActivity />}
         </div>
       )}
-
-      {/* Drafts tab content */}
-      {activeTab === 'drafts' && renderDrafts()}
 
       {/* Tasks tab content */}
       {activeTab === 'tasks' && renderTasks()}
 
+      {/* Drafts tab content */}
+      {activeTab === 'drafts' && renderDrafts()}
+
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
-      {(activeTab === 'today' && todayState !== 'all_clear') && (
-        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
-          <div className="flex gap-2 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+      {activeTab === 'today' && todayState !== 'all_clear' && (
+        <div className="mt-auto sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+          <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
-          </div>
-        </div>
-      )}
-
-      {/* Drafts tab footer — New Quote CTA */}
-      {activeTab === 'drafts' && draftTasks.length > 0 && (
-        <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
-          <div className="flex gap-2 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-            <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
           </div>
         </div>
       )}
@@ -1134,7 +1182,8 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'mark_done'}
         onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
-        title={markDoneStep === 'photo' ? 'Job done! 📸' : 'How were you paid?'}
+        title={markDoneStep === 'photo' ? 'Job done' : 'How were you paid?'}
+        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'
@@ -1213,7 +1262,7 @@ export default function Home() {
       <BottomSheet
         isOpen={sheet === 'mark_done_deposit'}
         onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
-        title={markDoneStep === 'photo' ? 'Job done! 📸' : `Balance to collect: £${formatAmount(
+        title={markDoneStep === 'photo' ? 'Job done' : `Balance to collect: £${formatAmount(
           selectedJob
             ? totalFor(selectedJob.id) -
                 (selectedJob.deposit_pct
@@ -1221,6 +1270,7 @@ export default function Home() {
                   : 0)
             : 0
         )}`}
+        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'

@@ -115,8 +115,13 @@ export const QuotePreviewCard: React.FC<QuotePreviewCardProps> = (props) => {
               idx < lineItems.length - 1 ? 'border-b border-brand-surface' : ''
             }`}
           >
-            <span>{item.description}</span>
-            <span className="font-medium text-brand-black">£{item.amount.toFixed(2)}</span>
+            <div className="min-w-0 flex-1 pr-2">
+              <span>{item.description}</span>
+              {item.detail && item.detail.trim() && (
+                <div className="text-xs text-brand-mid mt-0.5 leading-relaxed">{item.detail}</div>
+              )}
+            </div>
+            <span className="font-medium text-brand-black shrink-0">£{item.amount.toFixed(2)}</span>
           </div>
         ))}
       </div>

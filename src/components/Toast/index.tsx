@@ -20,7 +20,7 @@ export function ToastContainer() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => hideToast(), toast.duration ?? 2500);
+    const timer = setTimeout(() => hideToast(), toast.duration ?? 3500);
     return () => clearTimeout(timer);
   }, [toast, hideToast]);
 

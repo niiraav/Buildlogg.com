@@ -38,7 +38,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon.png" />
 <link rel="manifest" href="/manifest.json?v=2" />
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png?v=3" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png?v=4" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="canonical" href="https://buildlogg.com/" />
@@ -56,15 +56,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/landing.css?v=9" />
+<link rel="stylesheet" href="assets/landing.css?v=10" />
 <script src="https://unpkg.com/lucide@0.460.0"></script>
+<!-- PostHog: track landing page views (cold email click-throughs) -->
+<script>
+  !function(t,e){var o,n,p,r;e.__posthog__=t,e[t]=e[t]||function(){(e[t].q=e[t].q||[]).push(arguments)},p=e.document.createElement("script"),p.async=!0,p.src="https://eu.posthog.com/static/array.js",(r=e.document.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var a=function(){var o={api_host:"https://eu.posthog.com"};o.autocapture=!0;e[t].init("phc_DnUJfwn8xtbSM3NCWBNda3Np4XdnTiccLPDUaYMVzh4g",o)};e.addEventListener?"complete"===e.readyState?a():e.addEventListener("DOMContentLoaded",a):a()}("posthog",window);
+</script>
 </head>
 <body>
 
 <!-- ============================================================ NAV -->
 <header class="nav" id="nav">
   <div class="container nav-inner">
-    <a class="brand" href="#top"><img src="/assets/icon-black-square.png" alt="" class="brand-icon" width="40" height="40" style="display:block"> Buildlogg</a>
+    <a class="brand" href="#top"><img src="/assets/icon-black-square.png" alt="" class="brand-icon" width="34" height="34" style="display:block"> Buildlogg</a>
     <nav class="nav-links">
       <a class="nav-link" href="#how">How it works</a>
       <a class="nav-link" href="#features">Features</a>
@@ -108,53 +112,144 @@
     </div>
 
     <div class="hero-stage">
-      <!-- HOME / TODAY screen -->
-      <div class="hero-screen">
-          <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="lucide"></i><i data-lucide="wifi" class="lucide"></i><i data-lucide="battery-full" class="lucide"></i></span></div>
+      <!-- 3-frame hero demo animation -->
+      <div class="phone demo-phone">
+        <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="lucide"></i><i data-lucide="wifi" class="lucide"></i><i data-lucide="battery-full" class="lucide"></i></span></div>
+
+        <!-- Frame 1: Home / Today -->
+        <div class="demo-frame demo-frame-1">
           <div class="app">
-            <div class="greet-row">
-              <div class="greet"><div class="hi" style="font-size: 18px">Evening, Dave</div><div class="day" style="font-size: 12px">Sunday · 1 job today</div></div>
-              <div class="owed"><div class="amt" style="font-size: 18px">£1,840</div><div class="lbl">owed to you</div></div>
+            <div class="greet-row" style="padding:6px 18px 12px">
+              <div class="greet"><div class="hi" style="font-size:18px">Evening, Dave</div><div class="day" style="font-size:12px">Sunday · 1 job today</div></div>
+              <div class="owed"><div class="amt" style="font-size:18px">£1,840</div><div class="lbl">owed to you</div></div>
             </div>
-            <div class="app-tabs" style="padding: 0px 16px 0px 1px; gap: 16px">
+            <div class="app-tabs" style="padding:0 18px;gap:20px">
               <div class="app-tab active">Today</div>
               <div class="app-tab">Tasks <span class="ct">2</span></div>
             </div>
-            <div class="pad" style="padding: 4px 16px 0px 1px">
-              <div class="sec-label" style="font-size: 10px">Right now</div>
-              <div class="jobcard" style="padding: 12px; border-radius: 8px; margin: 0px; border-width: 1px">
+            <div class="pad" style="padding:4px 18px 0">
+              <div class="sec-label" style="font-size:10px;margin-top:14px">Right now</div>
+              <div class="jobcard" style="padding:12px;border-radius:8px;margin:0">
                 <div class="jc-top">
-                  <span class="spill green" style="font-size: 8px"><span class="dot"></span> In progress</span>
-                  <span class="jc-time" style="font-size: 9px"><i data-lucide="clock" class="lucide"></i> Started 8:10 pm</span>
+                  <span class="spill green" style="font-size:8px"><span class="dot"></span> In progress</span>
+                  <span class="jc-time" style="font-size:9px"><i data-lucide="clock" class="lucide"></i> Started 8:10 pm</span>
                 </div>
-                <div class="jc-name" style="font-size: 15px">Mark O'Connor</div>
-                <div class="jc-job" style="font-size: 11px">New radiator install</div>
-                <div class="jc-loc" style="font-size: 11px"><i data-lucide="map-pin" class="lucide"></i> 22 Elm Close, London SW4</div>
-                <div class="jc-divider"></div>
+                <div class="jc-name" style="font-size:15px;margin-top:10px">Mark O'Connor</div>
+                <div class="jc-job" style="font-size:11px">New radiator install</div>
+                <div class="jc-loc" style="font-size:11px;margin-top:8px"><i data-lucide="map-pin" class="lucide"></i> 22 Elm Close, London SW4</div>
+                <div class="jc-divider" style="margin:12px 0"></div>
                 <div class="jc-actions">
-                  <button type="button" class="abtn secondary sm" style="font-size: 12px; height: 32px"><i data-lucide="phone" class="lucide"></i> Call</button>
-                  <button type="button" class="abtn secondary sm" style="font-size: 12px; height: 32px"><i data-lucide="message-circle" class="lucide"></i> Message</button>
+                  <button type="button" class="abtn secondary sm" style="font-size:12px;height:32px"><i data-lucide="phone" class="lucide"></i> Call</button>
+                  <button type="button" class="abtn secondary sm" style="font-size:12px;height:32px"><i data-lucide="message-circle" class="lucide"></i> Message</button>
                 </div>
-          
               </div>
-              <div class="quiet"><i data-lucide="check-circle-2" class="lucide"></i> Nothing else booked today</div>
+              <div class="quiet" style="margin-top:14px"><i data-lucide="check-circle-2" class="lucide"></i> Nothing else booked today</div>
             </div>
           </div>
           <div class="app-foot">
             <button type="button" class="abtn primary"><i data-lucide="plus" class="lucide"></i> New quote</button>
           </div>
-          <div class="tabbar">
-            <div class="tabitem on"><i data-lucide="house" class="lucide"></i> Home</div>
-            <div class="tabitem"><i data-lucide="briefcase" class="lucide"></i> Jobs</div>
-            <div class="tabitem"><i data-lucide="settings" class="lucide"></i> Settings</div>
-          </div>
+          <div class="demo-dots">
+            <span class="demo-dot demo-dot-1"></span>
+            <span class="demo-dot demo-dot-2"></span>
+            <span class="demo-dot demo-dot-3"></span>
           </div>
         </div>
+
+        <!-- Frame 2: New quote -->
+        <div class="demo-frame demo-frame-2">
+          <div class="app">
+            <div class="dh" style="padding:6px 18px 0">
+              <div class="dh-top" style="height:28px">
+                <div class="dh-back"><i data-lucide="chevron-left" class="lucide"></i> New quote</div>
+              </div>
+              <div class="dh-title" style="margin-top:8px">
+                <span class="nm" style="font-size:20px">Sarah Mitchell</span>
+              </div>
+              <div class="dh-sub">Boiler service</div>
+            </div>
+            <div class="dh-divider" style="margin:10px 0 0"></div>
+            <div class="pad" style="padding:4px 18px 0">
+              <div class="dcard demo-type-customer" style="margin-top:10px">
+                <div class="kv" style="padding:11px 15px"><span class="k">Customer</span><span class="v">Sarah Mitchell</span></div>
+                <div class="kv" style="padding:11px 15px"><span class="k">Job</span><span class="v">Boiler service</span></div>
+              </div>
+              <div class="dcard-label" style="margin:12px 0 6px">Line items</div>
+              <div class="dcard demo-type-item1">
+                <div class="kv" style="padding:11px 15px"><span class="k">Labour</span><span class="v">£165</span></div>
+              </div>
+              <div class="dcard demo-type-item2" style="margin-top:6px">
+                <div class="kv" style="padding:11px 15px"><span class="k">Parts</span><span class="v">£45</span></div>
+              </div>
+              <div class="dcard" style="margin-top:8px">
+                <div class="kv total" style="padding:11px 15px"><span class="k">Total</span><span class="v">£210</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="app-foot single">
+            <button type="button" class="abtn primary lg"><i data-lucide="send" class="lucide"></i> Send quote</button>
+          </div>
+          <div class="demo-dots">
+            <span class="demo-dot demo-dot-1"></span>
+            <span class="demo-dot demo-dot-2"></span>
+            <span class="demo-dot demo-dot-3"></span>
+          </div>
+        </div>
+
+        <!-- Frame 3: Sent via WhatsApp -->
+        <div class="demo-frame demo-frame-3">
+          <div class="app">
+            <div class="dh" style="padding:6px 18px 0">
+              <div class="dh-top" style="height:28px">
+                <div class="dh-back"><i data-lucide="chevron-left" class="lucide"></i> Job</div>
+              </div>
+              <div class="dh-title" style="margin-top:8px">
+                <span class="spill green" style="font-size:8px"><span class="dot"></span> Done</span>
+                <span class="nm" style="font-size:20px">Sarah Mitchell</span>
+              </div>
+              <div class="dh-sub">Boiler service · £210</div>
+            </div>
+            <div class="dh-divider" style="margin:10px 0 0"></div>
+            <div class="pad" style="padding:4px 18px 0">
+              <div class="dcard-label" style="margin:10px 0 6px">Payment</div>
+              <div class="dcard">
+                <div class="kv" style="padding:11px 15px"><span class="k">Status</span><span class="v confirmed"><i data-lucide="check-circle-2" class="lucide"></i> Paid</span></div>
+                <div class="kv" style="padding:11px 15px"><span class="k">Method</span><span class="v">Bank transfer</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="demo-wa-badge" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 0;font-size:14px;font-weight:600;color:#15803d;">
+            <i data-lucide="message-circle" class="lucide" style="color:#16a34a"></i> Sent via WhatsApp
+          </div>
+          <div class="demo-dots">
+            <span class="demo-dot demo-dot-1"></span>
+            <span class="demo-dot demo-dot-2"></span>
+            <span class="demo-dot demo-dot-3"></span>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tabitem on"><i data-lucide="house" class="lucide"></i> Home</div>
+          <div class="tabitem"><i data-lucide="briefcase" class="lucide"></i> Jobs</div>
+          <div class="tabitem"><i data-lucide="settings" class="lucide"></i> Settings</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-
+<!-- ============================================================ MICRO-COMMITMENT STRIP -->
+<section class="micro-strip">
+  <div class="container">
+    <div class="micro-strip-inner">
+      <div class="micro-strip-copy">
+        <span class="micro-strip-time"><i data-lucide="timer" class="lucide"></i> 60 seconds</span>
+        <p class="micro-strip-text">Enter your email, see a sample quote, send your first real one today.</p>
+      </div>
+      <a class="btn btn-primary btn-lg micro-strip-cta" href="/app/auth?action=signup&source=micro">Try it now <i data-lucide="arrow-right" class="lucide"></i></a>
+    </div>
+  </div>
+</section>
 
 <!-- ============================================================ PROBLEM -->
 <section class="section problem">
@@ -544,6 +639,20 @@
     deferredInstallPrompt = null;
   });
 
+</script>
+<script>
+// Pass ?source= param through to /app/auth links for conversion tracking
+(function() {
+  var source = new URLSearchParams(window.location.search).get('source');
+  if (!source) return;
+  document.querySelectorAll('a[href*="/app/auth"]').forEach(function(link) {
+    try {
+      var url = new URL(link.href, window.location.origin);
+      if (!url.searchParams.has('source')) url.searchParams.set('source', source);
+      link.href = url.pathname + '?' + url.searchParams.toString();
+    } catch(e) {}
+  });
+})();
 </script>
 </body>
 </html>

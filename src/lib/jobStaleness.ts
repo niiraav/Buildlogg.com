@@ -52,15 +52,21 @@ export function getStaleType(job: Job, now = new Date()): StaleType | null {
   }
 
   // Crossed midnight but not flagged as multi-day yet
+  // Only trigger if at least 3 hours have elapsed — prevents false positive
+  // when a job is started near midnight and it's now just past midnight
   if (!sameDay) {
-    return 'crossed_midnight';
+    if (elapsed > SAME_DAY_STALE_MS) return 'crossed_midnight';
+    return null;
   }
 
   // Same day — check 3h fixed threshold
   if (elapsed > SAME_DAY_STALE_MS) return 'same_day';
 
   // Same day — check scheduled_end trigger
-  if (job.scheduled_end) {
+  // BUT only if the job has been running for at least 3h. A job started
+  // after its scheduled_end time (e.g., started at 1pm for a 10am-12pm slot)
+  // should NOT be flagged stale immediately — it was just started.
+  if (job.scheduled_end && elapsed > SAME_DAY_STALE_MS) {
     const scheduledEndPlusGrace = new Date(job.scheduled_end).getTime() + SCHEDULED_END_GRACE_MS;
     if (now.getTime() > scheduledEndPlusGrace) return 'same_day';
   }

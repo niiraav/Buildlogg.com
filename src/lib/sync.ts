@@ -156,6 +156,9 @@ async function updateSyncStatus(
     case 'payments':
       await db.payments.update(recordId, { _sync_status: status });
       break;
+    case 'job_photos':
+      await db.job_photos.update(recordId, { _sync_status: status });
+      break;
   }
 }
 
@@ -166,7 +169,7 @@ export async function hasPendingSync(): Promise<boolean> {
 
 // Check if any records have error status
 export async function hasSyncError(): Promise<boolean> {
-  const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles];
+  const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles, db.job_photos];
   for (const table of tables) {
     const count = await table.where('_sync_status').equals('error').count();
     if (count > 0) return true;

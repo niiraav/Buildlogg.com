@@ -38,7 +38,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
         <p className="text-sm text-brand-mid mt-1 px-4 text-center truncate w-full">
           {address}
         </p>
-        <div className="absolute bottom-1.5 right-2 flex items-center gap-1 text-label text-brand-muted">
+        <div className="absolute bottom-1.5 right-2 flex items-center gap-1 text-label text-brand-dark">
           <ExternalLink size={10} />
           Open in Maps
         </div>

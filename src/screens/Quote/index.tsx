@@ -43,7 +43,11 @@ export default function Quote() {
   const initialJobId = state.jobId;
 
   const [step, setStep] = useState<QuoteStep>(
-    entryPoint === 'missed_call' ? 'missed_call' : 'customer_details'
+    initialCustomerId && initialJobId
+      ? 'builder'
+      : entryPoint === 'missed_call'
+      ? 'missed_call'
+      : 'customer_details'
   );
   const [customerId, setCustomerId] = useState<string | undefined>(initialCustomerId);
   const [jobId, setJobId] = useState<string | undefined>(initialJobId);
@@ -106,10 +110,26 @@ export default function Quote() {
           localStorage.removeItem('buildlogg_quote_state');
           return;
         }
-        if (parsed.step && parsed.step !== 'missed_call') {
+        // Validate that the job still exists before restoring
+        if (parsed.jobId) {
+          db.jobs.get(parsed.jobId).then((job) => {
+            if (!job) {
+              // Job was deleted — clear stale state
+              localStorage.removeItem('buildlogg_quote_state');
+              return;
+            }
+            if (parsed.step && parsed.step !== 'missed_call') {
+              setStep(parsed.step);
+              if (parsed.customerId) setCustomerId(parsed.customerId);
+              if (parsed.jobId) setJobId(parsed.jobId);
+              if (parsed.sendMethod) setSendMethod(parsed.sendMethod);
+            }
+          }).catch(() => {
+            localStorage.removeItem('buildlogg_quote_state');
+          });
+        } else if (parsed.step && parsed.step !== 'missed_call') {
           setStep(parsed.step);
           if (parsed.customerId) setCustomerId(parsed.customerId);
-          if (parsed.jobId) setJobId(parsed.jobId);
           if (parsed.sendMethod) setSendMethod(parsed.sendMethod);
         }
       } catch {

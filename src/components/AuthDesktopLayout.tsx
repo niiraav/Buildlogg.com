@@ -16,7 +16,7 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
         <div className="max-w-md">
           {/* Wordmark */}
           <a href="https://buildlogg.com" className="inline-flex items-center gap-2.5 mb-6">
-            <img src="/assets/icon-black-square.png" alt="" className="w-[40px] h-[40px]" />
+            <img src="/assets/icon-black-square.png" alt="" className="w-[34px] h-[34px]" />
             <span className="text-[22px] font-extrabold tracking-[-0.03em] text-brand-black">
               Buildlogg
             </span>

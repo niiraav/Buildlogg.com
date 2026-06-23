@@ -105,14 +105,14 @@ export default function Activity() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[var(--app-shell-bg)]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
         <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">

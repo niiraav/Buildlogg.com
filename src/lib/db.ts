@@ -66,6 +66,7 @@ export interface LineItem {
   id: string;
   job_id: string;
   description: string;
+  detail?: string;          // optional sub-text shown under description (e.g. what's included)
   amount: number;
   sort_order: number;
   added_on_site: boolean;
@@ -125,6 +126,7 @@ export interface CustomItem {
   id: string;
   user_id: string;
   description: string;
+  detail?: string;          // optional sub-text for library items
   amount: number;
   sort_order: number;
   created_at: string;

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/db';
 import { useAppStore } from '../store/useAppStore';
-import { identifyUser, captureUserSignedIn } from '../lib/analytics';
+import { identifyUser, captureUserSignedIn, captureUserSignedUp, capture } from '../lib/analytics';
 import { showSuccess, showError, showToast } from '../components/Toast/store';
 import { haptic, hapticError, hapticSuccess } from '../lib/haptics';
 import { Button } from '../components/Button';
@@ -26,10 +26,37 @@ function validatePassword(password: string): string | null {
   return null;
 }
 
+// Map a recipient domain to its webmail inbox so the "Check email" button can
+// deep-link straight to the mailbox for known providers. For unknown domains we
+// fall back to `mailto:` which launches the OS default email client.
+function getInboxUrl(domain: string): string {
+  const map: Record<string, string> = {
+    'gmail.com': 'https://mail.google.com/mail/',
+    'googlemail.com': 'https://mail.google.com/mail/',
+    'outlook.com': 'https://outlook.live.com/mail/',
+    'hotmail.com': 'https://outlook.live.com/mail/',
+    'live.com': 'https://outlook.live.com/mail/',
+    'msn.com': 'https://outlook.live.com/mail/',
+    'yahoo.com': 'https://mail.yahoo.com/',
+    'yahoo.co.uk': 'https://mail.yahoo.com/',
+    'icloud.com': 'https://www.icloud.com/mail/',
+    'me.com': 'https://www.icloud.com/mail/',
+    'mac.com': 'https://www.icloud.com/mail/',
+    'proton.me': 'https://mail.proton.me/',
+    'protonmail.com': 'https://mail.proton.me/',
+    'zoho.com': 'https://mail.zoho.com/',
+    'aol.com': 'https://mail.aol.com/',
+    'gmx.com': 'https://www.gmx.com/mail/',
+    'mail.com': 'https://www.mail.com/mail/',
+  };
+  return map[domain] || 'mailto:';
+}
+
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') === 'signup' ? 'signup' : 'signin';
+  const source = searchParams.get('source') || 'organic';
   const [mode, setMode] = useState<AuthMode>(action);
 
   const [emailInput, setEmailInput] = useState('');
@@ -40,6 +67,8 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resending, setResending] = useState(false);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
   // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
@@ -163,6 +192,7 @@ export default function Auth() {
         showSuccess('Signed in');
         identifyUser(data.session.user.id, { email });
         captureUserSignedIn();
+        if (source !== 'organic') capture('user_signed_in_from_email', { source });
 
         const profile = await db.profiles.get(data.session.user.id);
         navigate(profile ? '/' : '/onboarding', { replace: true });
@@ -177,7 +207,21 @@ export default function Auth() {
 
         if (signUpError) {
           hapticError();
-          const message = signUpError?.message || 'Could not create account';
+          // Supabase returns 429 / "over_email_send_rate_limit" when its built-in email service
+          // is throttled (or no custom SMTP is configured). Surface a clear, actionable message
+          // instead of the raw "email rate limit exceeded". See docs/SUPABASE-EMAIL-SETUP.md
+          // for the permanent SMTP (Resend) fix.
+          const code = (signUpError as { code?: string; status?: number })?.code;
+          const raw = (signUpError?.message || '').toLowerCase();
+          const isEmailSendError =
+            code === '429' ||
+            code === 'over_email_send_rate_limit' ||
+            raw.includes('rate limit') ||
+            raw.includes('email_send') ||
+            raw.includes('over_email_send');
+          const message = isEmailSendError
+            ? 'We could not send your confirmation email right now. Please try again in a few minutes.'
+            : signUpError?.message || 'Could not create account';
           showError(message);
           setError(message);
           setLoading(false);
@@ -187,7 +231,8 @@ export default function Auth() {
         if (!data.session) {
           // Email confirmation is required on the Supabase side.
           hapticSuccess();
-          showToast('Account created. Check your email to confirm.', 'info', 4000);
+          showToast('Account created. Check your email (and spam folder) to confirm.', 'info', 5000);
+          captureUserSignedUp(undefined, source);
           setEmailConfirmed(true);
           setLoading(false);
           return;
@@ -196,6 +241,7 @@ export default function Auth() {
         hapticSuccess();
         showSuccess('Account created');
         identifyUser(data.session.user.id, { email });
+        captureUserSignedUp(undefined, source);
         captureUserSignedIn();
 
         navigate('/onboarding', { replace: true });
@@ -334,12 +380,74 @@ export default function Auth() {
     setConfirmPassword('');
   };
 
+  // "Check email" button: open the user's inbox. Deep-links to webmail for
+  // known providers (Gmail/Outlook/iCloud/etc.); otherwise launches the OS
+  // default email client via a hidden mailto: anchor (avoids a blank tab).
+  const handleCheckEmail = () => {
+    const email = emailInput.trim().toLowerCase();
+    const domain = email.split('@')[1]?.toLowerCase() || '';
+    const inboxUrl = getInboxUrl(domain);
+    if (inboxUrl.startsWith('http')) {
+      window.open(inboxUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      const a = document.createElement('a');
+      a.href = inboxUrl;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  // "Back to signup" button: return to the signup form (keep the entered email
+  // so the user doesn't have to retype it).
+  const handleBackToSignup = () => {
+    setEmailConfirmed(false);
+    setMode('signup');
+    setError('');
+  };
+
+  // "Resend confirmation email" — calls Supabase resend for signup type.
+  // Rate-limited with a 30-second countdown to prevent spamming.
+  const handleResend = async () => {
+    if (resendCountdown > 0 || resending) return;
+    const email = emailInput.trim().toLowerCase();
+    if (!email) return;
+    setResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        email,
+        type: 'signup',
+      });
+      if (resendError) {
+        showError(resendError.message || 'Could not resend email');
+      } else {
+        showToast('Confirmation email resent', 'info', 3000);
+        setResendCountdown(30);
+        // Countdown timer
+        const interval = setInterval(() => {
+          setResendCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch {
+      showError('Could not resend email. Try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <AuthDesktopLayout variant="auth">
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col min-h-[100dvh]">
         {/* Mobile brand wordmark */}
-        <a href="https://buildlogg.com" className="inline-flex items-center gap-2 text-[22px] font-extrabold text-brand-black mb-8 md:hidden px-6 pt-8">
-          <img src="/assets/icon-black-square.png" alt="" className="w-[54px] h-[54px]" />
+        <a href="https://buildlogg.com" className="inline-flex items-center gap-2 text-[22px] font-extrabold text-brand-black mb-8 md:hidden px-4 pt-8">
+          <img src="/assets/icon-black-square.png" alt="" className="w-[34px] h-[34px]" />
           Buildlogg
         </a>
 
@@ -358,28 +466,86 @@ export default function Auth() {
         </header>
 
         {/* Main form */}
-        <main className="flex-1 flex flex-col md:justify-center px-6 md:px-10">
+        <main className="flex-1 flex flex-col md:justify-center px-4 md:px-10">
           <div className="w-full md:max-w-sm mx-auto">
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
-                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
-                </h1>
-                <p className="text-base text-brand-mid mt-2">
-                  {mode === 'signin'
-                    ? 'Sign in to continue to your Buildlogg dashboard.'
-                    : 'Enter your email and password to get started.'}
-                </p>
-              </div>
-
               {emailConfirmed ? (
-                <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
-                  <p className="text-sm text-brand-dark leading-relaxed">
-                    Check your email for a confirmation link. Once confirmed, you can sign in.
+                <>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
+                      Check your email
+                    </h1>
+                    <p className="text-base text-brand-mid mt-2">
+                      We've sent you a confirmation link to activate your account. Check your inbox at{' '}
+                      <span className="font-semibold text-brand-dark break-all">
+                        {emailInput.trim().toLowerCase()}
+                      </span>.
+                    </p>
+                  </div>
+
+                  <div className="mt-1 flex flex-col gap-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleCheckEmail}
+                      fullWidth
+                      size="sm"
+                    >
+                      Check email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleBackToSignup}
+                      fullWidth
+                      size="sm"
+                    >
+                      Back to signup
+                    </Button>
+                  </div>
+
+                  {/* Provider-specific hint for Outlook/Hotmail */}
+                  {(() => {
+                    const domain = emailInput.trim().toLowerCase().split('@')[1] || '';
+                    const isOutlook = ['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain);
+                    return isOutlook ? (
+                      <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mt-2">
+                        <p className="text-sm text-status-blue text-left leading-relaxed">
+                          Outlook sometimes sends new senders to <strong>Junk</strong>. Check there if you don't see it in your inbox.
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <p className="text-sm text-brand-mid text-center mt-2">
+                    Didn't get it? Check your spam folder or resend.
                   </p>
-                </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendCountdown > 0 || resending}
+                    className="w-full h-11 flex items-center justify-center text-sm font-medium text-brand-mid cursor-pointer underline underline-offset-2 disabled:opacity-50 disabled:no-underline mt-1"
+                  >
+                    {resending
+                      ? 'Sending...'
+                      : resendCountdown > 0
+                      ? `Resend in ${resendCountdown}s`
+                      : 'Resend confirmation email'}
+                  </button>
+                </>
               ) : (
                 <>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-brand-black">
+                      {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+                    </h1>
+                    <p className="text-base text-brand-mid mt-2">
+                      {mode === 'signin'
+                        ? 'Sign in to continue to your Buildlogg dashboard.'
+                        : 'Enter your email and password to get started.'}
+                    </p>
+                  </div>
                   <div className="flex flex-col gap-2">
                     <label htmlFor="email" className="text-sm font-medium text-brand-black">
                       Email
@@ -492,7 +658,7 @@ export default function Auth() {
 
                   {import.meta.env.DEV && (
                     <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
-                      <p className="text-label font-bold tracking-[0.4px] text-brand-muted text-center">Dev Testing</p>
+                      <p className="text-label font-bold tracking-[0.4px] text-brand-dark text-center">Dev Testing</p>
                       <Button
                         variant="secondary"
                         onClick={handleMockSignIn}
