@@ -235,7 +235,7 @@ export const MaterialsList: React.FC<MaterialsListProps> = ({
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleUpdate(item)}
-                        className="flex-1 h-9 bg-brand-primary text-brand-primaryText rounded-lg text-sm font-medium cursor-pointer"
+                        className="flex-1 h-9 bg-brand-black text-brand-surface rounded-lg text-sm font-medium cursor-pointer"
                       >
                         Save
                       </button>
@@ -339,7 +339,7 @@ export const MaterialsList: React.FC<MaterialsListProps> = ({
             <button
               onClick={handleAdd}
               disabled={!desc.trim() || !unitCost || parseFloat(unitCost) <= 0}
-              className="flex-1 h-11 bg-brand-primary text-brand-primaryText rounded-lg text-sm font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-1 h-11 bg-brand-black text-brand-surface rounded-lg text-sm font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               Add material
             </button>
