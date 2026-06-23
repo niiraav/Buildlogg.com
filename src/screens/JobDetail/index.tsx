@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -27,6 +27,7 @@ import {
 } from '../../lib/analytics';
 import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
+import { addToCalendar } from '../../lib/calendar';
 
 /* ─── helpers ─── */
 
@@ -1100,7 +1101,7 @@ export default function JobDetail() {
   /* ─── render helpers ─── */
 
   const renderPaidFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('send_receipt')}>
           Send receipt
@@ -1113,7 +1114,7 @@ export default function JobDetail() {
   );
 
   const renderTerminalFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
         Go Home
       </Button>
@@ -1222,7 +1223,7 @@ export default function JobDetail() {
                   onBlur={(e) => handleSaveMaterialsCost(e.target.value)}
                 />
               </div>
-              <p className="text-label text-brand-muted mt-1.5 italic">For your reference only — not included in the customer invoice.</p>
+              <p className="text-label text-brand-dark mt-1.5 italic">For your reference only — not included in the customer invoice.</p>
             </>
           ) : materialsTotal > 0 ? (
             <p className="text-sm text-brand-muted">Recorded for your reference</p>
@@ -1242,7 +1243,7 @@ export default function JobDetail() {
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
         {/* What we know */}
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-3">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-3">
             What we know
           </div>
           <div className="flex items-center gap-2 mb-2">
@@ -1260,7 +1261,7 @@ export default function JobDetail() {
         {/* Draft quote: show line items */}
         {isDraft && (
           <div className="border border-brand-border rounded-lg p-4 mb-5">
-            <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-3">
+            <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-3">
               Draft quote
             </div>
             <div className="space-y-2">
@@ -1286,7 +1287,7 @@ export default function JobDetail() {
         {/* Next steps */}
         {!isDraft && (
           <div className="border border-brand-border rounded-lg p-4 mb-5">
-            <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-3">
+            <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-3">
               Next steps
             </div>
             <div className="space-y-2">
@@ -1319,7 +1320,7 @@ export default function JobDetail() {
             <div>
               {eventLogs.map((log) => (
                 <div key={log.id} className="flex gap-2.5 py-2 border-b border-brand-borderLight last:border-b-0 items-start">
-                  <span className="text-label text-brand-muted whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
+                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
                     {formatLogTime(log.created_at)}
                   </span>
                   <span className="text-sm text-brand-dark flex-1 leading-relaxed">
@@ -1344,7 +1345,7 @@ export default function JobDetail() {
     const isMissedCall = job?.title === 'Missed call';
 
     return (
-      <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
         {isDraft ? (
           <>
             <Button
@@ -1491,6 +1492,28 @@ export default function JobDetail() {
               </span>
             </div>
           </div>
+          {/* Add to calendar — only when date is set */}
+          {job.scheduled_start && (
+            <button
+              onClick={() => {
+                addToCalendar({
+                  jobId: job.id,
+                  title: job.title,
+                  scheduled_start: job.scheduled_start,
+                  scheduled_end: job.scheduled_end,
+                  customerName: customer.name,
+                  customerPhone: customer.phone,
+                  address: customer.address,
+                  notes: job.notes,
+                });
+                showToast('Calendar event ready to add', 'info', 3000);
+              }}
+              className="w-full h-11 mt-2 flex items-center justify-center gap-2 text-sm font-medium text-brand-black border border-brand-border rounded-xl bg-white active:bg-brand-surface transition-colors cursor-pointer"
+            >
+              <CalendarPlus size={16} className="text-brand-mid" />
+              Add to calendar
+            </button>
+          )}
         </div>
 
         {/* Invoice items */}
@@ -1680,7 +1703,7 @@ export default function JobDetail() {
   };
 
   const renderBookedFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleStartJob}>
         Start job
       </Button>
@@ -1688,7 +1711,7 @@ export default function JobDetail() {
   );
 
   const renderQuotedFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <Button variant="primary" onClick={handleMarkAsBooked}>
         Mark as Booked
       </Button>
@@ -1696,7 +1719,7 @@ export default function JobDetail() {
   );
 
   const renderInProgressFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <Button variant="primary" onClick={() => setSheet('mark_done')}>
           <Check size={18} className="mr-2" />
@@ -1756,7 +1779,7 @@ export default function JobDetail() {
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             What happened
           </div>
           <div className="text-sm text-brand-dark leading-relaxed">
@@ -1768,7 +1791,7 @@ export default function JobDetail() {
   };
 
   const renderNoShowFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('reschedule')}>
@@ -1792,7 +1815,7 @@ export default function JobDetail() {
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             Payment record
           </div>
           <div className="text-md font-bold text-status-green mb-1">
@@ -1826,7 +1849,7 @@ export default function JobDetail() {
             <div>
               {visibleLogs.map((log) => (
                 <div key={log.id} className="flex gap-2.5 py-2 border-b border-brand-borderLight last:border-b-0 items-start">
-                  <span className="text-label text-brand-muted whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
+                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
                     {formatLogTime(log.created_at)}
                   </span>
                   <span className="text-sm text-brand-dark flex-1 leading-relaxed">
@@ -1860,7 +1883,7 @@ export default function JobDetail() {
             <div className="border border-brand-border rounded-lg p-3.5">
               {noteLogs.map((log) => (
                 <div key={log.id} className="flex gap-2.5 py-1.5 border-b border-brand-surface last:border-b-0 items-start">
-                  <span className="text-label text-brand-muted whitespace-nowrap shrink-0 min-w-[46px]">{formatLogTime(log.created_at)}</span>
+                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 min-w-[46px]">{formatLogTime(log.created_at)}</span>
                   <span className="text-sm text-brand-dark flex-1 leading-relaxed">{log.description}</span>
                 </div>
               ))}
@@ -1887,7 +1910,7 @@ export default function JobDetail() {
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             Reason
           </div>
           <div className="text-sm text-brand-dark leading-relaxed">
@@ -1896,7 +1919,7 @@ export default function JobDetail() {
         </div>
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             Notes
           </div>
           {job.notes ? (
@@ -1920,7 +1943,7 @@ export default function JobDetail() {
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
         <div className="border border-brand-border rounded-lg p-4 mb-5">
-          <div className="text-micro font-bold tracking-[0.5px] text-brand-muted mb-2">
+          <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             Amount written off
           </div>
           <div className="text-hero font-extrabold text-brand-black my-1 tracking-[-0.5px]">
@@ -1943,7 +1966,7 @@ export default function JobDetail() {
             <div>
               {eventLogs.map((log) => (
                 <div key={log.id} className="flex gap-2.5 py-2 border-b border-brand-borderLight last:border-b-0 items-start">
-                  <span className="text-label text-brand-muted whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
+                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
                     {formatLogTime(log.created_at)}
                   </span>
                   <span className="text-sm text-brand-dark flex-1 leading-relaxed">
@@ -1969,7 +1992,7 @@ export default function JobDetail() {
             <div className="border border-brand-border rounded-lg p-3.5">
               {noteLogs.map((log) => (
                 <div key={log.id} className="flex gap-2.5 py-1.5 border-b border-brand-surface last:border-b-0 items-start">
-                  <span className="text-label text-brand-muted whitespace-nowrap shrink-0 min-w-[46px]">{formatLogTime(log.created_at)}</span>
+                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 min-w-[46px]">{formatLogTime(log.created_at)}</span>
                   <span className="text-sm text-brand-dark flex-1 leading-relaxed">{log.description}</span>
                 </div>
               ))}
@@ -1982,7 +2005,7 @@ export default function JobDetail() {
   };
 
   const renderAwaitingPaymentFooter = () => (
-    <div className="sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
           <Button variant="primary" onClick={() => setSheet('mark_paid')}>
@@ -2093,7 +2116,7 @@ export default function JobDetail() {
       subtitle="Added to invoice · visible to customer"
     >
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Description
         </label>
         <input
@@ -2105,7 +2128,7 @@ export default function JobDetail() {
         />
       </div>
       <div className="mb-4">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Amount
         </label>
         <div className="relative">
@@ -2248,7 +2271,7 @@ export default function JobDetail() {
               isLast
               disabled={paymentProcessing}
             />
-            <p className="text-label text-brand-muted px-4 pt-1 pb-2">
+            <p className="text-label text-brand-dark px-4 pt-1 pb-2">
               → Chase payment added to tasks
             </p>
           </>
@@ -2361,7 +2384,7 @@ export default function JobDetail() {
             rows={4}
             className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-dark placeholder:text-brand-muted outline-none focus:border-brand-black resize-none leading-relaxed"
           />
-          <p className="text-micro text-brand-muted text-right mt-1">Tap to edit before sending</p>
+          <p className="text-micro text-brand-mid text-right mt-1">Tap to edit before sending</p>
         </div>
         <SheetRow
           icon={<MessageCircle size={18} className="text-brand-dark" />}
@@ -2387,7 +2410,7 @@ export default function JobDetail() {
       subtitle={job && customer ? `${customer.name} · ${job.title}` : undefined}
     >
       <div className="mb-4">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           New date & time
         </label>
         <input
@@ -2415,7 +2438,7 @@ export default function JobDetail() {
       subtitle="Charge for arriving when customer wasn't home"
     >
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Description
         </label>
         <div className="flex items-center gap-2">
@@ -2432,7 +2455,7 @@ export default function JobDetail() {
         </div>
       </div>
       <div className="mb-4">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Amount
         </label>
         <div className="relative">
@@ -2560,7 +2583,7 @@ export default function JobDetail() {
       subtitle={customer ? `${customer.name} · ${job?.title}` : undefined}
     >
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Job title
         </label>
         <input
@@ -2571,7 +2594,7 @@ export default function JobDetail() {
         />
       </div>
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Address
         </label>
         <textarea
@@ -2583,7 +2606,7 @@ export default function JobDetail() {
         />
       </div>
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Date
         </label>
         <div className="relative">
@@ -2597,7 +2620,7 @@ export default function JobDetail() {
         </div>
       </div>
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Start time
         </label>
         <div className="relative">
@@ -2611,7 +2634,7 @@ export default function JobDetail() {
         </div>
       </div>
       <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           End time <span className="normal-case font-normal tracking-0">(optional)</span>
         </label>
         {!editEndTime ? (
@@ -2640,7 +2663,7 @@ export default function JobDetail() {
         )}
       </div>
       <div className="mb-4">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-muted mb-1">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Notes (private)
         </label>
         <div className="relative">

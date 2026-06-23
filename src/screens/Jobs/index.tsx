@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronRight, ClipboardList, Search, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
@@ -82,7 +82,6 @@ const statusDotClasses: Record<JobStatus, string> = {
   written_off: 'bg-brand-border',
 };
 
-const terminalStatuses: JobStatus[] = ['paid', 'cancelled', 'written_off'];
 
 const filters: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -101,7 +100,7 @@ export default function Jobs() {
     const urlFilter = searchParams.get('filter') as Filter;
     return urlFilter && ['all', 'active', 'unpaid'].includes(urlFilter) ? urlFilter : 'all';
   });
-  const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set());
+  const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set(['in_progress', 'booked', 'quoted', 'awaiting_payment']));
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customers, setCustomers] = useState<Record<string, Customer>>({});
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -282,7 +281,10 @@ export default function Jobs() {
   );
 
   const renderGroupHeader = (status: JobStatus, count: number) => (
-    <div className="flex items-center gap-2 p-4 bg-brand-surface border border-brand-border rounded-lg mb-2.5">
+    <div
+      onClick={() => toggleGroup(status)}
+      className="flex items-center gap-2 py-2.5 px-1 mb-1 cursor-pointer active:opacity-60 transition-opacity"
+    >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-label font-bold tracking-[0.5px] text-brand-dark flex-1">
         {statusLabels[status]}
@@ -290,6 +292,7 @@ export default function Jobs() {
       <span className="text-label text-brand-dark font-medium">
         {count} job{count !== 1 ? 's' : ''}
       </span>
+      <ChevronDown size={16} className="shrink-0 text-brand-muted transition-transform duration-200" />
     </div>
   );
 
@@ -297,7 +300,7 @@ export default function Jobs() {
     <div
       key={status}
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 p-4 bg-white border border-brand-border rounded-lg cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 mb-2.5"
+      className="flex items-center gap-2 py-3 px-1 cursor-pointer active:opacity-60 transition-opacity"
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-sm font-semibold text-brand-dark flex-1">
@@ -340,8 +343,8 @@ export default function Jobs() {
     }
 
     const visibleStatuses = statusOrder.filter((s) => groups[s].length > 0);
-    const expandedGroups = visibleStatuses.filter((s) => !terminalStatuses.includes(s) || expanded.has(s));
-    const collapsedGroups = visibleStatuses.filter((s) => terminalStatuses.includes(s) && !expanded.has(s));
+    const expandedGroups = visibleStatuses.filter((s) => expanded.has(s));
+    const collapsedGroups = visibleStatuses.filter((s) => !expanded.has(s));
 
     return (
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">

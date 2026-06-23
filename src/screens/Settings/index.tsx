@@ -198,6 +198,9 @@ export default function Settings() {
           </div>
         )}
 
+        {/* Add to Home Screen — dismissible inline banner */}
+        <AddToHomeScreen banner />
+
         {/* Nudge banner */}
         {showNudge && (
           <div className="bg-status-redBg border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2.5">
@@ -424,14 +427,6 @@ export default function Settings() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* App — Add to Home Screen */}
-        <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            App
-          </div>
-          <AddToHomeScreen compact />
         </div>
 
         {/* About */}

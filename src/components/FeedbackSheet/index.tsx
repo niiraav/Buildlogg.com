@@ -59,6 +59,7 @@ export default function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
       }
 
       // 1. Store feedback in Supabase (RLS ensures user_id matches auth.uid())
+      // Fall back to local storage if Supabase is unavailable (dev mode, RLS, table missing)
       const { error: insertError } = await supabase.from('feedback').insert({
         user_id: userId,
         type,
@@ -66,7 +67,15 @@ export default function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         user_email: userEmail,
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.warn('[FeedbackSheet] Supabase insert failed, storing locally:', insertError);
+        // Store locally as fallback so feedback is never lost
+        try {
+          const existing = JSON.parse(localStorage.getItem('buildlogg_pending_feedback') || '[]');
+          existing.push({ type, message: message.trim(), userEmail, timestamp: new Date().toISOString() });
+          localStorage.setItem('buildlogg_pending_feedback', JSON.stringify(existing));
+        } catch {}
+      }
 
       // 2. Send notification email via Cloudflare Pages Function
       // Fire-and-forget — email failure shouldn't block the success state
