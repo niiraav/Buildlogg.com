@@ -745,3 +745,47 @@ button.auth-cta:hover { background: var(--ink-press); }
 button.auth-secondary:hover { background: var(--surface-soft); }
 a.auth-link:hover, button.auth-link:hover { text-decoration: underline; }
 .auth-checkbox { accent-color: var(--ink); }
+
+/* ── iOS PWA safe-area: status bar / Dynamic Island ─────────────────
+   FIX: Sticky headers must COVER the safe area, not sit below it.
+
+   Problem with old approach: headers stuck at top:safe-area-top, leaving
+   the notch area uncovered. Scrolling content was visible behind the
+   Dynamic Island — users saw settings/activity text bleeding through.
+
+   New approach:
+   1. Sticky headers stick at top:0 (covering the full safe area with
+      their background). padding-top adds the safe-area inset so the
+      header's CONTENT (h1, buttons) sits below the notch.
+   2. Negative margin-top cancels the #app-shell padding so the header
+      starts at the very top of the screen (top:0) in normal flow too.
+   3. #app-shell retains padding-top for screens WITHOUT sticky headers
+      (Auth, Onboarding) so their content also starts below the notch.
+   4. min-h-[100dvh] override stays — prevents content taller than
+      the visible area in standalone PWA mode.
+
+   env(safe-area-inset-top) returns 0 in browser mode (no-op) and
+   ~59px on iPhone 14 Pro Dynamic Island in standalone PWA mode.        */
+
+:root {
+  --safe-area-top: env(safe-area-inset-top);
+}
+
+/* 1. Sticky headers: stick at top:0 (cover notch with bg), push content below */
+.sticky.top-0 {
+  top: 0 !important;
+  padding-top: calc(env(safe-area-inset-top) + 16px) !important;
+  margin-top: calc(-1 * env(safe-area-inset-top)) !important;
+}
+
+/* 2. App shell: padding for screens WITHOUT sticky headers (Auth, Onboarding) */
+#app-shell {
+  padding-top: var(--safe-area-top);
+}
+
+/* 3. Override min-h-[100dvh] to account for the safe area.
+   In browser mode, --safe-area-top is 0, so this is a no-op (100dvh - 0 = 100dvh).
+   In standalone mode, this prevents content from being taller than the visible area. */
+.min-h-\[100dvh\] {
+  min-height: calc(100dvh - var(--safe-area-top)) !important;
+}
