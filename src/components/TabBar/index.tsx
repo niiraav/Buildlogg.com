@@ -1,16 +1,18 @@
 import React from 'react';
-import { Home, Briefcase, Settings, Bell } from 'lucide-react';
+import { Home, Briefcase, Settings, Bell, Users, BarChart3 } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 
 export interface TabBarProps {
-  activeTab: 'home' | 'jobs' | 'settings' | 'activity';
-  onNavigate: (tab: 'home' | 'jobs' | 'settings' | 'activity') => void;
+  activeTab: 'home' | 'jobs' | 'customers' | 'dashboard' | 'settings' | 'activity';
+  onNavigate: (tab: 'home' | 'jobs' | 'customers' | 'dashboard' | 'settings' | 'activity') => void;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
   const tabs = [
     { key: 'home' as const, label: 'Home', icon: Home },
     { key: 'jobs' as const, label: 'Jobs', icon: Briefcase },
+    { key: 'customers' as const, label: 'Customers', icon: Users },
+    { key: 'dashboard' as const, label: 'Stats', icon: BarChart3 },
     { key: 'activity' as const, label: 'Activity', icon: Bell },
     { key: 'settings' as const, label: 'Settings', icon: Settings },
   ];
