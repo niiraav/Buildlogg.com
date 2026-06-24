@@ -9,11 +9,24 @@ export interface Profile {
   business_name?: string;
   trade?: 'plumber' | 'electrician' | 'builder' | 'other';
   trade_other?: string;
+  business_type?: 'trades' | 'beauty' | 'home_services' | 'professional' | 'other';
+  specialty?: string;
   callout_charge: number;
   payment_terms: 'on_completion' | 'deposit' | 'invoice';
   default_labour_description: string;
   default_labour_charge: number;
   quote_valid_days: number;
+  // P2-01: PDF branding
+  logo_data_url?: string;
+  vat_registered?: boolean;
+  vat_number?: string;
+  bank_name?: string;
+  bank_account_name?: string;
+  bank_account_number?: string;
+  bank_sort_code?: string;
+  terms_and_conditions?: string;
+  // P2-08: Google reviews
+  google_business_url?: string;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -25,6 +38,12 @@ export interface Customer {
   name: string;
   phone: string;
   address?: string;
+  // P2-06: CRM fields
+  email?: string;
+  business_name?: string;
+  notes?: string;
+  is_archived?: boolean;
+  merged_into?: string;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -57,6 +76,16 @@ export interface Job {
   invoice_sent_at?: string;
   cancellation_reason?: string;
   notes?: string;
+  // P2-03: Deposit collection
+  deposit_amount?: number;
+  deposit_status?: 'none' | 'requested' | 'paid' | 'refunded';
+  deposit_stripe_link_id?: string;
+  deposit_stripe_url?: string;
+  deposit_requested_at?: string;
+  deposit_paid_at?: string;
+  cancellation_policy_hours?: number;
+  // P2-08: Google reviews
+  review_requested_at?: string;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -151,6 +180,37 @@ export interface MaterialItem {
   _sync_status: SyncStatus;
 }
 
+/* ─── P2-01: Generated Documents (PDF) ─── */
+export type DocumentType = 'quote' | 'invoice';
+
+export interface GeneratedDocument {
+  id: string;
+  job_id: string;
+  user_id: string;
+  type: DocumentType;
+  version: number;
+  blob_key: string;
+  file_name: string;
+  created_at: string;
+  _sync_status: SyncStatus;
+}
+
+/* ─── P2-02: Message Templates ─── */
+export type TemplateCategory = 'booking' | 'reminder' | 'invoice' | 'follow_up' | 'review' | 'custom';
+
+export interface MessageTemplate {
+  id: string;
+  user_id: string;
+  category: TemplateCategory;
+  name: string;
+  body: string;
+  is_default: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  _sync_status: SyncStatus;
+}
+
 class BuildloggDB extends Dexie {
   profiles!: Table<Profile>;
   customers!: Table<Customer>;
@@ -162,6 +222,8 @@ class BuildloggDB extends Dexie {
   job_photos!: Table<JobPhoto>;
   custom_items!: Table<CustomItem>;
   material_items!: Table<MaterialItem>;
+  generated_documents!: Table<GeneratedDocument>;
+  message_templates!: Table<MessageTemplate>;
 
   constructor() {
     super('BuildloggDB');
@@ -178,6 +240,12 @@ class BuildloggDB extends Dexie {
       job_photos:    'id, job_id, user_id, created_at, _sync_status',
       custom_items:  'id, user_id, sort_order, [user_id+sort_order]',
       material_items:'id, job_id, user_id, created_at, _sync_status',
+    });
+    this.version(3).stores({
+      generated_documents: 'id, job_id, user_id, type, created_at, _sync_status',
+    });
+    this.version(4).stores({
+      message_templates: 'id, user_id, category, [user_id+sort_order], _sync_status',
     });
   }
 }
