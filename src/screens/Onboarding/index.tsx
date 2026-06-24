@@ -8,13 +8,15 @@ import { supabase } from '../../lib/supabase';
 import { db } from '../../lib/db';
 import type { Profile } from '../../lib/db';
 import { ProgressDots } from '../../components/ProgressDots';
-import { hapticSuccess } from '../../lib/haptics';
+import { hapticSuccess, haptic } from '../../lib/haptics';
 import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
 import AuthDesktopLayout from '../../components/AuthDesktopLayout';
 import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle } from 'lucide-react';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
-import { seedTradeTemplates } from '../../lib/seedTemplates';
+import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
+import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
+import { captureVerticalSelected } from '../../lib/analytics';
 import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
@@ -28,6 +30,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 type TradeType = 'plumber' | 'electrician' | 'builder' | 'other';
 type PaymentTerms = 'on_completion' | 'deposit' | 'invoice';
 type Step = 1 | 2 | 3 | 4;
+
+type BeautySpecialty = 'nail_tech' | 'lash_tech' | 'salon' | 'barber' | 'tattoo' | 'other';
+
+const BEAUTY_SPECIALTIES: Array<{ value: BeautySpecialty; label: string }> = [
+  { value: 'nail_tech', label: 'Nail tech' },
+  { value: 'lash_tech', label: 'Lash tech' },
+  { value: 'salon', label: 'Salon' },
+  { value: 'barber', label: 'Barber' },
+  { value: 'tattoo', label: 'Tattoo artist' },
+  { value: 'other', label: 'Other' },
+];
 
 const TRADE_OPTIONS: Array<{ value: TradeType; label: string; icon: React.ReactNode }> = [
   { value: 'plumber', label: 'Plumber', icon: <Wrench size={18} /> },
@@ -55,6 +68,8 @@ export default function Onboarding() {
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [trade, setTrade] = useState<TradeType | undefined>();
+  const [businessType, setBusinessType] = useState<BusinessType>('trades');
+  const [beautySpecialty, setBeautySpecialty] = useState<BeautySpecialty | undefined>();
   const [tradeOther, setTradeOther] = useState('');
   const [calloutCharge, setCalloutCharge] = useState('75');
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('on_completion');
@@ -68,6 +83,15 @@ export default function Onboarding() {
   useEffect(() => {
     capture('onboarding_step_viewed', { step, total_steps: 4 });
   }, [step]);
+
+  // Detect vertical from URL (beauty-landing → beauty)
+  useEffect(() => {
+    const detected = getVerticalFromUrl();
+    if (detected === 'beauty') {
+      setBusinessType('beauty');
+      captureVerticalSelected({ businessType: 'beauty', source: 'url' });
+    }
+  }, []);
 
   // Get user on mount
   useEffect(() => {
@@ -102,6 +126,8 @@ export default function Onboarding() {
       phone: '',
       business_name: businessName.trim() || undefined,
       trade,
+      business_type: businessType,
+      specialty: businessType === 'beauty' ? beautySpecialty : trade,
       trade_other: trade === 'other' ? tradeOther.trim() || undefined : undefined,
       callout_charge: parseFloat(calloutCharge) || 75,
       payment_terms: paymentTerms,
@@ -176,7 +202,8 @@ export default function Onboarding() {
   };
 
   const handleContinueS2 = () => {
-    if (!trade) return;
+    if (businessType === 'trades' && !trade) return;
+    if (businessType === 'beauty' && !beautySpecialty) return;
     if (trade === 'other' && tradeOther.trim().length === 0) return;
     nextStep();
   };
@@ -188,7 +215,7 @@ export default function Onboarding() {
       return;
     }
     setUserId(resolvedUserId);
-    seedTradeTemplates(resolvedUserId, trade || 'other')
+    businessType === 'beauty' ? seedBeautyTemplates(resolvedUserId) : seedTradeTemplates(resolvedUserId, trade || 'other')
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
@@ -335,30 +362,51 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Trade Type — 2×2 grid */}
+                {/* Trade Type / Beauty Specialty — 2×2 grid */}
                 <div>
                   <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-2 block">
-                    Trade Type
+                    {businessType === 'beauty' ? 'Specialty' : 'Trade Type'}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {TRADE_OPTIONS.map((opt) => {
-                      const isSelected = trade === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => toggleTrade(opt.value)}
-                          className={`h-13 rounded-xl border-2 font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                            isSelected
-                              ? 'border-brand-black bg-brand-surface text-brand-black'
-                              : 'border-brand-border text-brand-mid'
-                          }`}
-                        >
-                          <span className={isSelected ? 'text-brand-black' : 'text-brand-muted'}>{opt.icon}</span>
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {businessType === 'beauty' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {BEAUTY_SPECIALTIES.map((opt) => {
+                        const isSelected = beautySpecialty === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => { setBeautySpecialty(opt.value); haptic('light'); }}
+                            className={`h-13 rounded-xl border-2 font-semibold text-sm transition-all cursor-pointer flex items-center justify-center ${
+                              isSelected
+                                ? 'border-brand-black bg-brand-surface text-brand-black'
+                                : 'border-brand-border text-brand-mid'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {TRADE_OPTIONS.map((opt) => {
+                        const isSelected = trade === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => toggleTrade(opt.value)}
+                            className={`h-13 rounded-xl border-2 font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                              isSelected
+                                ? 'border-brand-black bg-brand-surface text-brand-black'
+                                : 'border-brand-border text-brand-mid'
+                            }`}
+                          >
+                            <span className={isSelected ? 'text-brand-black' : 'text-brand-muted'}>{opt.icon}</span>
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {trade === 'other' && (
                     <div className="mt-3">
