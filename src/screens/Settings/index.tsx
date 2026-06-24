@@ -519,6 +519,26 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Google Reviews */}
+        <div className="mb-6">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
+            Reviews
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3">
+              <p className="text-sm font-medium text-brand-dark mb-2">Google Business review link</p>
+              <p className="text-xs text-brand-muted mb-2">Find your business on Google Maps → Share → Copy link</p>
+              <input
+                type="url"
+                value={profile?.google_business_url || ''}
+                onChange={(e) => updateProfile({ google_business_url: e.target.value || undefined })}
+                placeholder="https://maps.google.com/..."
+                className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Appearance */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
