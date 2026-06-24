@@ -223,3 +223,49 @@ export function capturePDFGenerated(data: { jobId: string; type: 'quote' | 'invo
 export function capturePDFShared(data: { jobId: string; type: 'quote' | 'invoice'; method: 'whatsapp' | 'download' | 'share' }) {
   capture('pdf_shared', data);
 }
+
+// P2-04: Vertical config
+export function captureVerticalSelected(data: { businessType: string; specialty?: string; source: string }) {
+  capture('vertical_selected', data);
+}
+
+// P2-05: Scheduling
+export function captureConflictDetected(data: { jobId: string; conflictCount: number; action: 'keep_both' | 'reschedule' | 'cancel' }) {
+  capture('conflict_detected', data);
+}
+
+// P2-06: Customer CRM
+export function captureCustomerSearched(data: { resultCount: number }) {
+  capture('customer_searched', data);
+}
+export function captureCustomerDetailViewed(data: { customerId: string; jobCount: number }) {
+  capture('customer_detail_viewed', data);
+}
+export function captureCustomersMerged(data: { sourceJobCount: number }) {
+  capture('customers_merged', data);
+}
+export function captureCustomerReengaged(data: { customerId: string; method: 'call' | 'whatsapp' }) {
+  capture('customer_reengaged', data);
+}
+
+// P2-07: Dashboard
+export function captureDashboardViewed() {
+  capture('dashboard_viewed');
+}
+export function captureDashboardCardTapped(data: { card: string }) {
+  capture('dashboard_card_tapped', data);
+}
+export function captureDataExported(data: { format: string; month: string }) {
+  capture('data_exported', data);
+}
+
+// P2-08: Google Reviews
+export function captureReviewRequestShown(data: { jobId: string }) {
+  capture('review_request_shown', data);
+}
+export function captureReviewRequestSent(data: { jobId: string }) {
+  capture('review_request_sent', data);
+}
+export function captureReviewRequestSkipped(data: { jobId: string }) {
+  capture('review_request_skipped', data);
+}

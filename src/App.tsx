@@ -29,6 +29,8 @@ import Quote from './screens/Quote';
 import Settings from './screens/Settings';
 import CustomItems from './screens/Settings/CustomItems';
 import MessageTemplates from './screens/Settings/MessageTemplates';
+import Dashboard from './screens/Dashboard';
+import Customers from './screens/Customers';
 import Activity from './screens/Activity';
 import AppDesktopContext from './components/AppDesktopContext';
 
@@ -43,7 +45,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /* ─── Route animation config ─── */
-const TAB_PATHS = ['/', '/jobs', '/settings', '/activity'];
+const TAB_PATHS = ['/', '/jobs', '/customers', '/dashboard', '/settings', '/activity'];
 function isTab(path: string): boolean {
   return TAB_PATHS.includes(path);
 }
@@ -242,12 +244,16 @@ function AppRoutes() {
   const activeTab =
     location.pathname === '/' ? 'home' :
     location.pathname === '/jobs' ? 'jobs' :
+    location.pathname === '/customers' || location.pathname.startsWith('/customers/') ? 'customers' :
+    location.pathname === '/dashboard' ? 'dashboard' :
     location.pathname === '/settings' ? 'settings' :
     location.pathname === '/activity' ? 'activity' : 'home';
 
-  const handleTabNavigate = (tab: 'home' | 'jobs' | 'settings' | 'activity') => {
+  const handleTabNavigate = (tab: 'home' | 'jobs' | 'customers' | 'dashboard' | 'settings' | 'activity') => {
     if (tab === 'home') {
       navigate('/');
+    } else if (tab === 'dashboard') {
+      navigate('/dashboard');
     } else {
       navigate('/' + tab);
     }
@@ -268,6 +274,8 @@ function AppRoutes() {
         <Route path="/quote" element={<Quote />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/custom-items" element={<CustomItems />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/customers" element={<Customers />} />
         <Route path="/settings/message-templates" element={<MessageTemplates />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
