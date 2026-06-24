@@ -30,6 +30,9 @@ import {
   captureNewJobInterceptLeaveInProgress,
   captureCompletionPhotoTaken,
   captureCompletionPhotoSkipped,
+  captureReviewRequestShown,
+  captureReviewRequestSent,
+  captureReviewRequestSkipped,
 } from '../../lib/analytics';
 import RecentActivity from '../../components/RecentActivity';
 import BrandedLoader from '../../components/BrandedLoader';
@@ -129,6 +132,7 @@ type SheetState =
   | 'not_home'
   | 'dismiss_confirm'
   | 'finish_previous'
+  | 'review_prompt'
 
 type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote';
 
@@ -693,6 +697,17 @@ export default function Home() {
     setSheet(null);
     setMarkDoneStep('photo');
     refresh();
+
+    // P2-08: Show review prompt if Google Business URL is set
+    if (method !== 'not_yet' && profile?.google_business_url) {
+      const cust = customerFor(selectedJobId);
+      if (cust) {
+        setTimeout(() => {
+          setSheet('review_prompt');
+          captureReviewRequestShown({ jobId: selectedJobId });
+        }, 500);
+      }
+    }
   };
 
   /* --- render helpers --- */
@@ -1450,6 +1465,42 @@ export default function Home() {
             fullWidth
           >
             Leave in progress
+          </Button>
+        </div>
+      </BottomSheet>
+
+      {/* --- Bottom Sheet: Google Review Request --- */}
+      <BottomSheet
+        isOpen={sheet === 'review_prompt'}
+        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: selectedJobId || '' }); }}
+        title="Ask for a Google review?"
+        subtitle={selectedCustomer ? `${selectedCustomer.name} · ${selectedJob?.title || ''}` : undefined}
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!selectedCustomer || !profile?.google_business_url) return;
+              const phone = selectedCustomer.phone.replace(/\D/g, '');
+              const msg = encodeURIComponent(
+                `Hi ${selectedCustomer.name.split(' ')[0]}, glad the ${selectedJob?.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
+              );
+              window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+              if (selectedJobId) {
+                const now = new Date().toISOString();
+                db.jobs.update(selectedJobId, { review_requested_at: now, _sync_status: 'pending' });
+                addToSyncQueue('jobs', selectedJobId, { review_requested_at: now });
+              }
+              captureReviewRequestSent({ jobId: selectedJobId || '' });
+              setSheet(null);
+            }}
+            fullWidth
+          >
+            <MessageCircle size={18} className="mr-2" />
+            Send via WhatsApp
+          </Button>
+          <Button variant="ghost" onClick={() => { setSheet(null); captureReviewRequestSkipped({ jobId: selectedJobId || '' }); }}>
+            Skip
           </Button>
         </div>
       </BottomSheet>
