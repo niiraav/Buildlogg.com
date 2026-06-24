@@ -31,6 +31,7 @@ import CustomItems from './screens/Settings/CustomItems';
 import MessageTemplates from './screens/Settings/MessageTemplates';
 import Dashboard from './screens/Dashboard';
 import Customers from './screens/Customers';
+import CustomerDetail from './screens/Customers/CustomerDetail';
 import Activity from './screens/Activity';
 import AppDesktopContext from './components/AppDesktopContext';
 
@@ -276,6 +277,7 @@ function AppRoutes() {
         <Route path="/settings/custom-items" element={<CustomItems />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
+        <Route path="/customers/:customerId" element={<CustomerDetail />} />
         <Route path="/settings/message-templates" element={<MessageTemplates />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
