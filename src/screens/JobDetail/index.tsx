@@ -28,6 +28,9 @@ import {
 } from '../../lib/analytics';
 import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
+import { generateInvoicePDF } from '../../lib/pdfGenerator';
+import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
+import PDFPreview from '../Quote/PDFPreview';
 import { addToCalendar } from '../../lib/calendar';
 
 /* ─── helpers ─── */
@@ -153,6 +156,7 @@ export default function JobDetail() {
   const [loading, setLoading] = useState(true);
 
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -2010,6 +2014,27 @@ export default function JobDetail() {
     );
   };
 
+  const handleGenerateInvoicePDF = async () => {
+    if (!job || !customer || !userId) return;
+    const prof = await db.profiles.get(userId);
+    if (!prof) return;
+    const items = lineItems;
+    const pays = payments;
+    const summary = paymentSummary(job, pays, items.reduce((s, i) => s + i.amount, 0));
+    const blob = generateInvoicePDF({
+      profile: prof,
+      customer,
+      job,
+      lineItems: items,
+      total: items.reduce((s, i) => s + i.amount, 0),
+      payments: pays,
+      amountDue: summary.amountDue,
+      dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+    });
+    setPdfBlob(blob);
+    capturePDFGenerated({ jobId: job.id, type: 'invoice', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
+  };
+
   const renderAwaitingPaymentFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
@@ -2021,6 +2046,13 @@ export default function JobDetail() {
         <div className="flex-1">
           <Button variant="secondary" onClick={() => setSheet('send_reminder')}>
             Send reminder
+          </Button>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-2">
+        <div className="flex-1">
+          <Button variant="secondary" onClick={handleGenerateInvoicePDF} fullWidth>
+            Invoice PDF
           </Button>
         </div>
       </div>
@@ -2848,6 +2880,15 @@ export default function JobDetail() {
           </Button>
         </div>
       </BottomSheet>
+
+      {pdfBlob && (
+        <PDFPreview
+          blob={pdfBlob}
+          fileName={`invoice-${job?.invoice_number || job?.job_number || jobId}.pdf`}
+          onBack={() => setPdfBlob(null)}
+          onShared={(method: 'whatsapp' | 'download' | 'share') => capturePDFShared({ jobId: jobId || '', type: 'invoice', method })}
+        />
+      )}
     </div>
   );
 }

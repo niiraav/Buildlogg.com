@@ -124,6 +124,25 @@ export default function Settings() {
     [userId, profile]
   );
 
+  const updateProfile = useCallback(
+    async (fields: Partial<Profile>) => {
+      if (!userId || !profile) return;
+      const n = now();
+      const update = { ...fields, updated_at: n, _sync_status: 'pending' } as Partial<Profile>;
+      await db.profiles.update(userId, update);
+      await db.sync_queue.add({
+        operation: 'update',
+        table_name: 'profiles',
+        record_id: userId,
+        payload: { ...fields, updated_at: n },
+        created_at: n,
+        retry_count: 0,
+      });
+      setProfile((prev) => (prev ? { ...prev, ...update } : prev));
+    },
+    [userId, profile]
+  );
+
   const handleLogout = async () => {
     const confirmed = window.confirm('Are you sure? You\'ll need to sign in again.');
     if (!confirmed) return;
@@ -397,6 +416,105 @@ export default function Settings() {
                 placeholder="75"
                 prefix="£"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Branding — PDF + Invoice details */}
+        <div className="mb-6">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
+            Branding
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-brand-surface">
+              <p className="text-sm font-medium text-brand-dark mb-2">Business logo (on PDFs)</p>
+              {profile?.logo_data_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={profile.logo_data_url} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-brand-border" />
+                  <button
+                    onClick={() => updateProfile({ logo_data_url: undefined })}
+                    className="text-sm text-status-error cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+                    const img = new Image();
+                    img.onload = () => {
+                      ctx.drawImage(img, 0, 0, 200, 200);
+                      updateProfile({ logo_data_url: canvas.toDataURL('image/png') });
+                    };
+                    img.src = URL.createObjectURL(file);
+                  }}
+                  className="text-sm text-brand-dark"
+                />
+              )}
+            </div>
+            <div className="px-4 py-3 border-b border-brand-surface">
+              <p className="text-sm font-medium text-brand-dark mb-2">Bank details (on invoices)</p>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={profile?.bank_name || ''}
+                  onChange={(e) => updateProfile({ bank_name: e.target.value || undefined })}
+                  placeholder="Bank name"
+                  className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                />
+                <input
+                  type="text"
+                  value={profile?.bank_account_name || ''}
+                  onChange={(e) => updateProfile({ bank_account_name: e.target.value || undefined })}
+                  placeholder="Account name"
+                  className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={profile?.bank_sort_code || ''}
+                    onChange={(e) => updateProfile({ bank_sort_code: e.target.value || undefined })}
+                    placeholder="Sort code"
+                    className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                  />
+                  <input
+                    type="text"
+                    value={profile?.bank_account_number || ''}
+                    onChange={(e) => updateProfile({ bank_account_number: e.target.value || undefined })}
+                    placeholder="Account no."
+                    className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-4 py-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={profile?.vat_registered || false}
+                  onChange={(e) => updateProfile({ vat_registered: e.target.checked })}
+                  className="w-4 h-4 accent-brand-black"
+                />
+                <span className="text-sm font-medium text-brand-dark">VAT registered</span>
+              </label>
+              {profile?.vat_registered && (
+                <input
+                  type="text"
+                  value={profile?.vat_number || ''}
+                  onChange={(e) => updateProfile({ vat_number: e.target.value || undefined })}
+                  placeholder="VAT number"
+                  className="w-full h-10 px-3 mt-2 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                />
+              )}
             </div>
           </div>
         </div>

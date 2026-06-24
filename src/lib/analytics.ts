@@ -216,3 +216,10 @@ export function captureTemplateCreated(data: { category: string }) {
 export function captureTemplateEdited(data: { templateId: string }) {
   capture('template_edited', data);
 }
+
+export function capturePDFGenerated(data: { jobId: string; type: 'quote' | 'invoice'; hasLogo: boolean; isVat: boolean }) {
+  capture('pdf_generated', data);
+}
+export function capturePDFShared(data: { jobId: string; type: 'quote' | 'invoice'; method: 'whatsapp' | 'download' | 'share' }) {
+  capture('pdf_shared', data);
+}
