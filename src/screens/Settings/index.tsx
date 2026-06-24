@@ -326,6 +326,13 @@ export default function Settings() {
                 <ChevronRight size={14} className="text-brand-muted" />
               </div>
             </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => navigate('/settings/message-templates')}
+            >
+              <span className="text-sm font-medium text-brand-dark">Message templates</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
           </div>
         </div>
 

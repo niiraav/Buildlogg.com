@@ -15,6 +15,7 @@ import AuthDesktopLayout from '../../components/AuthDesktopLayout';
 import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle } from 'lucide-react';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { seedTradeTemplates } from '../../lib/seedTemplates';
+import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -190,6 +191,7 @@ export default function Onboarding() {
     seedTradeTemplates(resolvedUserId, trade || 'other')
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
+    seedMessageTemplates(resolvedUserId).catch(() => {});
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
     captureUserSignedUp(trade, window.location.search);

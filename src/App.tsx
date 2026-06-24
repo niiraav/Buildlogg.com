@@ -28,6 +28,7 @@ import JobDetail from './screens/JobDetail';
 import Quote from './screens/Quote';
 import Settings from './screens/Settings';
 import CustomItems from './screens/Settings/CustomItems';
+import MessageTemplates from './screens/Settings/MessageTemplates';
 import Activity from './screens/Activity';
 import AppDesktopContext from './components/AppDesktopContext';
 
@@ -267,6 +268,7 @@ function AppRoutes() {
         <Route path="/quote" element={<Quote />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/custom-items" element={<CustomItems />} />
+        <Route path="/settings/message-templates" element={<MessageTemplates />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
