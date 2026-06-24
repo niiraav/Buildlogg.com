@@ -202,3 +202,7 @@ export function captureCompletionPhotoTaken(data: { jobId: string }) {
 export function captureCompletionPhotoSkipped(data: { jobId: string }) {
   capture('completion_photo_skipped', data);
 }
+
+export function captureTradeTemplatesSeeded(data: { trade: string; count: number }) {
+  capture('trade_templates_seeded', data);
+}
