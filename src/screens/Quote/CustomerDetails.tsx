@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { db } from '../../lib/db';
 import { Button } from '../../components/Button';
+import { useAppStore } from '../../store/useAppStore';
+import { searchCustomers } from '../../lib/customers';
+import type { Customer } from '../../lib/db';
 import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
@@ -59,6 +62,8 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const [loading, setLoading] = useState(!!customerId);
   const [phoneError, setPhoneError] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
+  const [autocompleteResults, setAutocompleteResults] = useState<Customer[]>([]);
+  const userId = useAppStore((s) => s.userId);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [addressFocused, setAddressFocused] = useState(false);
 
@@ -81,6 +86,26 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const handleEdit = useCallback(() => {
     if (nameRef.current) nameRef.current.focus();
   }, []);
+
+  // Debounced customer search
+  useEffect(() => {
+    if (!userId || !nameFocused || name.trim().length < 2) {
+      setAutocompleteResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const results = await searchCustomers(userId, name);
+      setAutocompleteResults(results);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [name, nameFocused, userId]);
+
+  const selectCustomer = (c: Customer) => {
+    setName(c.name === 'Unknown' ? '' : c.name);
+    setPhone(c.phone || '');
+    setAddress(c.address || '');
+    setAutocompleteResults([]);
+  };
 
   const canContinue = name.trim().length > 0 && isValidUkPhone(phone);
 
@@ -153,7 +178,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
             Customer
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
               Name
             </label>
@@ -164,12 +189,27 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               value={name}
               onChange={(e) => setName(e.target.value)}
               onFocus={() => setNameFocused(true)}
-              onBlur={() => setNameFocused(false)}
+              onBlur={() => { setTimeout(() => setNameFocused(false), 200); }}
               placeholder="e.g. Richards"
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none ${
                 nameFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
+            {autocompleteResults.length > 0 && nameFocused && (
+              <div className="absolute top-full left-0 right-0 z-50 bg-white border border-brand-border rounded-lg shadow-card mt-1 max-h-48 overflow-y-auto">
+                {autocompleteResults.map((c) => (
+                  <button
+                    key={c.id}
+                    onMouseDown={() => selectCustomer(c)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-brand-surface cursor-pointer border-b border-brand-borderLight last:border-b-0"
+                  >
+                    <p className="text-sm font-semibold text-brand-black">{c.name}</p>
+                    {c.address && <p className="text-xs text-brand-muted truncate">{c.address}</p>}
+                    {c.phone && <p className="text-xs text-brand-muted">{c.phone}</p>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mb-4">

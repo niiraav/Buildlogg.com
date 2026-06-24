@@ -29,6 +29,7 @@ import {
 import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
+import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
 import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
 import { addToCalendar } from '../../lib/calendar';
@@ -157,6 +158,7 @@ export default function JobDetail() {
 
   const [sheet, setSheet] = useState<SheetState>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -621,8 +623,39 @@ export default function JobDetail() {
     refresh();
   };
 
+  const handleConfirmWithConflicts = async () => {
+    setConflicts([]);
+    // Re-run the booking without conflict check
+    if (!job || !customer) return;
+    const n = now();
+    await db.jobs.update(job.id, { status: 'booked', updated_at: n, _sync_status: 'pending' });
+    const logId = crypto.randomUUID();
+    await db.work_log.add({ id: logId, job_id: job.id, type: 'status_change', description: 'Quote accepted — marked as booked', created_at: n, _sync_status: 'pending' });
+    await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Quote accepted — marked as booked', created_at: n }, 'insert');
+    hapticSuccess();
+    showToast('Job booked', 'success');
+    captureJobBooked();
+    refresh();
+  };
+
   const handleMarkAsBooked = async () => {
     if (!job || !customer) return;
+
+    // P2-05: Check for scheduling conflicts before booking
+    if (job.scheduled_start && userId) {
+      const detected = await detectConflicts(
+        userId,
+        job.scheduled_start,
+        job.scheduled_end || job.scheduled_start,
+        job.id,
+      );
+      if (detected.length > 0) {
+        setConflicts(detected);
+        return; // Don't proceed — show conflict warning
+      }
+    }
+
     const n = now();
     await db.jobs.update(job.id, {
       status: 'booked',
@@ -2880,6 +2913,33 @@ export default function JobDetail() {
           </Button>
         </div>
       </BottomSheet>
+
+      {/* P2-05: Scheduling conflict warning */}
+      {conflicts.length > 0 && (
+        <BottomSheet
+          isOpen={conflicts.length > 0}
+          onClose={() => setConflicts([])}
+          title="Scheduling conflict"
+          subtitle={`${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''} detected`}
+        >
+          <div className="flex flex-col gap-3 mb-4">
+            {conflicts.map((c, i) => (
+              <div key={i} className="bg-status-amberBg border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-status-amber">{c.job.title}</p>
+                <p className="text-xs text-brand-dark mt-0.5">{c.message}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button variant="primary" onClick={handleConfirmWithConflicts} fullWidth>
+              Keep both
+            </Button>
+            <Button variant="secondary" onClick={() => setConflicts([])} fullWidth>
+              Cancel
+            </Button>
+          </div>
+        </BottomSheet>
+      )}
 
       {pdfBlob && (
         <PDFPreview

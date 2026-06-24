@@ -5,6 +5,8 @@ import { db, type Job, type LineItem, type Customer, type Profile } from '../../
 import { generateQuotePDF } from '../../lib/pdfGenerator';
 import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
 import PDFPreview from './PDFPreview';
+import { fillTemplate } from '../../lib/templateEngine';
+import type { MessageTemplate } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
@@ -36,6 +38,8 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const [loading, setLoading] = useState(true);
   const [showSendSheet, setShowSendSheet] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [messageText, setMessageText] = useState('');
   const [editingMessage, setEditingMessage] = useState(false);
 
@@ -146,6 +150,23 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     const blob = generateQuotePDF({ profile: prof, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
     setPdfBlob(blob);
     capturePDFGenerated({ jobId, type: 'quote', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
+  };
+
+  const loadTemplates = async () => {
+    if (!job) return;
+    const all = await db.message_templates.where('user_id').equals(job.user_id).sortBy('sort_order');
+    setTemplates(all);
+    setShowTemplates(!showTemplates);
+  };
+
+  const applyTemplate = (tmpl: MessageTemplate) => {
+    if (!job || !customer) return;
+    const prof = profile;
+    if (!prof) return;
+    const filled = fillTemplate(tmpl.body, job, customer, prof, total);
+    setMessageText(filled);
+    setEditingMessage(true);
+    setShowTemplates(false);
   };
 
   const handleSend = async (method: 'whatsapp' | 'sms' | 'copy') => {
@@ -278,6 +299,30 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         onClose={() => setShowSendSheet(false)}
         title={`Send to ${customerFirstName}?`}
       >
+        {/* Template picker toggle */}
+        <button
+          onClick={loadTemplates}
+          className="text-xs font-semibold text-brand-dark mb-2 cursor-pointer"
+        >
+          {showTemplates ? 'Hide templates' : 'Use a template ↑'}
+        </button>
+
+        {/* Template list */}
+        {showTemplates && templates.length > 0 && (
+          <div className="flex flex-col gap-1.5 mb-3 max-h-40 overflow-y-auto">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => applyTemplate(t)}
+                className="text-left px-3 py-2 bg-brand-surface border border-brand-border rounded-lg cursor-pointer active:opacity-70"
+              >
+                <span className="text-xs font-semibold text-brand-black">{t.name}</span>
+                <p className="text-xs text-brand-muted truncate mt-0.5">{t.body.substring(0, 60)}...</p>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Message preview — editable */}
         <div className="mb-4">
           {editingMessage ? (

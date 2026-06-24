@@ -1093,12 +1093,15 @@ export default function Home() {
             </span>
           </div>
           {totalOwed > 0 && (
-            <div className="text-right">
+            <div
+              className="text-right cursor-pointer active:opacity-70"
+              onClick={() => navigate('/dashboard')}
+            >
               <span className="text-xl font-extrabold text-brand-black block">
                 £{Number(totalOwed).toFixed(2)}
               </span>
               <span className="text-label text-brand-dark block mt-0.5">
-                owed to you
+                owed to you →
               </span>
             </div>
           )}
