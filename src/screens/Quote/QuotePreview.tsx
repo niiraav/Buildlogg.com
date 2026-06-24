@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Clipboard, Phone } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Clipboard, Phone, FileText } from 'lucide-react';
 import { db, type Job, type LineItem, type Customer, type Profile } from '../../lib/db';
+import { generateQuotePDF } from '../../lib/pdfGenerator';
+import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
+import PDFPreview from './PDFPreview';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
@@ -32,6 +35,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSendSheet, setShowSendSheet] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [messageText, setMessageText] = useState('');
   const [editingMessage, setEditingMessage] = useState(false);
 
@@ -130,6 +134,18 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const handleOpenSend = () => {
     if (!messageText) setMessageText(defaultMessage);
     setShowSendSheet(true);
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!job || !customer) return;
+    const prof = await db.profiles.get(job.user_id);
+    if (!prof) return;
+    const items = await db.line_items.where('job_id').equals(jobId).toArray();
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + (prof.quote_valid_days || 30));
+    const blob = generateQuotePDF({ profile: prof, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
+    setPdfBlob(blob);
+    capturePDFGenerated({ jobId, type: 'quote', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
   };
 
   const handleSend = async (method: 'whatsapp' | 'sms' | 'copy') => {
@@ -304,6 +320,14 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
             <Phone size={18} className="mr-2" />
             Send via SMS
           </Button>
+          <Button
+            variant="secondary"
+            onClick={handleGeneratePDF}
+            fullWidth
+          >
+            <FileText size={18} className="mr-2" />
+            Share as PDF
+          </Button>
           <button
             onClick={() => handleSend('copy')}
             className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-mid cursor-pointer underline underline-offset-2"
@@ -319,6 +343,15 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
           </button>
         </div>
       </BottomSheet>
+
+      {pdfBlob && (
+        <PDFPreview
+          blob={pdfBlob}
+          fileName={`quote-${job?.job_number || jobId}.pdf`}
+          onBack={() => setPdfBlob(null)}
+          onShared={(method: 'whatsapp' | 'download' | 'share') => capturePDFShared({ jobId, type: 'quote', method })}
+        />
+      )}
     </div>
   );
 }
