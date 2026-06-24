@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { db } from '../../lib/db';
 import { Button } from '../../components/Button';
+import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
 
@@ -102,7 +103,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={48} fullscreen={false} />
         </div>
       </div>
     );

@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../../components/Button';
 import { haptic } from '../../lib/haptics';
 import { captureCustomItemAdded } from '../../lib/analytics';
+import BrandedLoader from '../../components/BrandedLoader';
 
 export default function CustomItems() {
   const userId = useAppStore((s) => s.userId);
@@ -85,7 +86,7 @@ export default function CustomItems() {
           <h1 className="text-lg font-bold text-brand-black">My Items</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={36} fullscreen={false} />
         </div>
       </div>
     );

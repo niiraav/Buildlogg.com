@@ -9,6 +9,7 @@ import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { InlineEditRow } from '../../components/InlineEditRow';
 import SyncIndicator from '../../components/SyncIndicator';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
+import BrandedLoader from '../../components/BrandedLoader';
 import FeedbackSheet from '../../components/FeedbackSheet';
 
 const TRADE_OPTIONS: Array<{ value: Profile['trade']; label: string }> = [
@@ -152,11 +153,7 @@ export default function Settings() {
   const businessNameEmpty = !businessName.trim();
 
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
-        <div className="text-sm text-brand-muted">Loading…</div>
-      </div>
-    );
+    return <BrandedLoader fullscreen />;
   }
 
   return (

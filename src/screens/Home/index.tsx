@@ -32,6 +32,7 @@ import {
   captureCompletionPhotoSkipped,
 } from '../../lib/analytics';
 import RecentActivity from '../../components/RecentActivity';
+import BrandedLoader from '../../components/BrandedLoader';
 
 const now = () => new Date().toISOString();
 
@@ -107,7 +108,13 @@ function timeAgo(minutes: number): string {
   if (minutes < 60) return `${minutes} min ago`;
   const h = Math.floor(minutes / 60);
   if (h === 1) return '1h ago';
-  return `${h}h ago`;
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  // For older items, show the date
+  const date = new Date(Date.now() - minutes * 60 * 1000);
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 /* --- types --- */
@@ -395,7 +402,7 @@ export default function Home() {
             isL2: false,
             type: 'draft_quote',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: '',
+            contextLine: j.title,
           });
         } else if (ageMs < 2 * 60 * 60 * 1000) {
           // Urgent new enquiries (not missed calls, no line items, < 2 hours)
@@ -461,7 +468,15 @@ export default function Home() {
   }, [jobs, customers, lineItems, userId, tick]);
 
   const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue');
-  const draftTasks = tasks.filter((t) => t.type === 'draft_quote');
+  const draftTasks = tasks
+    .filter((t) => t.type === 'draft_quote')
+    .sort((a, b) => {
+      const aJob = jobs.find((j) => j.id === a.jobId);
+      const bJob = jobs.find((j) => j.id === b.jobId);
+      const aTime = aJob?.updated_at ? new Date(aJob.updated_at).getTime() : 0;
+      const bTime = bJob?.updated_at ? new Date(bJob.updated_at).getTime() : 0;
+      return bTime - aTime; // most recently edited first
+    });
   const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue' && t.type !== 'draft_quote');
   const l2Count = actTodayTasks.length;
   const draftsCount = draftTasks.length;
@@ -1046,17 +1061,13 @@ export default function Home() {
 
   /* --- main render --- */
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
-        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-      </div>
-    );
+    return <BrandedLoader fullscreen />;
   }
 
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-4 bg-[var(--app-shell-bg)]">
+      <div className="sticky top-0 z-40 px-4 pt-4 pb-2 bg-[var(--app-shell-bg)]">
         <div className="flex items-start justify-between">
           <div>
             <span className="text-lg font-bold text-brand-black block">
@@ -1183,7 +1194,6 @@ export default function Home() {
         isOpen={sheet === 'mark_done'}
         onClose={() => { setSheet(null); setMarkDoneStep('photo'); }}
         title={markDoneStep === 'photo' ? 'Job done' : 'How were you paid?'}
-        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'
@@ -1270,7 +1280,6 @@ export default function Home() {
                   : 0)
             : 0
         )}`}
-        titleIcon={markDoneStep === 'photo' ? <Camera size={20} /> : undefined}
         subtitle={
           markDoneStep === 'photo'
             ? 'Snap a quick photo for your records?'
