@@ -206,3 +206,13 @@ export function captureCompletionPhotoSkipped(data: { jobId: string }) {
 export function captureTradeTemplatesSeeded(data: { trade: string; count: number }) {
   capture('trade_templates_seeded', data);
 }
+
+export function captureTemplateUsed(data: { templateId: string; category: string; context: string }) {
+  capture('template_used', data);
+}
+export function captureTemplateCreated(data: { category: string }) {
+  capture('template_created', data);
+}
+export function captureTemplateEdited(data: { templateId: string }) {
+  capture('template_edited', data);
+}
