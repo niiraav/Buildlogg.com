@@ -6,6 +6,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import SyncIndicator from '../../components/SyncIndicator';
 import { Button } from '../../components/Button';
+import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
 
@@ -356,11 +357,7 @@ export default function Jobs() {
 
   /* ─── main render ─── */
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
-        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-      </div>
-    );
+    return <BrandedLoader fullscreen />;
   }
 
   return (

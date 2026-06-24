@@ -16,6 +16,7 @@ import { identifyUser, capture, initAnalytics } from './lib/analytics';
 import { initialSync } from './lib/initialSync';
 import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
+import BrandedLoader from './components/BrandedLoader';
 import { isDarkModeEnabled } from './hooks/useTheme';
 import { ToastContainer } from './components/Toast';
 import { TabBar } from './components/TabBar';
@@ -204,11 +205,7 @@ function AuthGuard() {
   }, [navigate, setUserId, setOnline]);
 
   if (checking) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-      </div>
-    );
+    return <BrandedLoader fullscreen />;
   }
 
   return <Outlet />;

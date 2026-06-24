@@ -18,6 +18,7 @@ import { MapPreview } from '../../components/MapPreview';
 import { InvoiceItemRow, InvoiceTotalRow } from '../../components/InvoiceItemRow';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PhotoGallery } from '../../components/PhotoGallery';
+import BrandedLoader from '../../components/BrandedLoader';
 import {
   captureNewJobInterceptShown,
   captureNewJobInterceptMarkDone,
@@ -329,9 +330,14 @@ export default function JobDetail() {
     });
     await addToSyncQueue('line_items', liId, { id: liId, description: chargeDesc.trim(), amount, job_id: jobId!, added_on_site: true, sort_order: lineItems.length, created_at: n }, 'insert');
     await addToSyncQueue('work_log', workLogId, { id: workLogId, job_id: jobId!, type: 'charge', description: `${chargeDesc.trim()} — £${amount.toFixed(2)} (Total: £${newTotal.toFixed(2)})`, amount, line_item_id: liId, created_at: n }, 'insert');
+
+    // Prompt to notify customer about the new charge
+    const customerFirstName = customer?.name.split(' ')[0] || 'there';
+    const business = profile?.business_name || profile?.full_name || 'Your tradesperson';
+    setUpdateMessage(`Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`);
     setChargeDesc('');
     setChargeAmount('');
-    setSheet(null);
+    setSheet('send_update');
     refresh();
   };
 
@@ -2037,7 +2043,7 @@ export default function JobDetail() {
         label="Add a note"
         onTap={() => setSheet('add_note')}
       />
-      {(job?.status === 'in_progress' || job?.status === 'awaiting_payment' || job?.status === 'booked' || job?.status === 'no_show') && (
+      {(job?.status === 'in_progress' || job?.status === 'awaiting_payment' || job?.status === 'booked' || job?.status === 'no_show' || job?.status === 'quoted') && (
         <SheetRow
           label="Add charge"
           onTap={() => setSheet('add_charge')}
@@ -2723,7 +2729,7 @@ export default function JobDetail() {
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={48} fullscreen={false} />
         </div>
       </div>
     );

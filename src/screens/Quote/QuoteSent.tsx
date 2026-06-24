@@ -4,6 +4,7 @@ import { db, type Job, type Customer } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
+import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
 
@@ -47,7 +48,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={48} fullscreen={false} />
         </div>
       </div>
     );

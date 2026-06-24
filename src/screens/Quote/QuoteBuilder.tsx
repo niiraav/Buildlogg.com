@@ -8,6 +8,7 @@ import { VoiceInputButton } from '../../components/VoiceInputButton';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
+import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
 
@@ -554,7 +555,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={48} fullscreen={false} />
         </div>
       </div>
     );

@@ -7,6 +7,7 @@ import SyncIndicator from '../../components/SyncIndicator';
 import { captureActivityViewed } from '../../lib/analytics';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { filterEvents, groupByDay, type ActivityEvent, type DaySummary } from '../../lib/activityFilter';
+import BrandedLoader from '../../components/BrandedLoader';
 
 interface EnrichedJob {
   id: string;
@@ -104,11 +105,7 @@ export default function Activity() {
   const totalJobs = days.reduce((sum, d) => sum + d.jobsCompleted, 0);
 
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
-        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
-      </div>
-    );
+    return <BrandedLoader fullscreen />;
   }
 
   return (

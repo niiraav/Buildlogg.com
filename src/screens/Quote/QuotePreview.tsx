@@ -8,6 +8,7 @@ import { QuotePreviewCard } from '../../components/QuotePreviewCard';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { BottomSheet } from '../../components/BottomSheet';
+import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
 
@@ -167,7 +168,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+          <BrandedLoader size={48} fullscreen={false} />
         </div>
       </div>
     );
