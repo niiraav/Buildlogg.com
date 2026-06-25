@@ -2903,7 +2903,7 @@ export default function JobDetail() {
               if (!customer || !profile?.google_business_url || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
               const msg = encodeURIComponent(
-                `Hi ${customer}.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
+                `Hi ${customer.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
               );
               window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
               const now = new Date().toISOString();
