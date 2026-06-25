@@ -354,7 +354,11 @@ export default function JobDetail() {
     setUpdateMessage(`Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`);
     setChargeDesc('');
     setChargeAmount('');
-    setSheet('send_update');
+    setSendSheetConfig({
+      title: `Send update to ${customer?.name || 'customer'}?`,
+      messageText: updateMessage,
+      onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
+    });
     refresh();
   };
 
@@ -724,7 +728,11 @@ export default function JobDetail() {
       ? `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr} at ${timeStr}. See you then! — ${business}`
       : `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr}. See you then! — ${business}`;
     setBookingMessage(msg);
-    setSheet('booking_confirmation');
+    setSendSheetConfig({
+      title: `Send confirmation to ${customer?.name || 'customer'}?`,
+      messageText: bookingMessage,
+      onSend: (method, pdfShared) => handleSendBookingConfirmation(method, pdfShared),
+    });
   };
 
   const handleStartJob = async () => {
@@ -928,7 +936,11 @@ export default function JobDetail() {
         : 'There are some updates to your job details.';
       const msg = `Hi ${customerFirstName}, ${changeText} ${job.title}. — ${business}`;
       setUpdateMessage(msg);
-      setSheet('send_update');
+      setSendSheetConfig({
+        title: `Send update to ${customer?.name || 'customer'}?`,
+        messageText: updateMessage,
+        onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
+      });
     } else {
       setSheet(null);
     }
@@ -945,16 +957,8 @@ export default function JobDetail() {
     setEditAddress(customer?.address || '');
   };
 
-  const handleSendUpdate = async (method: 'whatsapp' | 'sms') => {
+  const handleSendUpdate = async (method: SendMethod, _pdfShared: boolean) => {
     if (!customer || !updateMessage) return;
-    const phone = customer.phone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(updateMessage);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -962,7 +966,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
+      description: `[Update sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -970,7 +974,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
+      description: `[Update sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
     }, 'insert');
 
@@ -978,16 +982,8 @@ export default function JobDetail() {
     setUpdateMessage('');
   };
 
-  const handleSendBookingConfirmation = async (method: 'whatsapp' | 'sms') => {
+  const handleSendBookingConfirmation = async (method: SendMethod, _pdfShared: boolean) => {
     if (!customer || !bookingMessage) return;
-    const phone = customer.phone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(bookingMessage);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -995,7 +991,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1003,25 +999,17 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
     }, 'insert');
 
     setSheet(null);
   };
 
-  const handleSendReceipt = async (method: 'whatsapp' | 'sms') => {
+  const handleSendReceipt = async (method: SendMethod, _pdfShared: boolean) => {
     if (!job || !customer) return;
-    const phone = customer.phone.replace(/\D/g, '');
     const business = profile?.business_name || 'Your tradesperson';
     const msg = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
-    const encoded = encodeURIComponent(msg);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -1029,7 +1017,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
+      description: `[Receipt sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1037,7 +1025,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
+      description: `[Receipt sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
     }, 'insert');
 
@@ -1134,45 +1122,21 @@ export default function JobDetail() {
     window.open(`sms:${customer.phone}?body=${body}`, '_blank');
   };
 
-  const renderSendReceiptSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'send_receipt'}
-      onClose={() => setSheet(null)}
-      title="Send receipt to customer?"
-      subtitle={customer ? `${customer.name} · £${total.toFixed(2)}` : undefined}
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed">
-            Hi {customer?.name}, payment of £{total.toFixed(2)} for {job?.title} has been confirmed. Thanks for your business! — {profile?.business_name || 'Your tradesperson'}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendReceipt('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendReceipt('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip
-        </button>
-      </div>
-    </BottomSheet>
-  );
-
   /* ─── render helpers ─── */
 
   const renderPaidFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => setSheet('send_receipt')}>
+        <Button variant="primary" onClick={() => {
+          if (!job || !customer) return;
+          const business = profile?.business_name || 'Your tradesperson';
+          const receiptMsg = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
+          setSendSheetConfig({
+            title: `Send receipt to ${customer.name}?`,
+            messageText: receiptMsg,
+            onSend: (method, pdfShared) => handleSendReceipt(method, pdfShared),
+          });
+        }}>
           Send receipt
         </Button>
         <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -2645,36 +2609,6 @@ export default function JobDetail() {
     );
   };
 
-  const renderBookingConfirmationSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'booking_confirmation'}
-      onClose={() => setSheet(null)}
-      title="Send booking confirmation?"
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">{bookingMessage}</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendBookingConfirmation('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendBookingConfirmation('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip — already told them
-        </button>
-      </div>
-    </BottomSheet>
-  );
-
   const renderEditDetailsSheet = () => (
     <BottomSheet
       isOpen={sheet === 'edit_details'}
@@ -2787,36 +2721,6 @@ export default function JobDetail() {
     </BottomSheet>
   );
 
-  const renderSendUpdateSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'send_update'}
-      onClose={() => { setSheet(null); setUpdateMessage(''); }}
-      title="Send update to customer?"
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">{updateMessage}</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendUpdate('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendUpdate('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip — already told them
-        </button>
-      </div>
-    </BottomSheet>
-  );
-
   /* ─── main render ─── */
 
   if (loading) {
@@ -2876,10 +2780,8 @@ export default function JobDetail() {
       {renderCalloutChargeSheet()}
       {renderChangeStatusSheet()}
       {renderEditPaymentMethodSheet()}
-      {renderBookingConfirmationSheet()}
+      
       {renderEditDetailsSheet()}
-      {renderSendUpdateSheet()}
-      {renderSendReceiptSheet()}
 
       {/* --- Bottom Sheet: Finish Previous Job (new-job intercept) --- */}
       <BottomSheet
