@@ -11,24 +11,22 @@ export async function initAnalytics() {
     return;
   }
 
-  // Check if the PostHog event endpoint is reachable before initializing.
-  // Ad-blockers block POST requests to /e/ at the network level (ERR_BLOCKED_BY_CLIENT).
-  // We test with a real POST — if it throws OR returns type:'error', the endpoint is blocked.
+  // Check if the PostHog ingestion endpoint is reachable before initializing.
+  // Ad-blockers block requests to eu.i.posthog.com (the ingestion endpoint).
+  // The SDK sends events to {host}/e/ but with a different subdomain pattern.
+  // We test the actual ingestion URL — if blocked, skip init to prevent console spam.
+  const ingestionHost = POSTHOG_HOST.replace('eu.posthog.com', 'eu.i.posthog.com');
   let posthogBlocked = false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${POSTHOG_HOST}/e/`, {
-      method: 'POST',
+    // GET to the ingestion root — returns 200 if reachable, throws if blocked
+    await fetch(`${ingestionHost}/`, {
+      method: 'GET',
       signal: controller.signal,
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
     });
     clearTimeout(timeout);
-    // no-cors returns type:'opaque' if the request went through.
-    // type:'error' means it was blocked even though fetch didn't throw.
-    if (res.type === 'error') posthogBlocked = true;
   } catch {
     posthogBlocked = true;
   }
