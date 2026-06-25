@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
+  ChevronLeft, Phone, MessageCircle, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -29,6 +29,7 @@ import {
 import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
+import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
 import { capturePDFGenerated, capturePDFShared, captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
@@ -157,6 +158,14 @@ export default function JobDetail() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [sendSheetConfig, setSendSheetConfig] = useState<{
+    title: string;
+    messageText: string;
+    onSend: (method: SendMethod, pdfShared: boolean) => void;
+    pdfOptions?: { label: string; generatePdf: () => Blob; fileName: string; onPdfGenerated?: () => void };
+    fullMessage?: string;
+    compactMessage?: string;
+  } | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
@@ -178,7 +187,7 @@ export default function JobDetail() {
       setCalloutAmount('75');
     }
   }, [profile]);
-  const [reminderText, setReminderText] = useState('');
+  const [reminderText, _setReminderText] = useState('');
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [calloutDesc, setCalloutDesc] = useState('Callout charge');
   const [calloutAmount, setCalloutAmount] = useState('');
@@ -1087,26 +1096,19 @@ export default function JobDetail() {
     navigate(`/jobs/${newJobId}`);
   };
 
-  const handleSendReminder = async (method: 'whatsapp' | 'sms') => {
+  const handleSendReminder = async (method: SendMethod, pdfShared: boolean) => {
     if (!job || !customer) return;
     const n = now();
     const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
     const body = reminderText || defaultText;
-    const encodedBody = encodeURIComponent(body);
-
-    if (method === 'whatsapp') {
-      const phone = customer.phone.replace(/^\+/, '').replace(/^0/, '44');
-      window.open(`https://wa.me/${phone}?text=${encodedBody}`, '_blank');
-    } else {
-      window.open(`sms:${customer.phone}?body=${encodedBody}`, '_blank');
-    }
+    const methodLabel = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS';
 
     const logId = crypto.randomUUID();
     await db.work_log.add({
       id: logId,
       job_id: job.id,
       type: 'status_change',
-      description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`,
+      description: `[Reminder sent via ${methodLabel}${pdfShared ? ' (PDF attached)' : ''}] ${body}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1117,7 +1119,7 @@ export default function JobDetail() {
     });
     await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n }, 'update');
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`, created_at: n }, 'insert');
-    capturePaymentChase(method);
+    capturePaymentChase(method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
     setSheet(null);
     refresh();
   };
@@ -2120,7 +2122,26 @@ export default function JobDetail() {
           </Button>
         </div>
         <div className="flex-1">
-          <Button variant="secondary" onClick={() => setSheet('send_reminder')}>
+          <Button variant="secondary" onClick={() => {
+              if (!job || !customer) return;
+              const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
+              const compactText = `Hi ${customer.name}, your invoice for ${job.title} is ready. Amount due: £${total.toFixed(2)}. Details attached. Thanks!`;
+              setSendSheetConfig({
+                title: `Send reminder to ${customer.name}?`,
+                messageText: reminderText || defaultText,
+                onSend: (method, pdfShared) => handleSendReminder(method, pdfShared),
+                pdfOptions: {
+                  label: 'Attach PDF invoice',
+                  generatePdf: () => {
+                    if (!profile || !customer || !job) throw new Error('Missing data');
+                    return generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: total, dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined });
+                  },
+                  fileName: `invoice-${job.invoice_number || job.job_number}.pdf`,
+                },
+                fullMessage: defaultText,
+                compactMessage: compactText,
+              });
+            }}>
             Send reminder
           </Button>
         </div>
@@ -2480,41 +2501,6 @@ export default function JobDetail() {
       />
     </BottomSheet>
   );
-
-  const renderSendReminderSheet = () => {
-    if (!job || !customer) return null;
-    const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
-
-    return (
-      <BottomSheet
-        isOpen={sheet === 'send_reminder'}
-        onClose={() => setSheet(null)}
-        title={`Send reminder to ${customer.name}?`}
-      >
-        <div className="mb-3">
-          <textarea
-            value={reminderText || defaultText}
-            onChange={(e) => setReminderText(e.target.value)}
-            rows={4}
-            className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-dark placeholder:text-brand-muted outline-none focus:border-brand-black resize-none leading-relaxed"
-          />
-          <p className="text-micro text-brand-mid text-right mt-1">Tap to edit before sending</p>
-        </div>
-        <SheetRow
-          icon={<MessageCircle size={18} className="text-brand-dark" />}
-          label="Send via WhatsApp"
-          onTap={() => handleSendReminder('whatsapp')}
-        />
-        <SheetRow
-          icon={<MessageSquare size={18} className="text-brand-dark" />}
-          label="Send via SMS"
-          onTap={() => handleSendReminder('sms')}
-          isLast
-        />
-      </BottomSheet>
-    );
-  };
-
 
   const renderRescheduleSheet = () => (
     <BottomSheet
@@ -2885,7 +2871,7 @@ export default function JobDetail() {
       {renderMarkPaidSheet()}
       {renderDepositSheet()}
       {renderWriteOffSheet()}
-      {renderSendReminderSheet()}
+      
       {renderRescheduleSheet()}
       {renderCalloutChargeSheet()}
       {renderChangeStatusSheet()}
@@ -2956,6 +2942,23 @@ export default function JobDetail() {
           </Button>
         </div>
       </BottomSheet>
+
+            {/* SendSheet — used by reminder and other send flows */}
+      <SendSheet
+        isOpen={!!sendSheetConfig}
+        onClose={() => { setSendSheetConfig(null); setSheet(null); }}
+        title={sendSheetConfig?.title || ''}
+        customerPhone={customer?.phone || ''}
+        messageText={sendSheetConfig?.messageText || ''}
+        onMessageChange={(text: string) => setSendSheetConfig(prev => prev ? { ...prev, messageText: text } : prev)}
+        onSend={(method: SendMethod, pdfShared: boolean) => {
+          if (sendSheetConfig) sendSheetConfig.onSend(method, pdfShared);
+          setSendSheetConfig(null);
+        }}
+        pdfOptions={sendSheetConfig?.pdfOptions}
+        fullMessage={sendSheetConfig?.fullMessage}
+        compactMessage={sendSheetConfig?.compactMessage}
+      />
 
       {/* P2-05: Scheduling conflict warning */}
       {conflicts.length > 0 && (

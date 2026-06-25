@@ -122,10 +122,10 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
   // BUG FIX: Always regenerate message when data changes, unless user is actively editing
   useEffect(() => {
-    if (!editingMessage) {
+    if (true) {
       setMessageText(defaultMessage);
     }
-  }, [defaultMessage, editingMessage]);
+  }, [defaultMessage]);
 
   // Compact message for when PDF is attached (no line items, just total)
   const compactMessage = useMemo(() => {
