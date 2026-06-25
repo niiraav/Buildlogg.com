@@ -30,7 +30,7 @@ import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
-import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
+import { capturePDFGenerated, capturePDFShared, captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
 import { addToCalendar } from '../../lib/calendar';
 
@@ -139,7 +139,8 @@ type SheetState =
   | 'edit_payment_method'
   | 'finish_previous'
   | 'record_deposit'
-  | 'write_off';
+  | 'write_off'
+  | 'review_prompt';
 
 /* ─── component ─── */
 
@@ -467,6 +468,14 @@ export default function JobDetail() {
           hapticSuccess();
           showSuccess('Job marked as paid');
           captureJobMarkedPaid();
+
+          // P2-08: Show review prompt if Google reviews are enabled
+          if (profile?.google_business_url && profile?.reviews_enabled !== false) {
+            setTimeout(() => {
+              setSheet('review_prompt');
+              captureReviewRequestShown({ jobId: job.id });
+            }, 500);
+          }
         } else {
           showToast('Deposit recorded — balance still due', 'info', 2500);
         }
@@ -520,7 +529,17 @@ export default function JobDetail() {
         _sync_status: 'pending',
       });
       if (fullyPaidNow) {
+        hapticSuccess();
+        showSuccess('Job marked as paid');
         captureJobMarkedPaid();
+
+        // P2-08: Show review prompt if Google reviews are enabled
+        if (profile?.google_business_url && profile?.reviews_enabled !== false) {
+          setTimeout(() => {
+            setSheet('review_prompt');
+            captureReviewRequestShown({ jobId: job.id });
+          }, 500);
+        }
       }
       const logId = crypto.randomUUID();
       await db.work_log.add({
@@ -535,7 +554,11 @@ export default function JobDetail() {
       await addToSyncQueue('payments', payId, { id: payId, job_id: job.id, type: summary.nextPaymentType, method, amount: summary.amountDue, recorded_at: n, created_at: n }, 'insert');
       await addToSyncQueue('jobs', job.id, { status: fullyPaidNow ? 'paid' : 'awaiting_payment', updated_at: n }, 'update');
       await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`, amount: summary.amountDue, created_at: n }, 'insert');
-      setSheet(null);
+      if (fullyPaidNow && profile?.google_business_url && profile?.reviews_enabled !== false) {
+        // Don't close sheet — review prompt will open
+      } else {
+        setSheet(null);
+      }
     } finally {
       setPaymentProcessing(false);
       setMarkDoneStep('photo');
@@ -2940,6 +2963,40 @@ export default function JobDetail() {
           </div>
         </BottomSheet>
       )}
+
+      {/* P2-08: Google Review Request */}
+      <BottomSheet
+        isOpen={sheet === 'review_prompt'}
+        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
+        title="Ask for a Google review?"
+        subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!customer || !profile?.google_business_url || !job) return;
+              const phone = customer.phone.replace(/\D/g, '');
+              const msg = encodeURIComponent(
+                `Hi ${customer}.name.split(' ')[0]}, glad the \${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
+              );
+              window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+              const now = new Date().toISOString();
+              db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
+              addToSyncQueue('jobs', job.id, { review_requested_at: now });
+              captureReviewRequestSent({ jobId: job.id });
+              setSheet(null);
+            }}
+            fullWidth
+          >
+            <MessageCircle size={18} className="mr-2" />
+            Send via WhatsApp
+          </Button>
+          <Button variant="ghost" onClick={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
+            Skip
+          </Button>
+        </div>
+      </BottomSheet>
 
       {pdfBlob && (
         <PDFPreview
