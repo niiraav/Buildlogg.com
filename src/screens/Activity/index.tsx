@@ -135,6 +135,12 @@ export default function Activity() {
               <p className="text-lg font-extrabold text-brand-black">{totalDays}</p>
             </div>
           </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-xs font-semibold text-brand-dark mt-2 cursor-pointer"
+          >
+            View full stats →
+          </button>
         </div>
       )}
 

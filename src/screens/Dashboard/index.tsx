@@ -51,14 +51,14 @@ export default function Dashboard() {
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
+        <button onClick={() => navigate('/settings')} className="flex items-center text-brand-dark cursor-pointer mb-2">
+          <ChevronLeft size={20} />
+        </button>
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="flex items-center gap-1 text-brand-dark cursor-pointer">
-            <ChevronLeft size={20} />
-            <span className="text-sm font-medium">Home</span>
-          </button>
           <h1 className="text-xl font-extrabold text-brand-black">Stats</h1>
-          <button onClick={handleExport} className="w-8 h-8 flex items-center justify-center text-brand-black cursor-pointer">
-            <Download size={18} />
+          <button onClick={handleExport} className="flex items-center gap-1.5 text-xs font-semibold text-brand-dark bg-brand-surface border border-brand-border px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70">
+            <Download size={14} />
+            Export jobs (CSV)
           </button>
         </div>
       </div>
