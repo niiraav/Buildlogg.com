@@ -27,6 +27,7 @@ export interface Profile {
   terms_and_conditions?: string;
   // P2-08: Google reviews
   google_business_url?: string;
+  reviews_enabled?: boolean;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;

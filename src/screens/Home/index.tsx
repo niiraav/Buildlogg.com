@@ -699,7 +699,7 @@ export default function Home() {
     refresh();
 
     // P2-08: Show review prompt if Google Business URL is set
-    if (method !== 'not_yet' && profile?.google_business_url) {
+    if (method !== 'not_yet' && profile?.google_business_url && profile?.reviews_enabled !== false) {
       const cust = customerFor(selectedJobId);
       if (cust) {
         setTimeout(() => {
