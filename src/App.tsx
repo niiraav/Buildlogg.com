@@ -46,7 +46,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /* ─── Route animation config ─── */
-const TAB_PATHS = ['/', '/jobs', '/customers', '/dashboard', '/settings', '/activity'];
+const TAB_PATHS = ['/', '/jobs', '/settings', '/activity'];
 function isTab(path: string): boolean {
   return TAB_PATHS.includes(path);
 }
@@ -245,16 +245,12 @@ function AppRoutes() {
   const activeTab =
     location.pathname === '/' ? 'home' :
     location.pathname === '/jobs' ? 'jobs' :
-    location.pathname === '/customers' || location.pathname.startsWith('/customers/') ? 'customers' :
-    location.pathname === '/dashboard' ? 'dashboard' :
     location.pathname === '/settings' ? 'settings' :
     location.pathname === '/activity' ? 'activity' : 'home';
 
-  const handleTabNavigate = (tab: 'home' | 'jobs' | 'customers' | 'dashboard' | 'settings' | 'activity') => {
+  const handleTabNavigate = (tab: 'home' | 'jobs' | 'settings' | 'activity') => {
     if (tab === 'home') {
       navigate('/');
-    } else if (tab === 'dashboard') {
-      navigate('/dashboard');
     } else {
       navigate('/' + tab);
     }
@@ -305,7 +301,7 @@ function AppRoutes() {
     <div className="flex-1 min-h-[100dvh] flex flex-col md:flex-row md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
       <div className="flex-1 flex flex-col md:flex-row md:max-w-[1440px]">
         {/* Left panel — contextual help (40%) */}
-        <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto md:w-[40%]">
+        <div className="hidden md:flex flex-col auth-left-panel p-8 lg:p-10 overflow-y-auto md:w-[40%] md:sticky md:top-0 md:h-[100dvh]">
           <AppDesktopContext />
         </div>
 

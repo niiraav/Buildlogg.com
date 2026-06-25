@@ -355,6 +355,29 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* More — Stats & Clients */}
+        <div className="mb-6">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
+            More
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
+              onClick={() => navigate('/dashboard')}
+            >
+              <span className="text-sm font-medium text-brand-dark">Stats & revenue</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => navigate('/customers')}
+            >
+              <span className="text-sm font-medium text-brand-dark">Clients</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
+          </div>
+        </div>
+
         {/* Quote defaults */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">

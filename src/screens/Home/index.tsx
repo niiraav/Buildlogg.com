@@ -1163,7 +1163,7 @@ export default function Home() {
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
       {activeTab === 'today' && todayState !== 'all_clear' && (
-        <div className="mt-auto sticky bottom-0 z-30 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet">
+        <div className="mt-auto sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet cta-above-tabbar">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
