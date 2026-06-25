@@ -953,7 +953,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: 'Update sent to customer via ' + (method === 'whatsapp' ? 'WhatsApp' : 'SMS'),
+      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -961,7 +961,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: 'Update sent to customer via ' + (method === 'whatsapp' ? 'WhatsApp' : 'SMS'),
+      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
     }, 'insert');
 
@@ -986,7 +986,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -994,7 +994,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
     }, 'insert');
 
@@ -1020,7 +1020,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1028,7 +1028,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
     }, 'insert');
 
@@ -1106,7 +1106,7 @@ export default function JobDetail() {
       id: logId,
       job_id: job.id,
       type: 'status_change',
-      description: `Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+      description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1116,7 +1116,7 @@ export default function JobDetail() {
       _sync_status: 'pending',
     });
     await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n }, 'update');
-    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`, created_at: n }, 'insert');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`, created_at: n }, 'insert');
     capturePaymentChase(method);
     setSheet(null);
     refresh();

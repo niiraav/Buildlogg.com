@@ -601,7 +601,7 @@ export default function Home() {
       id: crypto.randomUUID(),
       job_id: selectedJobId,
       type: 'customer_notified',
-      description: `Customer notified via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'} · ${new Date().toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })}`,
+      description: `[Running late sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${lateMsg}`,
       created_at: n,
       _sync_status: 'pending',
     });
