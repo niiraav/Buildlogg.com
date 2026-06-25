@@ -13,16 +13,17 @@ export async function initAnalytics() {
 
   // Check if the PostHog ingestion endpoint is reachable before initializing.
   // Ad-blockers block requests to eu.i.posthog.com (the ingestion endpoint).
-  // The SDK sends events to {host}/e/ but with a different subdomain pattern.
-  // We test the actual ingestion URL — if blocked, skip init to prevent console spam.
+  // We test the actual /e/ endpoint — if the fetch throws (network error),
+  // the endpoint is blocked. A 4xx response is fine (endpoint exists, just
+  // rejected our empty request). A throw = blocked by ad-blocker.
   const ingestionHost = POSTHOG_HOST.replace('eu.posthog.com', 'eu.i.posthog.com');
   let posthogBlocked = false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    // GET to the ingestion root — returns 200 if reachable, throws if blocked
-    await fetch(`${ingestionHost}/`, {
-      method: 'GET',
+    // Use HEAD to avoid any response body — just checking reachability
+    await fetch(`${ingestionHost}/e/`, {
+      method: 'HEAD',
       signal: controller.signal,
       mode: 'no-cors',
     });
