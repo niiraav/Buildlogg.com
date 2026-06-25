@@ -147,7 +147,7 @@ export default function MessageTemplates() {
         <button onClick={() => navigate('/settings')} className="flex items-center gap-1 text-brand-dark cursor-pointer mb-2">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-xl font-extrabold text-brand-black">Templates</h1>
+        <h1 className="screen-title text-brand-black">Templates</h1>
         <p className="text-xs text-brand-muted mt-0.5">Save time on WhatsApp messages — templates auto-fill with each customer's details</p>
       </div>
 
@@ -242,7 +242,7 @@ function TemplateEditor({
         <button onClick={onCancel} className="flex items-center gap-1 text-brand-dark cursor-pointer mb-2">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-xl font-extrabold text-brand-black">{template.name ? 'Edit template' : 'New template'}</h1>
+        <h1 className="screen-title text-brand-black">{template.name ? 'Edit template' : 'New template'}</h1>
       </div>
 
       <div className="px-4 pt-4 pb-24 flex-1 flex flex-col gap-4">
