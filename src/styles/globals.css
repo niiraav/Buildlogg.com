@@ -8,6 +8,11 @@
   --tab-bar-height: calc(56px + env(safe-area-inset-bottom));
 }
 
+/* CTA footer sits above the TabBar, not behind it */
+.cta-above-tabbar {
+  bottom: calc(56px + env(safe-area-inset-bottom)) !important;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -723,6 +728,16 @@ input[type="time"]::-webkit-clear-button {
 }
 .dark .auth-left-panel {
   background-color: #0f1014;
+}
+
+/* Desktop: left panel fixed to viewport height, scrolls independently */
+@media (min-width: 768px) {
+  .auth-left-panel {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow-y: auto;
+  }
 }
 
 /* ── Adaptive left-column motion ─────────────────────────────────────── */
