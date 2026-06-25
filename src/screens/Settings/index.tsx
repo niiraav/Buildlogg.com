@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
 import { supabase } from '../../lib/supabase';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
+import { Button } from '../../components/Button';
 import { InlineEditRow } from '../../components/InlineEditRow';
 import SyncIndicator from '../../components/SyncIndicator';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
+import { generateInvoicePDF } from '../../lib/pdfGenerator';
+import { capturePDFGenerated } from '../../lib/analytics';
+import PDFPreview from '../Quote/PDFPreview';
 import BrandedLoader from '../../components/BrandedLoader';
 import FeedbackSheet from '../../components/FeedbackSheet';
 
@@ -62,6 +66,10 @@ export default function Settings() {
   const [showTermsHelp, setShowTermsHelp] = useState(false);
   const [feedbackSheetOpen, setFeedbackSheetOpen] = useState(false);
   const { isDark, toggle } = useTheme();
+  const [showBrandingSheet, setShowBrandingSheet] = useState(false);
+  const [showReviewsSheet, setShowReviewsSheet] = useState(false);
+  const [showLogoHelp, setShowLogoHelp] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   
   // Detect active quote draft for quick resume
   const [draftInfo, setDraftInfo] = useState<{ customerName: string; step: string; jobId: string } | null>(null);
@@ -123,6 +131,19 @@ export default function Settings() {
     },
     [userId, profile]
   );
+
+  const handlePreviewPDF = () => {
+    if (!profile) return;
+    const dummyCustomer = { id: 'preview', user_id: '', name: 'Sample Customer', phone: '', created_at: '', updated_at: '', _sync_status: 'synced' as const };
+    const dummyJob = { id: 'preview', user_id: '', customer_id: 'preview', title: 'Sample service', status: 'awaiting_payment' as const, is_multi_day: false, payment_terms: 'invoice' as const, created_at: '', updated_at: '', _sync_status: 'synced' as const };
+    const dummyItems = [
+      { id: '1', job_id: 'preview', description: 'Service call', amount: 100, sort_order: 0, added_on_site: false, created_at: '', _sync_status: 'synced' as const },
+      { id: '2', job_id: 'preview', description: 'Materials', amount: 50, sort_order: 1, added_on_site: false, created_at: '', _sync_status: 'synced' as const },
+    ];
+    const blob = generateInvoicePDF({ profile, customer: dummyCustomer, job: dummyJob, lineItems: dummyItems, total: 150, payments: [], amountDue: 150 });
+    setPdfBlob(blob);
+    capturePDFGenerated({ jobId: 'preview', type: 'invoice', hasLogo: !!profile.logo_data_url, isVat: !!profile.vat_registered });
+  };
 
   const updateProfile = useCallback(
     async (fields: Partial<Profile>) => {
@@ -349,7 +370,10 @@ export default function Settings() {
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
               onClick={() => navigate('/settings/message-templates')}
             >
-              <span className="text-sm font-medium text-brand-dark">Message templates</span>
+              <div>
+                <span className="text-sm font-medium text-brand-dark">Message templates</span>
+                <p className="text-xs text-brand-muted mt-0.5">Pre-fill WhatsApp messages for common situations</p>
+              </div>
               <ChevronRight size={14} className="text-brand-muted" />
             </div>
           </div>
@@ -375,13 +399,27 @@ export default function Settings() {
               <span className="text-sm font-medium text-brand-dark">Customers</span>
               <ChevronRight size={14} className="text-brand-muted" />
             </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => setShowBrandingSheet(true)}
+            >
+              <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => setShowReviewsSheet(true)}
+            >
+              <span className="text-sm font-medium text-brand-dark">Google reviews</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
           </div>
         </div>
 
         {/* Quote defaults */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            Quote defaults
+            Quote & job defaults
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
@@ -443,106 +481,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Branding — PDF + Invoice details */}
-        <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            Branding
-          </div>
-          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-brand-surface">
-              <p className="text-sm font-medium text-brand-dark mb-2">Business logo (on PDFs)</p>
-              {profile?.logo_data_url ? (
-                <div className="flex items-center gap-3">
-                  <img src={profile.logo_data_url} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-brand-border" />
-                  <button
-                    onClick={() => updateProfile({ logo_data_url: undefined })}
-                    className="text-sm text-status-error cursor-pointer"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 200;
-                    canvas.height = 200;
-                    const ctx = canvas.getContext('2d');
-                    if (!ctx) return;
-                    const img = new Image();
-                    img.onload = () => {
-                      ctx.drawImage(img, 0, 0, 200, 200);
-                      updateProfile({ logo_data_url: canvas.toDataURL('image/png') });
-                    };
-                    img.src = URL.createObjectURL(file);
-                  }}
-                  className="text-sm text-brand-dark"
-                />
-              )}
-            </div>
-            <div className="px-4 py-3 border-b border-brand-surface">
-              <p className="text-sm font-medium text-brand-dark mb-2">Bank details (on invoices)</p>
-              <div className="flex flex-col gap-2">
-                <input
-                  type="text"
-                  value={profile?.bank_name || ''}
-                  onChange={(e) => updateProfile({ bank_name: e.target.value || undefined })}
-                  placeholder="Bank name"
-                  className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-                />
-                <input
-                  type="text"
-                  value={profile?.bank_account_name || ''}
-                  onChange={(e) => updateProfile({ bank_account_name: e.target.value || undefined })}
-                  placeholder="Account name"
-                  className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={profile?.bank_sort_code || ''}
-                    onChange={(e) => updateProfile({ bank_sort_code: e.target.value || undefined })}
-                    placeholder="Sort code"
-                    className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-                  />
-                  <input
-                    type="text"
-                    value={profile?.bank_account_number || ''}
-                    onChange={(e) => updateProfile({ bank_account_number: e.target.value || undefined })}
-                    placeholder="Account no."
-                    className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-4 py-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={profile?.vat_registered || false}
-                  onChange={(e) => updateProfile({ vat_registered: e.target.checked })}
-                  className="w-4 h-4 accent-brand-black"
-                />
-                <span className="text-sm font-medium text-brand-dark">VAT registered</span>
-              </label>
-              {profile?.vat_registered && (
-                <input
-                  type="text"
-                  value={profile?.vat_number || ''}
-                  onChange={(e) => updateProfile({ vat_number: e.target.value || undefined })}
-                  placeholder="VAT number"
-                  className="w-full h-10 px-3 mt-2 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Google Reviews */}
+{/* Google Reviews */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Reviews
@@ -641,6 +580,181 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Branding BottomSheet */}
+      <BottomSheet
+        isOpen={showBrandingSheet}
+        onClose={() => setShowBrandingSheet(false)}
+        title="PDF & invoice branding"
+        subtitle="Your logo and bank details appear on quotes and invoices"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Logo upload */}
+          <div>
+            <p className="text-sm font-semibold text-brand-dark mb-2">Business logo</p>
+            {profile?.logo_data_url ? (
+              <div className="flex items-center gap-3">
+                <img src={profile.logo_data_url} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-brand-border" />
+                <button
+                  onClick={() => updateProfile({ logo_data_url: undefined })}
+                  className="text-sm text-status-error cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-brand-border rounded-lg cursor-pointer hover:bg-brand-surface transition-colors">
+                <Upload size={20} className="text-brand-muted mb-1" />
+                <span className="text-xs font-medium text-brand-dark">Choose logo</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+                    const img = new Image();
+                    img.onload = () => {
+                      ctx.drawImage(img, 0, 0, 200, 200);
+                      updateProfile({ logo_data_url: canvas.toDataURL('image/png') });
+                    };
+                    img.src = URL.createObjectURL(file);
+                  }}
+                />
+              </label>
+            )}
+            <button
+              onClick={() => setShowLogoHelp(!showLogoHelp)}
+              className="flex items-center gap-1 text-xs text-brand-muted mt-2 cursor-pointer"
+            >
+              <Info size={12} />
+              Logo guidelines
+            </button>
+            {showLogoHelp && (
+              <div className="mt-1 p-3 bg-brand-surface rounded-lg text-xs text-brand-dark leading-relaxed">
+                <p className="font-semibold mb-1">Requirements:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>PNG or JPG format</li>
+                  <li>Square shape recommended (1:1 ratio)</li>
+                  <li>Resized to 200x200px on the PDF</li>
+                  <li>Simple logos render best at small sizes</li>
+                  <li>Transparent background looks professional</li>
+                  <li>Avoid photos — use a logo or wordmark</li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Bank details */}
+          <div>
+            <p className="text-sm font-semibold text-brand-dark mb-2">Bank details (on invoices)</p>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={profile?.bank_name || ''}
+                onChange={(e) => updateProfile({ bank_name: e.target.value || undefined })}
+                placeholder="Bank name"
+                className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+              />
+              <input
+                type="text"
+                value={profile?.bank_account_name || ''}
+                onChange={(e) => updateProfile({ bank_account_name: e.target.value || undefined })}
+                placeholder="Account name"
+                className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={profile?.bank_sort_code || ''}
+                  onChange={(e) => updateProfile({ bank_sort_code: e.target.value || undefined })}
+                  placeholder="Sort code"
+                  className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                />
+                <input
+                  type="text"
+                  value={profile?.bank_account_number || ''}
+                  onChange={(e) => updateProfile({ bank_account_number: e.target.value || undefined })}
+                  placeholder="Account no."
+                  className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* VAT */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={profile?.vat_registered || false}
+                onChange={(e) => updateProfile({ vat_registered: e.target.checked })}
+                className="w-4 h-4 accent-brand-black"
+              />
+              <span className="text-sm font-medium text-brand-dark">VAT registered</span>
+            </label>
+            {profile?.vat_registered && (
+              <input
+                type="text"
+                value={profile?.vat_number || ''}
+                onChange={(e) => updateProfile({ vat_number: e.target.value || undefined })}
+                placeholder="VAT number"
+                className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+              />
+            )}
+          </div>
+
+          {/* PDF Preview */}
+          <Button variant="secondary" onClick={handlePreviewPDF} fullWidth>
+            <FileText size={16} className="mr-2" />
+            Preview invoice PDF
+          </Button>
+        </div>
+      </BottomSheet>
+
+      {/* Reviews BottomSheet */}
+      <BottomSheet
+        isOpen={showReviewsSheet}
+        onClose={() => setShowReviewsSheet(false)}
+        title="Google reviews"
+        subtitle="Automatically ask customers for a review after they pay"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="p-3 bg-brand-surface rounded-lg">
+            <p className="text-xs text-brand-dark leading-relaxed">
+              When you mark a job as paid, Buildlogg can send a WhatsApp message asking your customer to leave a Google review.
+              Paste your Google Business review link below to enable this.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-brand-muted mb-1">Find your link: Google Maps → your business → Share → Copy link</p>
+            <input
+              type="url"
+              value={profile?.google_business_url || ''}
+              onChange={(e) => updateProfile({ google_business_url: e.target.value || undefined })}
+              placeholder="https://maps.google.com/..."
+              className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+            />
+          </div>
+          {profile?.google_business_url && (
+            <p className="text-xs text-status-green font-medium">✓ Review requests are enabled. Customers will be asked after payment.</p>
+          )}
+        </div>
+      </BottomSheet>
+
+      {/* PDF Preview */}
+      {pdfBlob && (
+        <PDFPreview
+          blob={pdfBlob}
+          fileName="branding-preview.pdf"
+          onBack={() => setPdfBlob(null)}
+        />
+      )}
 
       {/* Trade BottomSheet */}
       <BottomSheet isOpen={tradeSheetOpen} onClose={() => { setTradeSheetOpen(false); setTradeOtherMode(false); setTradeOtherInput(''); }} title="Select trade">

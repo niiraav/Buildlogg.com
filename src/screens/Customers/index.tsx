@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Phone, Archive } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Phone, Archive } from 'lucide-react';
 import { db, type Customer } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { searchCustomers, getCustomerStats, type CustomerStats } from '../../lib/customers';
@@ -19,7 +19,6 @@ export default function Customers() {
   useEffect(() => {
     if (!userId) return;
     db.customers.where('user_id').equals(userId).toArray().then((all) => {
-      // Exclude merged customers from all views
       const visible = all.filter((c) => !c.merged_into);
       visible.sort((a, b) => {
         if (a.is_archived && !b.is_archived) return 1;
@@ -35,7 +34,6 @@ export default function Customers() {
     });
   }, [userId]);
 
-  // Debounced search
   useEffect(() => {
     if (!userId || !query.trim()) {
       setSearchResults([]);
@@ -49,7 +47,6 @@ export default function Customers() {
     return () => clearTimeout(timer);
   }, [query, userId]);
 
-  // Mutually exclusive: show archived OR active, never both
   const displayed = query.trim()
     ? searchResults
     : allCustomers.filter((c) => showArchived ? c.is_archived : !c.is_archived);
@@ -65,13 +62,17 @@ export default function Customers() {
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
-        {/* Title + archive toggle in one row */}
         <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-xl font-extrabold text-brand-black">Customers</h1>
-            <p className="text-xs text-brand-muted mt-0.5">
-              {showArchived ? 'Archived customers' : 'Everyone you\'ve quoted, booked, or worked for'}
-            </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/settings')} className="flex items-center justify-center text-brand-dark cursor-pointer" aria-label="Back to settings">
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl font-extrabold text-brand-black">Customers</h1>
+              <p className="text-xs text-brand-muted mt-0.5">
+                {showArchived ? 'Archived customers' : "Everyone you've quoted, booked, or worked for"}
+              </p>
+            </div>
           </div>
           {!query.trim() && (
             <button
@@ -87,7 +88,6 @@ export default function Customers() {
             </button>
           )}
         </div>
-        {/* Search bar */}
         <div className="relative flex items-center">
           <Search size={16} className="absolute left-3 text-brand-muted" />
           <input
