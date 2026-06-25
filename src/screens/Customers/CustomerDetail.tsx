@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, Home } from 'lucide-react';
+import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, GitMerge } from 'lucide-react';
 import { db, type Customer, type Job, type Payment } from '../../lib/db';
 import { getCustomerStats, getCustomerJobs, getCustomerPayments, archiveCustomer, unarchiveCustomer, mergeCustomers, type CustomerStats } from '../../lib/customers';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -19,7 +19,7 @@ export default function CustomerDetail() {
   const [loading, setLoading] = useState(true);
   const [showMergeSheet, setShowMergeSheet] = useState(false);
   const [mergeQuery, setMergeQuery] = useState('');
-  const [mergeResults, setMergeResults] = useState<Customer[]>([]); 
+  const [mergeResults, setMergeResults] = useState<Customer[]>([]);
 
   useEffect(() => {
     if (!customerId) return;
@@ -49,7 +49,7 @@ export default function CustomerDetail() {
     if (!customerId) return;
     await unarchiveCustomer(customerId);
     showSuccess('Customer restored');
-    navigate('/customers');
+    setCustomer((prev) => prev ? { ...prev, is_archived: false } : prev);
   };
 
   // Merge search
@@ -59,7 +59,6 @@ export default function CustomerDetail() {
       return;
     }
     const timer = setTimeout(async () => {
-      // Search all customers (including this one — we'll filter it out)
       const all = await db.customers.where('user_id').equals(customer.user_id).toArray();
       const q = mergeQuery.toLowerCase().trim();
       const results = all.filter((c) => {
@@ -106,34 +105,45 @@ export default function CustomerDetail() {
 
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
+      {/* Header — chevron left, archive/unarchive CTA right */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
           <button onClick={() => navigate('/customers')} className="flex items-center text-brand-dark cursor-pointer">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-base font-bold text-brand-black truncate max-w-[180px]">{customer.name}</h1>
-          <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center text-brand-dark cursor-pointer" aria-label="Home"><Home size={20} /></button>
+          {customer.is_archived ? (
+            <button
+              onClick={handleUnarchive}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-dark bg-brand-surface border border-brand-border px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70"
+            >
+              <ArchiveRestore size={14} />
+              Restore
+            </button>
+          ) : (
+            <button
+              onClick={handleArchive}
+              className="flex items-center gap-1.5 text-xs font-semibold text-status-error bg-status-redBg border border-red-200 px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70"
+            >
+              <Archive size={14} />
+              Archive
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-[calc(44px+env(safe-area-inset-bottom))] flex-1">
-        {/* Archived banner */}
-        {customer.is_archived && (
-          <div className="bg-brand-borderLight border border-brand-border rounded-lg p-3 mb-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-brand-muted">This customer is archived</span>
-            <Button variant="secondary" size="sm" onClick={handleUnarchive}>
-              <ArchiveRestore size={14} className="mr-1" />
-              Restore
-            </Button>
-          </div>
-        )}
-
-        {/* Contact info */}
+      <div className="px-4 pt-4 pb-24 flex-1">
+        {/* Customer info — full name in the contact section */}
         <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
-          {customer.business_name && (
-            <p className="text-sm font-semibold text-brand-dark mb-1">{customer.business_name}</p>
+          {customer.is_archived && (
+            <div className="mb-3 pb-3 border-b border-brand-borderLight">
+              <span className="text-xs font-medium text-brand-muted bg-brand-surface px-2 py-0.5 rounded">Archived</span>
+            </div>
           )}
-          <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-extrabold text-brand-black mb-1">{customer.name}</h2>
+          {customer.business_name && (
+            <p className="text-sm text-brand-dark mb-2">{customer.business_name}</p>
+          )}
+          <div className="flex flex-col gap-2 mt-2">
             {customer.phone && (
               <button
                 onClick={() => window.open(`tel:${customer.phone}`, '_self')}
@@ -230,33 +240,23 @@ export default function CustomerDetail() {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-2">
-          <Button variant="primary" onClick={() => navigate('/quote', { state: { customerId: customer.id, entryPoint: 'new_quote' } })} fullWidth>
-            <Plus size={18} className="mr-2" />
-            New quote
-          </Button>
-          {!customer.is_archived ? (
-            <>
-              <Button variant="secondary" onClick={handleArchive} fullWidth>
-                <Archive size={16} className="mr-2" />
-                Archive customer
-              </Button>
-              <button
-                onClick={() => setShowMergeSheet(true)}
-                className="text-xs font-medium text-brand-muted underline underline-offset-2 cursor-pointer mt-1 self-center"
-              >
-                Merge with another customer
-              </button>
-            </>
-          ) : (
-            <Button variant="secondary" onClick={handleUnarchive} fullWidth>
-              <ArchiveRestore size={16} className="mr-2" />
-              Un-archive customer
-            </Button>
-          )}
-        </div>
+      {/* Sticky CTA footer — New quote + Merge */}
+      <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))]">
+        <Button variant="primary" onClick={() => navigate('/quote', { state: { customerId: customer.id, entryPoint: 'new_quote' } })} fullWidth>
+          <Plus size={18} className="mr-2" />
+          New quote
+        </Button>
+        {!customer.is_archived && (
+          <button
+            onClick={() => setShowMergeSheet(true)}
+            className="flex items-center justify-center gap-1.5 w-full text-xs font-medium text-brand-muted mt-2 cursor-pointer"
+          >
+            <GitMerge size={12} />
+            Merge with another customer
+          </button>
+        )}
       </div>
 
       {/* Merge BottomSheet */}
