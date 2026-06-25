@@ -52,6 +52,14 @@ function now() {
   return new Date().toISOString();
 }
 
+function isValidGoogleReviewUrl(url: string): boolean {
+  const lower = url.toLowerCase().trim();
+  return lower.startsWith('https://maps.google.com') ||
+         lower.startsWith('https://search.google.com') ||
+         lower.startsWith('https://g.page/') ||
+         lower.startsWith('https://www.google.com/maps');
+}
+
 export default function Settings() {
   const userId = useAppStore((s) => s.userId);
   const navigate = useNavigate();
@@ -481,26 +489,6 @@ export default function Settings() {
           </div>
         </div>
 
-{/* Google Reviews */}
-        <div className="mb-6">
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            Reviews
-          </div>
-          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3">
-              <p className="text-sm font-medium text-brand-dark mb-2">Google Business review link</p>
-              <p className="text-xs text-brand-muted mb-2">Find your business on Google Maps → Share → Copy link</p>
-              <input
-                type="url"
-                value={profile?.google_business_url || ''}
-                onChange={(e) => updateProfile({ google_business_url: e.target.value || undefined })}
-                placeholder="https://maps.google.com/..."
-                className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Appearance */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
@@ -728,21 +716,60 @@ export default function Settings() {
           <div className="p-3 bg-brand-surface rounded-lg">
             <p className="text-xs text-brand-dark leading-relaxed">
               When you mark a job as paid, Buildlogg can send a WhatsApp message asking your customer to leave a Google review.
-              Paste your Google Business review link below to enable this.
+              Add your Google Business review link below and toggle reviews on or off.
             </p>
           </div>
+
+          {/* URL input with validation */}
           <div>
             <p className="text-xs text-brand-muted mb-1">Find your link: Google Maps → your business → Share → Copy link</p>
             <input
               type="url"
               value={profile?.google_business_url || ''}
-              onChange={(e) => updateProfile({ google_business_url: e.target.value || undefined })}
+              onChange={(e) => {
+                const val = e.target.value.trim();
+                updateProfile({ google_business_url: val || undefined });
+              }}
               placeholder="https://maps.google.com/..."
-              className="w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+              className={`w-full h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border rounded-lg outline-none transition-colors ${
+                profile?.google_business_url && !isValidGoogleReviewUrl(profile.google_business_url)
+                  ? 'border-status-error'
+                  : 'border-brand-border focus:border-brand-black'
+              }`}
             />
+            {profile?.google_business_url && !isValidGoogleReviewUrl(profile.google_business_url) && (
+              <p className="text-xs text-status-error mt-1">
+                This doesn't look like a Google review link. It should start with maps.google.com or search.google.com
+              </p>
+            )}
           </div>
-          {profile?.google_business_url && (
-            <p className="text-xs text-status-green font-medium">✓ Review requests are enabled. Customers will be asked after payment.</p>
+
+          {/* Enable/disable toggle */}
+          {profile?.google_business_url && isValidGoogleReviewUrl(profile.google_business_url) && (
+            <div className="flex items-center justify-between p-3 bg-white border border-brand-border rounded-lg">
+              <div>
+                <p className="text-sm font-semibold text-brand-black">Ask for reviews</p>
+                <p className="text-xs text-brand-muted mt-0.5">Send a review request after each payment</p>
+              </div>
+              <button
+                onClick={() => updateProfile({ reviews_enabled: !profile?.reviews_enabled })}
+                className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative ${
+                  profile?.reviews_enabled ? 'bg-brand-black' : 'bg-brand-border'
+                }`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  profile?.reviews_enabled ? 'left-[22px]' : 'left-0.5'
+                }`} />
+              </button>
+            </div>
+          )}
+
+          {/* Status messages */}
+          {profile?.google_business_url && isValidGoogleReviewUrl(profile.google_business_url) && profile?.reviews_enabled && (
+            <p className="text-xs text-status-green font-medium">Reviews are ON — customers will be asked after payment.</p>
+          )}
+          {profile?.google_business_url && isValidGoogleReviewUrl(profile.google_business_url) && !profile?.reviews_enabled && (
+            <p className="text-xs text-brand-muted font-medium">Reviews are OFF — link saved but customers won't be asked.</p>
           )}
         </div>
       </BottomSheet>
