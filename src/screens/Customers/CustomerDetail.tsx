@@ -108,9 +108,8 @@ export default function CustomerDetail() {
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/customers')} className="flex items-center gap-1 text-brand-dark cursor-pointer">
+          <button onClick={() => navigate('/customers')} className="flex items-center text-brand-dark cursor-pointer">
             <ChevronLeft size={20} />
-            <span className="text-sm font-medium">Customers</span>
           </button>
           <h1 className="text-base font-bold text-brand-black truncate max-w-[180px]">{customer.name}</h1>
           <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center text-brand-dark cursor-pointer" aria-label="Home"><Home size={20} /></button>

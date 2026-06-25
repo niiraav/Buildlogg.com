@@ -55,7 +55,7 @@ export default function Dashboard() {
           <ChevronLeft size={20} />
         </button>
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold text-brand-black">Stats</h1>
+          <h1 className="screen-title text-brand-black">Stats</h1>
           <button onClick={handleExport} className="flex items-center gap-1.5 text-xs font-semibold text-brand-dark bg-brand-surface border border-brand-border px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70">
             <Download size={14} />
             Export jobs (CSV)

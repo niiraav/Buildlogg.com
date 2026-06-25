@@ -62,32 +62,34 @@ export default function Customers() {
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/settings')} className="flex items-center justify-center text-brand-dark cursor-pointer" aria-label="Back to settings">
-              <ChevronLeft size={20} />
-            </button>
-            <div>
-              <h1 className="text-xl font-extrabold text-brand-black">Customers</h1>
-              <p className="text-xs text-brand-muted mt-0.5">
-                {showArchived ? 'Archived customers' : "Everyone you've quoted, booked, or worked for"}
-              </p>
-            </div>
+        <button onClick={() => navigate('/settings')} className="flex items-center text-brand-dark cursor-pointer mb-2">
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="screen-title text-brand-black">Customers</h1>
+            <p className="text-xs text-brand-muted mt-0.5">
+              {showArchived ? 'Archived customers' : "Everyone you've quoted, booked, or worked for"}
+            </p>
           </div>
           {!query.trim() && (
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 ${
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 shrink-0 ${
                 showArchived
                   ? 'bg-brand-black text-brand-surface'
                   : 'bg-brand-surface text-brand-dark border border-brand-border'
               }`}
             >
               <Archive size={12} />
-              {showArchived ? 'Show active' : 'Show archived'}
+              {showArchived ? 'Active' : 'Archived'}
             </button>
           )}
         </div>
+      </div>
+
+      {/* Search bar — below the sticky header, scrolls with content */}
+      <div className="px-4 pt-3 pb-1">
         <div className="relative flex items-center">
           <Search size={16} className="absolute left-3 text-brand-muted" />
           <input

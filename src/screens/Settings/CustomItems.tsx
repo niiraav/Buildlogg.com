@@ -83,7 +83,7 @@ export default function CustomItems() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <h1 className="text-lg font-bold text-brand-black">My Items</h1>
+          <h1 className="text-lg font-extrabold text-brand-black">My Items</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <BrandedLoader size={36} fullscreen={false} />
@@ -101,7 +101,7 @@ export default function CustomItems() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-brand-black">My Items</h1>
+        <h1 className="text-lg font-extrabold text-brand-black">My Items</h1>
       </div>
 
       {/* Body */}

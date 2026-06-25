@@ -113,7 +113,7 @@ export default function Activity() {
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold text-brand-black">Activity</h1>
+          <h1 className="screen-title text-brand-black">Activity</h1>
           <SyncIndicator />
         </div>
       </div>
