@@ -21,7 +21,7 @@ import BrandedLoader from '../../components/BrandedLoader';
 
 interface QuotePreviewProps {
   jobId: string;
-  onSend: (method: 'whatsapp' | 'sms' | 'copy') => void;
+  onSend: (method: 'whatsapp' | 'sms' | 'copy', messageContent?: string) => void;
   onSaveDraft: () => void;
   onBack: () => void;
 }
@@ -184,7 +184,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     }
 
     setShowSendSheet(false);
-    onSend(method);
+    onSend(method, messageText);
   };
 
   const handleSaveDraft = () => {

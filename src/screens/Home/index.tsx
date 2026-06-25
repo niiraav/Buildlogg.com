@@ -1482,7 +1482,7 @@ export default function Home() {
         <div className="flex flex-col gap-2">
           <Button
             variant="primary"
-            onClick={() => {
+            onClick={async () => {
               if (!selectedCustomer || !profile?.google_business_url) return;
               const phone = selectedCustomer.phone.replace(/\D/g, '');
               const msg = encodeURIComponent(
@@ -1493,6 +1493,18 @@ export default function Home() {
                 const now = new Date().toISOString();
                 db.jobs.update(selectedJobId, { review_requested_at: now, _sync_status: 'pending' });
                 addToSyncQueue('jobs', selectedJobId, { review_requested_at: now });
+                // Store the review request message in work_log
+                const reviewMsg = `Hi ${selectedCustomer.name.split(' ')[0]}, glad the ${selectedJob?.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile?.google_business_url}. Only takes 30 seconds. Thanks!`;
+                const logId = crypto.randomUUID();
+                await db.work_log.add({
+                  id: logId,
+                  job_id: selectedJobId,
+                  type: 'customer_notified',
+                  description: `[Review request sent via WhatsApp] ${reviewMsg}`,
+                  created_at: now,
+                  _sync_status: 'pending',
+                });
+                addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMsg}`, created_at: now });
               }
               captureReviewRequestSent({ jobId: selectedJobId || '' });
               setSheet(null);

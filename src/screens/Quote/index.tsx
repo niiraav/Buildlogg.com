@@ -257,7 +257,7 @@ export default function Quote() {
     setStep('builder');
   };
 
-  const handlePreviewSend = async (method: SendMethod) => {
+  const handlePreviewSend = async (method: SendMethod, messageContent?: string) => {
     if (!jobId || !userId) return;
     const n = now();
 
@@ -281,7 +281,7 @@ export default function Quote() {
         id: workLogId,
         job_id: jobId,
         type: 'quote_sent',
-        description: `Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`,
+        description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${messageContent || ''}`,
         created_at: n,
         _sync_status: 'pending',
       });
@@ -289,7 +289,7 @@ export default function Quote() {
         operation: 'insert',
         table_name: 'work_log',
         record_id: workLogId,
-        payload: { id: workLogId, job_id: jobId, type: 'quote_sent', description: `Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}`, created_at: n },
+        payload: { id: workLogId, job_id: jobId, type: 'quote_sent', description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${messageContent || ''}`, created_at: n },
         created_at: n,
         retry_count: 0,
       });

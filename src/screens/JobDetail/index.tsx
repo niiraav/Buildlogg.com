@@ -183,6 +183,7 @@ export default function JobDetail() {
   const [calloutDesc, setCalloutDesc] = useState('Callout charge');
   const [calloutAmount, setCalloutAmount] = useState('');
   const [workLogExpanded, setWorkLogExpanded] = useState(false);
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [editTitle, setEditTitle] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editStartTime, setEditStartTime] = useState('');
@@ -1913,21 +1914,40 @@ export default function JobDetail() {
             <p className="text-sm text-brand-muted italic py-2">No work logged</p>
           ) : (
             <div>
-              {visibleLogs.map((log) => (
-                <div key={log.id} className="flex gap-2.5 py-2 border-b border-brand-borderLight last:border-b-0 items-start">
-                  <span className="text-label text-brand-dark whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
-                    {formatLogTime(log.created_at)}
-                  </span>
-                  <span className="text-sm text-brand-dark flex-1 leading-relaxed">
-                    {log.description}
-                  </span>
-                  {log.amount !== undefined && log.amount > 0 && (
-                    <span className="text-sm font-bold text-status-green shrink-0 whitespace-nowrap">
-                      +£{log.amount.toFixed(2)}
+              {visibleLogs.map((log) => {
+                const isLong = log.description.length > 100;
+                const isExpanded = expandedLogIds.has(log.id);
+                const displayText = isLong && !isExpanded
+                  ? log.description.substring(0, 100) + '...'
+                  : log.description;
+                return (
+                  <div
+                    key={log.id}
+                    className="flex gap-2.5 py-2 border-b border-brand-borderLight last:border-b-0 items-start"
+                    onClick={isLong ? () => {
+                      setExpandedLogIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(log.id)) next.delete(log.id);
+                        else next.add(log.id);
+                        return next;
+                      });
+                    } : undefined}
+                    style={isLong ? { cursor: 'pointer' } : undefined}
+                  >
+                    <span className="text-label text-brand-dark whitespace-nowrap shrink-0 pt-0.5 min-w-[46px]">
+                      {formatLogTime(log.created_at)}
                     </span>
-                  )}
-                </div>
-              ))}
+                    <span className="text-sm text-brand-dark flex-1 leading-relaxed whitespace-pre-line">
+                      {displayText}
+                    </span>
+                    {log.amount !== undefined && log.amount > 0 && (
+                      <span className="text-sm font-bold text-status-green shrink-0 whitespace-nowrap">
+                        +£{log.amount.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
               {eventLogs.length > 3 && (
                 <button
                   onClick={() => setWorkLogExpanded(!workLogExpanded)}
@@ -2974,16 +2994,28 @@ export default function JobDetail() {
         <div className="flex flex-col gap-2">
           <Button
             variant="primary"
-            onClick={() => {
+            onClick={async () => {
               if (!customer || !profile?.google_business_url || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
               const msg = encodeURIComponent(
-                `Hi ${customer}.name.split(' ')[0]}, glad the \${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
+                `Hi ${customer}.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
               );
               window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
+              // Store the review request message in work_log
+              const reviewMsg = `Hi ${customer.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
+              const logId = crypto.randomUUID();
+              await db.work_log.add({
+                id: logId,
+                job_id: job.id,
+                type: 'customer_notified',
+                description: `[Review request sent via WhatsApp] ${reviewMsg}`,
+                created_at: now,
+                _sync_status: 'pending',
+              });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMsg}`, created_at: now });
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
             }}
