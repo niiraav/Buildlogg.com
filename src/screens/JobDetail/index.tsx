@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -31,8 +31,7 @@ import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/phot
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
 import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
-import { capturePDFGenerated, capturePDFShared, captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
-import PDFPreview from '../Quote/PDFPreview';
+import { captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import { addToCalendar } from '../../lib/calendar';
 
 /* ─── helpers ─── */
@@ -167,8 +166,8 @@ export default function JobDetail() {
     compactMessage?: string;
   } | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
+  const [reviewNote, setReviewNote] = useState('');
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -2056,27 +2055,6 @@ export default function JobDetail() {
     );
   };
 
-  const handleGenerateInvoicePDF = async () => {
-    if (!job || !customer || !userId) return;
-    const prof = await db.profiles.get(userId);
-    if (!prof) return;
-    const items = lineItems;
-    const pays = payments;
-    const summary = paymentSummary(job, pays, items.reduce((s, i) => s + i.amount, 0));
-    const blob = generateInvoicePDF({
-      profile: prof,
-      customer,
-      job,
-      lineItems: items,
-      total: items.reduce((s, i) => s + i.amount, 0),
-      payments: pays,
-      amountDue: summary.amountDue,
-      dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-    });
-    setPdfBlob(blob);
-    capturePDFGenerated({ jobId: job.id, type: 'invoice', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
-  };
-
   const renderAwaitingPaymentFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
@@ -2110,13 +2088,9 @@ export default function JobDetail() {
           </Button>
         </div>
       </div>
-      <div className="flex gap-2 mt-2">
-        <div className="flex-1">
-          <Button variant="secondary" onClick={handleGenerateInvoicePDF} fullWidth>
-            Invoice PDF
-          </Button>
-        </div>
-      </div>
+      <button onClick={() => navigate('/jobs')} className="text-sm text-brand-mid underline underline-offset-2 mt-2 w-full text-center cursor-pointer">
+        Close
+      </button>
     </div>
   );
 
@@ -2882,7 +2856,13 @@ export default function JobDetail() {
             <Button variant="primary" onClick={handleConfirmWithConflicts} fullWidth>
               Keep both
             </Button>
-            <Button variant="secondary" onClick={() => setConflicts([])} fullWidth>
+            <Button variant="secondary" onClick={() => {
+              setConflicts([]);
+              navigate('/quote', { state: { jobId: job?.id, customerId: job?.customer_id, entryPoint: 'reschedule' } });
+            }} fullWidth>
+              Change time
+            </Button>
+            <Button variant="ghost" onClick={() => setConflicts([])} fullWidth>
               Cancel
             </Button>
           </div>
@@ -2892,25 +2872,30 @@ export default function JobDetail() {
       {/* P2-08: Google Review Request */}
       <BottomSheet
         isOpen={sheet === 'review_prompt'}
-        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
+        onClose={() => { setSheet(null); setReviewNote(''); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
         title="Ask for a Google review?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
+          {/* Personal note (optional) */}
+          <textarea
+            placeholder="Add a personal note (optional)..."
+            value={reviewNote}
+            onChange={(e) => setReviewNote(e.target.value)}
+            className="w-full min-h-16 px-3.5 py-2 border-2 border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white resize-none"
+          />
           <Button
             variant="primary"
             onClick={async () => {
               if (!customer || !profile?.google_business_url || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
-              const msg = encodeURIComponent(
-                `Hi ${customer.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
-              );
+              const firstName = customer.name.split(' ')[0] || 'there';
+              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`;
+              const msg = encodeURIComponent(reviewMsg);
               window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
-              // Store the review request message in work_log
-              const reviewMsg = `Hi ${customer.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
               const logId = crypto.randomUUID();
               await db.work_log.add({
                 id: logId,
@@ -2923,26 +2908,64 @@ export default function JobDetail() {
               addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMsg}`, created_at: now });
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
+              setReviewNote('');
             }}
             fullWidth
           >
             <MessageCircle size={18} className="mr-2" />
             Send via WhatsApp
           </Button>
-          <Button variant="ghost" onClick={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (!customer || !profile?.google_business_url || !job) return;
+              const phone = customer.phone.replace(/\D/g, '');
+              const firstName = customer.name.split(' ')[0] || 'there';
+              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
+              const msg = encodeURIComponent(reviewMsg);
+              window.open(`sms:${phone}?body=${msg}`, '_blank');
+              const now = new Date().toISOString();
+              db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
+              addToSyncQueue('jobs', job.id, { review_requested_at: now });
+              const logId = crypto.randomUUID();
+              await db.work_log.add({
+                id: logId,
+                job_id: job.id,
+                type: 'customer_notified',
+                description: `[Review request sent via SMS] ${reviewMsg}`,
+                created_at: now,
+                _sync_status: 'pending',
+              });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via SMS] ${reviewMsg}`, created_at: now });
+              captureReviewRequestSent({ jobId: job.id });
+              setSheet(null);
+              setReviewNote('');
+            }}
+            fullWidth
+          >
+            <MessageSquare size={18} className="mr-2" />
+            Send via text
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (!customer || !profile?.google_business_url || !job) return;
+              const firstName = customer.name.split(' ')[0] || 'there';
+              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
+              navigator.clipboard.writeText(reviewMsg);
+              showToast('Copied to clipboard', 'success', 2000);
+            }}
+            fullWidth
+          >
+            <Copy size={18} className="mr-2" />
+            Copy message
+          </Button>
+          <Button variant="ghost" onClick={() => { setSheet(null); setReviewNote(''); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
             Skip
           </Button>
         </div>
       </BottomSheet>
 
-      {pdfBlob && (
-        <PDFPreview
-          blob={pdfBlob}
-          fileName={`invoice-${job?.invoice_number || job?.job_number || jobId}.pdf`}
-          onBack={() => setPdfBlob(null)}
-          onShared={(method: 'whatsapp' | 'download' | 'share') => capturePDFShared({ jobId: jobId || '', type: 'invoice', method })}
-        />
-      )}
     </div>
   );
 }
