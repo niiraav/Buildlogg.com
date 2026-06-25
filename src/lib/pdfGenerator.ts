@@ -37,18 +37,29 @@ function formatDate(iso: string): string {
 }
 
 function buildHeader(doc: jsPDF, profile: Profile, docType: 'QUOTE' | 'INVOICE', docNumber: string, dateStr: string): void {
-  // Business name
+  // Logo (if uploaded) — rendered at top-left, 20x20mm
+  if (profile.logo_data_url) {
+    try {
+      const format = profile.logo_data_url.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(profile.logo_data_url, format, 14, 8, 20, 20);
+    } catch (e) {
+      // If image fails to render, skip silently
+    }
+  }
+
+  // Business name — offset right if logo is present
+  const nameX = profile.logo_data_url ? 38 : 14;
   doc.setFontSize(18);
   doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
-  doc.text(profile.business_name || profile.full_name, 14, 20);
+  doc.text(profile.business_name || profile.full_name, nameX, 20);
 
   // Contact info
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED);
-  if (profile.phone) doc.text(profile.phone, 14, 26);
-  if (profile.business_name) doc.text(profile.full_name, 14, 30);
+  if (profile.phone) doc.text(profile.phone, nameX, 26);
+  if (profile.business_name) doc.text(profile.full_name, nameX, 30);
 
   // Document type + number (right-aligned)
   doc.setFontSize(22);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Download, Share2 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { showToast } from '../../components/Toast/store';
@@ -12,7 +12,6 @@ interface PDFPreviewProps {
 }
 
 export default function PDFPreview({ blob, fileName, onBack, onShared }: PDFPreviewProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [url, setUrl] = useState<string>('');
 
   useEffect(() => {
@@ -46,36 +45,36 @@ export default function PDFPreview({ blob, fileName, onBack, onShared }: PDFPrev
         // User cancelled share
       }
     } else {
-      // Fallback: download
       handleDownload();
     }
   };
 
   return (
-    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
+    <div className="fixed inset-0 z-[60] bg-[var(--app-shell-bg)] flex flex-col">
+      {/* Header */}
+      <div className="shrink-0 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-1 text-brand-dark cursor-pointer">
+          <button onClick={onBack} className="flex items-center text-brand-dark cursor-pointer">
             <ChevronLeft size={20} />
-            <span className="text-sm font-medium">Back</span>
           </button>
-          <span className="text-sm font-semibold text-brand-black">PDF Preview</span>
+          <span className="screen-title text-brand-black">PDF Preview</span>
           <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center text-brand-black cursor-pointer">
             <Download size={18} />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      {/* PDF iframe — fills remaining space */}
+      <div className="flex-1 min-h-0">
         <iframe
-          ref={iframeRef}
           src={url}
           className="w-full h-full border-none"
           title="PDF Preview"
         />
       </div>
 
-      <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))]">
+      {/* Footer CTA */}
+      <div className="shrink-0 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))]">
         <Button variant="primary" onClick={handleShare} fullWidth>
           <Share2 size={18} className="mr-2" />
           Share PDF

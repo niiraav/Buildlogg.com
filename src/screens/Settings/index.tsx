@@ -149,6 +149,7 @@ export default function Settings() {
       { id: '2', job_id: 'preview', description: 'Materials', amount: 50, sort_order: 1, added_on_site: false, created_at: '', _sync_status: 'synced' as const },
     ];
     const blob = generateInvoicePDF({ profile, customer: dummyCustomer, job: dummyJob, lineItems: dummyItems, total: 150, payments: [], amountDue: 150 });
+    setShowBrandingSheet(false);
     setPdfBlob(blob);
     capturePDFGenerated({ jobId: 'preview', type: 'invoice', hasLogo: !!profile.logo_data_url, isVat: !!profile.vat_registered });
   };
@@ -659,16 +660,31 @@ export default function Settings() {
               <div className="flex gap-2">
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={profile?.bank_sort_code || ''}
-                  onChange={(e) => updateProfile({ bank_sort_code: e.target.value || undefined })}
-                  placeholder="Sort code"
+                  onChange={(e) => {
+                    // Format: XX-XX-XX
+                    let digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    let formatted = digits;
+                    if (digits.length > 2) formatted = digits.slice(0, 2) + '-' + digits.slice(2);
+                    if (digits.length > 4) formatted = digits.slice(0, 2) + '-' + digits.slice(2, 4) + '-' + digits.slice(4);
+                    updateProfile({ bank_sort_code: formatted || undefined });
+                  }}
+                  placeholder="12-34-56"
                   className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
                 />
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={profile?.bank_account_number || ''}
-                  onChange={(e) => updateProfile({ bank_account_number: e.target.value || undefined })}
-                  placeholder="Account no."
+                  onChange={(e) => {
+                    // Format: XXXX XXXX (8 digits with space)
+                    let digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 4) formatted = digits.slice(0, 4) + ' ' + digits.slice(4);
+                    updateProfile({ bank_account_number: formatted || undefined });
+                  }}
+                  placeholder="1234 5678"
                   className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
                 />
               </div>
