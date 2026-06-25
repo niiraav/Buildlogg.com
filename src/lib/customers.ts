@@ -1,8 +1,28 @@
 /**
- * Customer helpers — search, stats, merge, archive.
+ * Customer helpers — search, stats, merge, archive, deduplication.
  * Pure logic over existing Dexie data.
  */
 import { db, type Customer, type Job, type Payment } from './db';
+import { addToSyncQueue } from './syncQueue';
+
+/**
+ * Normalize a UK phone number to +44XXXXXXXXXX format.
+ * Handles: 07..., 0..., +44..., 447..., spaces, dashes.
+ */
+export function normalizePhone(phone: string): string {
+  if (!phone) return '';
+  const cleaned = phone.replace(/[\s-]/g, '').replace(/^\+/, '');
+  if (/^0?7\d{9}$/.test(cleaned)) {
+    return '+44' + cleaned.replace(/^0/, '');
+  }
+  if (/^447\d{9}$/.test(cleaned)) {
+    return '+' + cleaned;
+  }
+  if (/^0\d{10}$/.test(cleaned)) {
+    return '+44' + cleaned.slice(1);
+  }
+  return phone.trim();
+}
 
 export async function searchCustomers(userId: string, query: string): Promise<Customer[]> {
   if (!query.trim()) return [];
@@ -11,6 +31,7 @@ export async function searchCustomers(userId: string, query: string): Promise<Cu
   return all
     .filter((c) => {
       if (c.is_archived) return false;
+      if (c.merged_into) return false;
       return (
         c.name.toLowerCase().includes(q) ||
         (c.phone || '').toLowerCase().includes(q) ||
@@ -20,6 +41,22 @@ export async function searchCustomers(userId: string, query: string): Promise<Cu
       );
     })
     .slice(0, 10);
+}
+
+/**
+ * Find a duplicate customer by phone number.
+ * Excludes archived and merged customers.
+ * Returns the first match or null.
+ */
+export async function findDuplicateByPhone(userId: string, phone: string): Promise<Customer | null> {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return null;
+  const all = await db.customers.where('user_id').equals(userId).toArray();
+  return all.find((c) => {
+    if (c.is_archived) return false;
+    if (c.merged_into) return false;
+    return normalizePhone(c.phone) === normalized;
+  }) || null;
 }
 
 export interface CustomerStats {
@@ -40,8 +77,9 @@ export async function getCustomerStats(customerId: string): Promise<CustomerStat
   const totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
 
   const outstandingJobs = jobs.filter((j) => j.status === 'awaiting_payment');
-  const allItems = outstandingJobs.length > 0
-    ? await db.line_items.where('job_id').anyOf(outstandingJobs.map((j) => j.id)).toArray()
+  const outstandingJobIds = outstandingJobs.map((j) => j.id);
+  const allItems = outstandingJobIds.length > 0
+    ? await db.line_items.where('job_id').anyOf(outstandingJobIds).toArray()
     : [];
   const outstandingBalance = outstandingJobs.reduce((sum, j) => {
     const jobItems = allItems.filter((i) => i.job_id === j.id);
@@ -78,11 +116,20 @@ export async function mergeCustomers(sourceId: string, targetId: string): Promis
   const now = new Date().toISOString();
   for (const job of jobs) {
     await db.jobs.update(job.id, { customer_id: targetId, updated_at: now, _sync_status: 'pending' });
+    await addToSyncQueue('jobs', job.id, { customer_id: targetId, updated_at: now }, 'update');
   }
   await db.customers.update(sourceId, { is_archived: true, merged_into: targetId, updated_at: now, _sync_status: 'pending' });
+  await addToSyncQueue('customers', sourceId, { is_archived: true, merged_into: targetId, updated_at: now }, 'update');
 }
 
 export async function archiveCustomer(id: string): Promise<void> {
   const now = new Date().toISOString();
   await db.customers.update(id, { is_archived: true, updated_at: now, _sync_status: 'pending' });
+  await addToSyncQueue('customers', id, { is_archived: true, updated_at: now }, 'update');
+}
+
+export async function unarchiveCustomer(id: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db.customers.update(id, { is_archived: false, updated_at: now, _sync_status: 'pending' });
+  await addToSyncQueue('customers', id, { is_archived: false, updated_at: now }, 'update');
 }

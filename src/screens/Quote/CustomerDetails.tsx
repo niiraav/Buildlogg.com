@@ -3,7 +3,7 @@ import { ChevronLeft, X } from 'lucide-react';
 import { db } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { useAppStore } from '../../store/useAppStore';
-import { searchCustomers } from '../../lib/customers';
+import { searchCustomers, findDuplicateByPhone } from '../../lib/customers';
 import type { Customer } from '../../lib/db';
 import BrandedLoader from '../../components/BrandedLoader';
 
@@ -63,6 +63,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const [phoneError, setPhoneError] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
   const [autocompleteResults, setAutocompleteResults] = useState<Customer[]>([]);
+  const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
   const userId = useAppStore((s) => s.userId);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [addressFocused, setAddressFocused] = useState(false);
@@ -105,6 +106,31 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     setPhone(c.phone || '');
     setAddress(c.address || '');
     setAutocompleteResults([]);
+  };
+
+  // Check for duplicate phone (excludes archived customers)
+  useEffect(() => {
+    if (!userId || !isValidUkPhone(phone) || !phone.trim()) {
+      setDuplicateWarning(null);
+      return;
+    }
+    // Skip if editing existing customer
+    if (customerId) { setDuplicateWarning(null); return; }
+    const timer = setTimeout(async () => {
+      const duplicate = await findDuplicateByPhone(userId, phone);
+      setDuplicateWarning(duplicate);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [phone, userId, customerId]);
+
+
+  const selectDuplicate = (c: Customer) => {
+    setName(c.name === 'Unknown' ? '' : c.name);
+    setPhone(c.phone || '');
+    setAddress(c.address || '');
+    setDuplicateWarning(null);
+    // Navigate using the existing customer — set customerId in state
+    // The form will use the filled data — the parent component handles customer creation/lookup
   };
 
   const canContinue = name.trim().length > 0 && isValidUkPhone(phone);
@@ -231,6 +257,23 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
             />
             {phoneError && (
               <p className="text-sm text-status-error mt-1">Enter a valid UK mobile number</p>
+            )}
+            {duplicateWarning && (
+              <div className="mt-2 p-3 bg-status-amberBg border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-status-amber">Existing customer found</p>
+                  <p className="text-xs text-brand-dark truncate">
+                    {duplicateWarning.name}
+                    {duplicateWarning.address && ` — ${duplicateWarning.address}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => selectDuplicate(duplicateWarning)}
+                  className="shrink-0 text-xs font-semibold text-status-amber underline cursor-pointer whitespace-nowrap"
+                >
+                  Use this customer
+                </button>
+              </div>
             )}
           </div>
 
