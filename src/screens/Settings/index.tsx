@@ -12,6 +12,8 @@ import SyncIndicator from '../../components/SyncIndicator';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
 import { capturePDFGenerated } from '../../lib/analytics';
+import { findDuplicateCustomers, mergeCustomers, type DuplicatePair } from '../../lib/customers';
+import { showToast } from '../../components/Toast/store';
 import PDFPreview from '../Quote/PDFPreview';
 import BrandedLoader from '../../components/BrandedLoader';
 import FeedbackSheet from '../../components/FeedbackSheet';
@@ -78,6 +80,9 @@ export default function Settings() {
   const [showReviewsSheet, setShowReviewsSheet] = useState(false);
   const [showLogoHelp, setShowLogoHelp] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [dedupSheetOpen, setDedupSheetOpen] = useState(false);
+  const [duplicatePairs, setDuplicatePairs] = useState<DuplicatePair[]>([]);
+  const [dedupLoading, setDedupLoading] = useState(false);
   
   // Detect active quote draft for quick resume
   const [draftInfo, setDraftInfo] = useState<{ customerName: string; step: string; jobId: string } | null>(null);
@@ -420,6 +425,31 @@ export default function Settings() {
               onClick={() => setShowReviewsSheet(true)}
             >
               <span className="text-sm font-medium text-brand-dark">Google reviews</span>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={async () => {
+                if (!userId) return;
+                setDedupLoading(true);
+                setDedupSheetOpen(true);
+                try {
+                  const pairs = await findDuplicateCustomers(userId);
+                  setDuplicatePairs(pairs);
+                  if (pairs.length === 0) {
+                    showToast('No duplicate customers found', 'info', 2500);
+                  }
+                } catch (e) {
+                  showToast('Could not scan customers', 'error', 2500);
+                } finally {
+                  setDedupLoading(false);
+                }
+              }}
+            >
+              <div className="flex-1">
+                <span className="text-sm font-medium text-brand-dark">Find duplicate customers</span>
+                <p className="text-xs text-brand-muted mt-0.5">Scan for contacts with same phone or name</p>
+              </div>
               <ChevronRight size={14} className="text-brand-muted" />
             </div>
           </div>
@@ -893,6 +923,65 @@ export default function Settings() {
             );
           })}
         </div>
+      </BottomSheet>
+
+      {/* Dedup BottomSheet */}
+      <BottomSheet
+        isOpen={dedupSheetOpen}
+        onClose={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }}
+        title="Duplicate customers"
+        subtitle={dedupLoading ? 'Scanning...' : duplicatePairs.length > 0 ? `${duplicatePairs.length} pair${duplicatePairs.length > 1 ? 's' : ''} found` : undefined}
+      >
+        {dedupLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <BrandedLoader size={36} fullscreen={false} />
+          </div>
+        ) : duplicatePairs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <p className="text-sm text-brand-mid text-center">No duplicate customers found.<br />Your customer list is clean.</p>
+            <Button variant="ghost" onClick={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }} fullWidth>
+              Close
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 mb-4">
+            {duplicatePairs.map((pair, idx) => (
+              <div key={idx} className="border border-brand-border rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pair.matchType === 'phone' ? 'bg-status-amberBg text-status-amber' : 'bg-brand-borderLight text-brand-mid'}`}>
+                    {pair.matchType === 'phone' ? 'Same phone' : 'Same name'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-brand-black truncate">{pair.customerA.name}</p>
+                    <p className="text-xs text-brand-muted">{pair.customerA.phone}</p>
+                  </div>
+                  <span className="text-xs text-brand-muted mx-2">vs</span>
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-sm font-semibold text-brand-black truncate">{pair.customerB.name}</p>
+                    <p className="text-xs text-brand-muted">{pair.customerB.phone}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={async () => {
+                    if (!userId) return;
+                    await mergeCustomers(pair.customerB.id, pair.customerA.id);
+                    setDuplicatePairs((prev) => prev.filter((_, i) => i !== idx));
+                    showToast(`Merged "${pair.customerB.name}" into "${pair.customerA.name}"`, 'success', 3000);
+                  }}
+                >
+                  Merge into {pair.customerA.name.split(' ')[0]}
+                </Button>
+              </div>
+            ))}
+            <Button variant="ghost" onClick={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }} fullWidth>
+              Close
+            </Button>
+          </div>
+        )}
       </BottomSheet>
 
       {/* Feedback sheet */}

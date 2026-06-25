@@ -133,3 +133,52 @@ export async function unarchiveCustomer(id: string): Promise<void> {
   await db.customers.update(id, { is_archived: false, updated_at: now, _sync_status: 'pending' });
   await addToSyncQueue('customers', id, { is_archived: false, updated_at: now }, 'update');
 }
+
+export interface DuplicatePair {
+  customerA: Customer;
+  customerB: Customer;
+  matchType: 'phone' | 'name';
+}
+
+/**
+ * Find all duplicate customer pairs (same phone or same name).
+ * Excludes archived and merged customers.
+ */
+export async function findDuplicateCustomers(userId: string): Promise<DuplicatePair[]> {
+  const allCustomers = await db.customers
+    .where('user_id')
+    .equals(userId)
+    .filter((c) => !c.is_archived && !c.merged_into)
+    .toArray();
+
+  const pairs: DuplicatePair[] = [];
+  const seen = new Set<string>();
+
+  for (let i = 0; i < allCustomers.length; i++) {
+    for (let j = i + 1; j < allCustomers.length; j++) {
+      const a = allCustomers[i];
+      const b = allCustomers[j];
+      const pairKey = `${a.id}-${b.id}`;
+      if (seen.has(pairKey)) continue;
+
+      // Check phone match (normalized)
+      const phoneA = normalizePhone(a.phone || '');
+      const phoneB = normalizePhone(b.phone || '');
+      if (phoneA && phoneB && phoneA === phoneB) {
+        pairs.push({ customerA: a, customerB: b, matchType: 'phone' });
+        seen.add(pairKey);
+        continue;
+      }
+
+      // Check name match (case-insensitive, trimmed)
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      if (nameA && nameB && nameA === nameB && nameA !== 'unknown') {
+        pairs.push({ customerA: a, customerB: b, matchType: 'name' });
+        seen.add(pairKey);
+      }
+    }
+  }
+
+  return pairs;
+}
