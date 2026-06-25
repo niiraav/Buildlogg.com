@@ -1,18 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Clipboard, Phone, FileText } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { db, type Job, type LineItem, type Customer, type Profile } from '../../lib/db';
 import { generateQuotePDF } from '../../lib/pdfGenerator';
-import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
-import PDFPreview from './PDFPreview';
-import { fillTemplate } from '../../lib/templateEngine';
-import type { MessageTemplate } from '../../lib/db';
+import { capturePDFGenerated } from '../../lib/analytics';
+import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
-import { BottomSheet } from '../../components/BottomSheet';
 import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
@@ -21,7 +18,7 @@ import BrandedLoader from '../../components/BrandedLoader';
 
 interface QuotePreviewProps {
   jobId: string;
-  onSend: (method: 'whatsapp' | 'sms' | 'copy', messageContent?: string) => void;
+  onSend: (method: 'whatsapp' | 'sms', messageContent?: string) => void;
   onSaveDraft: () => void;
   onBack: () => void;
 }
@@ -37,11 +34,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSendSheet, setShowSendSheet] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [messageText, setMessageText] = useState('');
-  const [editingMessage, setEditingMessage] = useState(false);
 
   /* Load data */
   useEffect(() => {
@@ -134,67 +127,47 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     }
   }, [defaultMessage]);
 
+  // Compact message for when PDF is attached (no line items, just total)
+  const compactMessage = useMemo(() => {
+    if (!job || !customer) return '';
+    const lines = [
+      `Hi ${customerFirstName}, here's your quote for ${job.title}.`,
+      `Total: £${total.toFixed(2)}.`,
+      'Details attached.'
+    ];
+    if (businessName) lines.push(businessName);
+    return lines.join('\n');
+  }, [job, customer, customerFirstName, total, businessName]);
+
   /* ─── handlers ─── */
   const handleOpenSend = () => {
     if (!messageText) setMessageText(defaultMessage);
     setShowSendSheet(true);
   };
-
-  const handleGeneratePDF = async () => {
-    if (!job || !customer) return;
-    const prof = await db.profiles.get(job.user_id);
-    if (!prof) return;
-    const items = await db.line_items.where('job_id').equals(jobId).toArray();
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + (prof.quote_valid_days || 30));
-    const blob = generateQuotePDF({ profile: prof, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
-    setPdfBlob(blob);
-    capturePDFGenerated({ jobId, type: 'quote', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
-  };
-
-  const loadTemplates = async () => {
-    if (!job) return;
-    const all = await db.message_templates.where('user_id').equals(job.user_id).sortBy('sort_order');
-    setTemplates(all);
-    setShowTemplates(!showTemplates);
-  };
-
-  const applyTemplate = (tmpl: MessageTemplate) => {
-    if (!job || !customer) return;
-    const prof = profile;
-    if (!prof) return;
-    const filled = fillTemplate(tmpl.body, job, customer, prof, total);
-    setMessageText(filled);
-    setEditingMessage(true);
-    setShowTemplates(false);
-  };
-
-  const handleSend = async (method: 'whatsapp' | 'sms' | 'copy') => {
-    if (!job || !customer) return;
-
-    const phone = customer.phone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(messageText);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    } else if (method === 'copy') {
-      try { await navigator.clipboard.writeText(messageText); } catch (e) { console.error(e); }
-    }
-
+  const handleSend = (method: SendMethod, _pdfShared: boolean) => {
     setShowSendSheet(false);
-    onSend(method, messageText);
+    const parentMethod = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms';
+    onSend(parentMethod, messageText);
   };
+
+  // PRO FEATURE: gate behind paywall — during beta, everyone is Pro
+  const isPro = true;
+  const pdfOptions = isPro && job && customer && profile ? {
+    label: 'Attach PDF quote',
+    generatePdf: () => {
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + (profile.quote_valid_days || 30));
+      const blob = generateQuotePDF({ profile, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
+      capturePDFGenerated({ jobId, type: 'quote', hasLogo: !!profile.logo_data_url, isVat: !!profile.vat_registered });
+      return blob;
+    },
+    fileName: `quote-${job.job_number || jobId}.pdf`,
+  } : undefined;
 
   const handleSaveDraft = () => {
     onSaveDraft();
   };
 
-  const handleSheetDraft = () => {
-    setShowSendSheet(false);
-    onSaveDraft();
-  };
 
   const handleGoSettings = () => {
     localStorage.setItem('buildlogg_redirected_from_quote', 'true');
@@ -293,110 +266,20 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         </button>
       </StickyFooter>
 
-      {/* Send BottomSheet */}
-      <BottomSheet
+      {/* Send Sheet */}
+      <SendSheet
         isOpen={showSendSheet}
         onClose={() => setShowSendSheet(false)}
         title={`Send to ${customerFirstName}?`}
-      >
-        {/* Template picker toggle */}
-        <button
-          onClick={loadTemplates}
-          className="text-xs font-semibold text-brand-dark mb-2 cursor-pointer"
-        >
-          {showTemplates ? 'Hide templates' : 'Use a template ↑'}
-        </button>
-
-        {/* Template list */}
-        {showTemplates && templates.length > 0 && (
-          <div className="flex flex-col gap-1.5 mb-3 max-h-40 overflow-y-auto">
-            {templates.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => applyTemplate(t)}
-                className="text-left px-3 py-2 bg-brand-surface border border-brand-border rounded-lg cursor-pointer active:opacity-70"
-              >
-                <span className="text-xs font-semibold text-brand-black">{t.name}</span>
-                <p className="text-xs text-brand-muted truncate mt-0.5">{t.body.substring(0, 60)}...</p>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Message preview — editable */}
-        <div className="mb-4">
-          {editingMessage ? (
-            <textarea
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onBlur={() => setEditingMessage(false)}
-              autoFocus
-              className="w-full min-h-[120px] p-3 bg-brand-surface border border-brand-border rounded-lg text-sm text-brand-dark font-normal leading-relaxed outline-none focus:border-brand-black"
-            />
-          ) : (
-            <div
-              onClick={() => setEditingMessage(true)}
-              className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
-            >
-              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">
-                {messageText}
-              </p>
-              <p className="text-label text-brand-dark mt-1 italic">
-                Tap to edit before sending
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="primary"
-            onClick={() => handleSend('whatsapp')}
-            fullWidth
-          >
-            <MessageCircle size={18} className="mr-2" />
-            Send via WhatsApp
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => handleSend('sms')}
-            fullWidth
-          >
-            <Phone size={18} className="mr-2" />
-            Send via SMS
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleGeneratePDF}
-            fullWidth
-          >
-            <FileText size={18} className="mr-2" />
-            Share as PDF
-          </Button>
-          <button
-            onClick={() => handleSend('copy')}
-            className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-mid cursor-pointer underline underline-offset-2"
-          >
-            <Clipboard size={16} />
-            Copy message
-          </button>
-          <button
-            onClick={handleSheetDraft}
-            className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-muted cursor-pointer"
-          >
-            Save as draft
-          </button>
-        </div>
-      </BottomSheet>
-
-      {pdfBlob && (
-        <PDFPreview
-          blob={pdfBlob}
-          fileName={`quote-${job?.job_number || jobId}.pdf`}
-          onBack={() => setPdfBlob(null)}
-          onShared={(method: 'whatsapp' | 'download' | 'share') => capturePDFShared({ jobId, type: 'quote', method })}
-        />
-      )}
+        customerPhone={customer?.phone || ''}
+        messageText={messageText}
+        onMessageChange={setMessageText}
+        onSend={handleSend}
+        onSaveDraft={handleSaveDraft}
+        pdfOptions={pdfOptions}
+        fullMessage={defaultMessage}
+        compactMessage={compactMessage}
+      />
     </div>
   );
 }

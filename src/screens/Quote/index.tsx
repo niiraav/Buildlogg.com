@@ -22,7 +22,7 @@ type EntryPoint = 'missed_call' | 'new_quote' | 'task';
 
 type QuoteStep = 'missed_call' | 'customer_details' | 'builder' | 'preview' | 'sent';
 
-type SendMethod = 'whatsapp' | 'sms' | 'copy';
+type SendMethod = 'whatsapp' | 'sms';
 
 interface LocationState {
   entryPoint?: EntryPoint;
@@ -274,8 +274,8 @@ export default function Quote() {
       _sync_status: 'pending',
     });
 
-    const isCopy = method === 'copy';
-    if (!isCopy) {
+    
+    if (true) {
       const workLogId = crypto.randomUUID();
       await db.work_log.add({
         id: workLogId,
@@ -304,7 +304,7 @@ export default function Quote() {
     });
 
     hapticSuccess();
-    showSuccess(isCopy ? 'Copied to clipboard' : 'Quote sent!');
+    showSuccess('Quote sent!');
     captureQuoteSent(method);
     setSendMethod(method);
     setStep('sent');
