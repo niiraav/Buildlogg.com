@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, GitMerge, Search } from 'lucide-react';
+import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, Home } from 'lucide-react';
 import { db, type Customer, type Job, type Payment } from '../../lib/db';
 import { getCustomerStats, getCustomerJobs, getCustomerPayments, archiveCustomer, unarchiveCustomer, mergeCustomers, type CustomerStats } from '../../lib/customers';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -113,7 +113,7 @@ export default function CustomerDetail() {
             <span className="text-sm font-medium">Customers</span>
           </button>
           <h1 className="text-base font-bold text-brand-black truncate max-w-[180px]">{customer.name}</h1>
-          <div className="w-20" />
+          <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center text-brand-dark cursor-pointer" aria-label="Home"><Home size={20} /></button>
         </div>
       </div>
 
@@ -240,14 +240,16 @@ export default function CustomerDetail() {
           </Button>
           {!customer.is_archived ? (
             <>
-              <Button variant="secondary" onClick={() => setShowMergeSheet(true)} fullWidth>
-                <GitMerge size={16} className="mr-2" />
-                Merge with another customer
-              </Button>
               <Button variant="secondary" onClick={handleArchive} fullWidth>
                 <Archive size={16} className="mr-2" />
                 Archive customer
               </Button>
+              <button
+                onClick={() => setShowMergeSheet(true)}
+                className="text-xs font-medium text-brand-muted underline underline-offset-2 cursor-pointer mt-1 self-center"
+              >
+                Merge with another customer
+              </button>
             </>
           ) : (
             <Button variant="secondary" onClick={handleUnarchive} fullWidth>

@@ -107,6 +107,7 @@ export default function MessageTemplates() {
             <span className="text-sm font-medium">Settings</span>
           </button>
           <h1 className="text-xl font-extrabold text-brand-black">Templates</h1>
+          <p className="text-xs text-brand-muted mt-1">Save time on WhatsApp messages — templates auto-fill with each customer's details</p>
           <button onClick={handleCreate} className="w-8 h-8 flex items-center justify-center text-brand-black cursor-pointer">
             <Plus size={20} />
           </button>
