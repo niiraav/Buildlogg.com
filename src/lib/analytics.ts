@@ -12,16 +12,13 @@ export async function initAnalytics() {
   }
 
   // Check if the PostHog event endpoint is reachable before initializing.
-  // Ad-blockers / privacy extensions block POST requests to /e/ at the network level,
-  // which causes PostHog's internal retry queue to spam console errors (ERR_BLOCKED_BY_CLIENT).
-  // By testing the actual /e/ endpoint, we detect the block and skip init entirely.
+  // Ad-blockers block POST requests to /e/ at the network level (ERR_BLOCKED_BY_CLIENT).
+  // We test with a real POST — if it throws OR returns type:'error', the endpoint is blocked.
+  let posthogBlocked = false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    // POST to /e/ — the actual event endpoint. no-cors mode means we get an opaque
-    // response if the request goes through, but a network error if blocked.
-    // A 400/404 response is fine — it means the endpoint is reachable, just malformed.
-    await fetch(`${POSTHOG_HOST}/e/`, {
+    const res = await fetch(`${POSTHOG_HOST}/e/`, {
       method: 'POST',
       signal: controller.signal,
       mode: 'no-cors',
@@ -29,8 +26,14 @@ export async function initAnalytics() {
       body: JSON.stringify({}),
     });
     clearTimeout(timeout);
+    // no-cors returns type:'opaque' if the request went through.
+    // type:'error' means it was blocked even though fetch didn't throw.
+    if (res.type === 'error') posthogBlocked = true;
   } catch {
-    console.warn('[Analytics] PostHog event endpoint blocked by client (ad-blocker or privacy extension). Analytics disabled to prevent console errors.');
+    posthogBlocked = true;
+  }
+  if (posthogBlocked) {
+    console.warn('[Analytics] PostHog blocked by client (ad-blocker or privacy extension). Analytics disabled.');
     isReady = false;
     return;
   }

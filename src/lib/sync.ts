@@ -127,6 +127,12 @@ async function pushToSupabase(item: SyncQueueItem) {
   }
 
   if (result?.error) {
+    const errMsg = (result.error as any)?.message || '';
+    // Table doesn't exist in Supabase yet — skip silently, mark as synced locally
+    if (errMsg.includes('Could not find the table') || errMsg.includes('schema cache') || errMsg.includes('404')) {
+      console.warn(`[sync] Table '${table_name}' not found in Supabase — skipping (local-only). Run SQL migration to create it.`);
+      return; // Don't throw — treat as success so the queue item is removed
+    }
     console.error(`[sync] ${operation} on ${table_name} failed:`, result.error);
     throw result.error;
   }
@@ -159,6 +165,18 @@ async function updateSyncStatus(
     case 'job_photos':
       await db.job_photos.update(recordId, { _sync_status: status });
       break;
+    case 'generated_documents':
+      await db.generated_documents.update(recordId, { _sync_status: status });
+      break;
+    case 'message_templates':
+      await db.message_templates.update(recordId, { _sync_status: status });
+      break;
+    case 'custom_items':
+      await db.custom_items.update(recordId, { _sync_status: status });
+      break;
+    case 'material_items':
+      await db.material_items.update(recordId, { _sync_status: status });
+      break;
   }
 }
 
@@ -169,7 +187,7 @@ export async function hasPendingSync(): Promise<boolean> {
 
 // Check if any records have error status
 export async function hasSyncError(): Promise<boolean> {
-  const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles, db.job_photos];
+  const tables = [db.jobs, db.customers, db.line_items, db.work_log, db.payments, db.profiles, db.job_photos, db.custom_items, db.material_items];
   for (const table of tables) {
     const count = await table.where('_sync_status').equals('error').count();
     if (count > 0) return true;
