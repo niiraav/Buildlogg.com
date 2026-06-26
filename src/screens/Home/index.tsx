@@ -17,16 +17,23 @@ import { addToSyncQueue } from '../../lib/syncQueue';
 import { showToast } from '../../components/Toast/store';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import NotificationBanner from '../../components/NotificationBanner';
+import { SendSheet, type SendMethod } from '../../components/SendSheet';
 
 /* --- helpers --- */
 import { shouldShowBanner as shouldShowNotificationBanner } from '../../lib/notificationManager';
 import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
-import { getDueQuoteFollowUps } from '../../lib/quoteFollowUp';
+import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollowUp, incrementNudge } from '../../lib/quoteFollowUp';
+import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
+import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
-import { capture } from '../../lib/analytics';
+import { capture,
+  captureQuoteFollowUpShown, captureQuoteFollowUpSent, captureQuoteFollowUpSnoozed, captureQuoteFollowUpResponded,
+  capturePaymentChaseShown, capturePaymentChaseSent, capturePaymentChasePaused, capturePaymentChaseResumed,
+  captureRecurringReminderShown, captureRecurringReminderActed,
+} from '../../lib/analytics';
 import {
   captureStaleJobNudgeShown,
   captureStaleJobNudgeTapped,
@@ -141,8 +148,11 @@ type SheetState =
   | 'finish_previous'
   | 'review_prompt'
   | 'recurring_prompt'
+  | 'follow_up_actions'
+  | 'chase_actions'
+  | 'recurring_actions'
 
-type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
+type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder';
 
 interface TaskItem {
   id: string;
@@ -192,6 +202,17 @@ export default function Home() {
   const [dueChases, setDueChases] = useState<Array<PaymentChase & { job?: import('../../lib/db').Job }>>([]);
   const [upcomingRecurring, setUpcomingRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
   const [sampleExplored, setSampleExplored] = useState(() => localStorage.getItem('buildlogg_sample_explored') === 'true');
+  const [selectedFollowUp, setSelectedFollowUp] = useState<(QuoteFollowUp & { job?: import('../../lib/db').Job }) | null>(null);
+  const [selectedChase, setSelectedChase] = useState<(PaymentChase & { job?: import('../../lib/db').Job }) | null>(null);
+  const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
+  const [sendSheetConfig, setSendSheetConfig] = useState<{
+    title: string;
+    customerPhone: string;
+    messageText: string;
+    onSend: (method: SendMethod, pdfShared: boolean) => void;
+  } | null>(null);
+  const [allRecurring, setAllRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
+  const [recurringListExpanded, setRecurringListExpanded] = useState(false);
   // Update sampleExplored when component regains focus (e.g., returning from JobDetail)
   useEffect(() => {
     const update = () => setSampleExplored(localStorage.getItem('buildlogg_sample_explored') === 'true');
@@ -277,6 +298,7 @@ export default function Home() {
     getDueQuoteFollowUps(userId).then(setDueFollowUps).catch(() => {});
     getDuePaymentChases(userId).then(setDueChases).catch(() => {});
     getUpcomingRecurringJobs(userId, 14).then(setUpcomingRecurring).catch(() => {});
+    getUpcomingRecurringJobs(userId, 90).then(setAllRecurring).catch(() => {});
   }, [jobs, userId]);
 
   /* tick for elapsed timer */
@@ -524,7 +546,7 @@ export default function Home() {
     return items;
   }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring]);
 
-  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue' || (t.type === 'payment_chase' && t.isL2));
+  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || (t.type === 'payment_chase' && t.isL2));
   const draftTasks = tasks
     .filter((t) => t.type === 'draft_quote')
     .sort((a, b) => {
@@ -534,7 +556,7 @@ export default function Home() {
       const bTime = bJob?.updated_at ? new Date(bJob.updated_at).getTime() : 0;
       return bTime - aTime; // most recently edited first
     });
-  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'draft_quote' && !(t.type === 'payment_chase' && t.isL2));
+  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'draft_quote' && !(t.type === 'payment_chase' && t.isL2) && t.type !== 'recurring_reminder');
   const l2Count = actTodayTasks.length;
   const draftsCount = draftTasks.length;
 
@@ -1025,7 +1047,20 @@ export default function Home() {
                     jobNumber={task.jobNumber}
                     amount={task.amount}
                     contextLine={task.contextLine}
-                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
+                    onTap={() => {
+                    if (task.type === 'quote_follow_up') {
+                      const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
+                      if (fu) { setSelectedFollowUp(fu); captureQuoteFollowUpShown({ jobId: fu.job_id, nudgeCount: fu.nudge_count }); setSheet('follow_up_actions'); }
+                    } else if (task.type === 'payment_chase') {
+                      const ch = dueChases.find(c => c.id === task.id.replace('chase_', ''));
+                      if (ch) { setSelectedChase(ch); capturePaymentChaseShown({ jobId: ch.job_id, stage: ch.stage }); setSheet('chase_actions'); }
+                    } else if (task.type === 'recurring_reminder') {
+                      const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
+                      if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
+                    } else {
+                      navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
+                    }
+                  }}
                   />
                 );
               })}
@@ -1056,7 +1091,20 @@ export default function Home() {
                     jobNumber={task.jobNumber}
                     amount={task.amount}
                     contextLine={task.contextLine}
-                    onTap={() => navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } })}
+                    onTap={() => {
+                    if (task.type === 'quote_follow_up') {
+                      const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
+                      if (fu) { setSelectedFollowUp(fu); captureQuoteFollowUpShown({ jobId: fu.job_id, nudgeCount: fu.nudge_count }); setSheet('follow_up_actions'); }
+                    } else if (task.type === 'payment_chase') {
+                      const ch = dueChases.find(c => c.id === task.id.replace('chase_', ''));
+                      if (ch) { setSelectedChase(ch); capturePaymentChaseShown({ jobId: ch.job_id, stage: ch.stage }); setSheet('chase_actions'); }
+                    } else if (task.type === 'recurring_reminder') {
+                      const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
+                      if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
+                    } else {
+                      navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
+                    }
+                  }}
                   />
                 );
               })}
@@ -1075,6 +1123,44 @@ export default function Home() {
                 <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* P2-D: Upcoming recurring section */}
+        {allRecurring.length > 0 && (
+          <div className="mt-4">
+            <button
+              onClick={() => setRecurringListExpanded(!recurringListExpanded)}
+              className="flex items-center justify-between w-full text-micro font-bold text-brand-mid tracking-[0.7px] mb-2 cursor-pointer"
+            >
+              <span>Upcoming recurring ({allRecurring.length})</span>
+              <span className="text-brand-muted">{recurringListExpanded ? 'Hide' : 'Show'}</span>
+            </button>
+            {recurringListExpanded && (
+              <div className="flex flex-col gap-2">
+                {allRecurring.map((r) => {
+                  const c = customerFor(r.customer_id);
+                  const intervalLabels: Record<string, string> = { monthly: 'Monthly', quarterly: 'Quarterly', six_monthly: '6-monthly', annual: 'Annual' };
+                  const nextDue = new Date(r.next_due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                  const isOverdue = new Date(r.next_due_at).getTime() < Date.now();
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => { setSelectedRecurring(r); setSheet('recurring_actions'); }}
+                      className="bg-white border border-brand-border rounded-lg p-3 cursor-pointer active:opacity-70 flex items-center justify-between"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-brand-black truncate">{c?.name || 'Unknown'} · {r.title}</p>
+                        <p className="text-xs text-brand-muted mt-0.5">
+                          {isOverdue ? `Overdue · ` : `Due ${nextDue} · `}{intervalLabels[r.interval] || r.interval}
+                          {r.status === 'dormant' && ' · Dormant'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1648,6 +1734,187 @@ export default function Home() {
           }} fullWidth>Annual</Button>
         </div>
       </BottomSheet>
+
+      {/* P2-A: Follow-up actions sheet */}
+      <BottomSheet
+        isOpen={sheet === 'follow_up_actions'}
+        onClose={() => { setSheet(null); setSelectedFollowUp(null); }}
+        title="Follow up"
+        subtitle={selectedFollowUp ? `${customerFor(selectedFollowUp.job?.customer_id || '')?.name || ''} · ${selectedFollowUp.job?.title || ''}` : undefined}
+      >
+        {selectedFollowUp && selectedFollowUp.job && (() => {
+          const c = customerFor(selectedFollowUp.job.customer_id);
+          const total = (lineItems[selectedFollowUp.job.id] || []).reduce((s, i) => s + i.amount, 0);
+          const days = selectedFollowUp.job.quote_sent_at ? Math.floor((Date.now() - new Date(selectedFollowUp.job.quote_sent_at).getTime()) / 86400000) : 0;
+          const businessName = profile?.business_name || profile?.full_name || 'Your business';
+          const firstName = c?.name?.split(' ')[0] || 'there';
+          const followUpMsg = `Hi ${firstName}, just following up on the quote I sent for ${selectedFollowUp.job.title}. Happy to answer any questions. — ${businessName}`;
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
+                <p className="text-sm text-brand-dark">Quote sent {days}d ago · £{total.toFixed(2)}</p>
+              </div>
+              <Button variant="primary" fullWidth onClick={() => {
+                setSendSheetConfig({
+                  title: `Send to ${c?.name || 'customer'}?`,
+                  customerPhone: c?.phone || '',
+                  messageText: followUpMsg,
+                  onSend: async (method) => {
+                    await incrementNudge(selectedFollowUp.id);
+                    const methodLabel = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS';
+                    const n = new Date().toISOString();
+                    const logId = crypto.randomUUID();
+                    await db.work_log.add({ id: logId, job_id: selectedFollowUp.job_id, type: 'quote_follow_up_sent', description: `[Follow-up sent via ${methodLabel}] ${followUpMsg}`, created_at: n, _sync_status: 'pending' });
+                    await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedFollowUp.job_id, type: 'quote_follow_up_sent', description: `[Follow-up sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${followUpMsg}`, created_at: n }, 'insert');
+                    captureQuoteFollowUpSent({ jobId: selectedFollowUp.job_id, nudgeCount: selectedFollowUp.nudge_count + 1, method: method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms' });
+                    setSheet(null); setSelectedFollowUp(null); refresh();
+                  },
+                });
+              }}>
+                <MessageCircle size={18} className="mr-2" />
+                Send follow-up
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" fullWidth onClick={async () => { await snoozeFollowUp(selectedFollowUp.id, '1d'); captureQuoteFollowUpSnoozed({ jobId: selectedFollowUp.job_id, duration: '1d' }); setSheet(null); setSelectedFollowUp(null); refresh(); showToast('Snoozed 1 day'); }}>1 day</Button>
+                <Button variant="secondary" fullWidth onClick={async () => { await snoozeFollowUp(selectedFollowUp.id, '1w'); captureQuoteFollowUpSnoozed({ jobId: selectedFollowUp.job_id, duration: '1w' }); setSheet(null); setSelectedFollowUp(null); refresh(); showToast('Snoozed 1 week'); }}>1 week</Button>
+                <Button variant="secondary" fullWidth onClick={async () => { await snoozeFollowUp(selectedFollowUp.id, '2w'); captureQuoteFollowUpSnoozed({ jobId: selectedFollowUp.job_id, duration: '2w' }); setSheet(null); setSelectedFollowUp(null); refresh(); showToast('Snoozed 2 weeks'); }}>2 weeks</Button>
+              </div>
+              <Button variant="secondary" fullWidth onClick={async () => { await markQuoteResponded(selectedFollowUp.job_id); captureQuoteFollowUpResponded({ jobId: selectedFollowUp.job_id }); setSheet(null); setSelectedFollowUp(null); refresh(); showToast('Marked as responded'); }}>Customer responded</Button>
+              <Button variant="ghost" fullWidth onClick={async () => { await dismissFollowUp(selectedFollowUp.id); setSheet(null); setSelectedFollowUp(null); refresh(); showToast('Stopped tracking'); }}>Stop tracking</Button>
+              <Button variant="ghost" fullWidth onClick={() => { setSheet(null); setSelectedFollowUp(null); navigate(`/jobs/${selectedFollowUp.job_id}`); }}>Open job</Button>
+            </div>
+          );
+        })()}
+      </BottomSheet>
+
+      {/* P2-A: Chase actions sheet */}
+      <BottomSheet
+        isOpen={sheet === 'chase_actions'}
+        onClose={() => { setSheet(null); setSelectedChase(null); }}
+        title="Payment chase"
+        subtitle={selectedChase ? `${customerFor(selectedChase.job?.customer_id || '')?.name || ''} · ${selectedChase.job?.title || ''}` : undefined}
+      >
+        {selectedChase && selectedChase.job && (() => {
+          const c = customerFor(selectedChase.job.customer_id);
+          const total = (lineItems[selectedChase.job.id] || []).reduce((s, i) => s + i.amount, 0);
+          const clockStart = selectedChase.job.actual_end || selectedChase.job.updated_at;
+          const daysOverdue = clockStart ? Math.floor((Date.now() - new Date(clockStart).getTime()) / 86400000) : 0;
+          const businessName = profile?.business_name || profile?.full_name || 'Your business';
+          const firstName = c?.name?.split(' ')[0] || 'there';
+          const stageMessages: Record<string, string> = {
+            gentle: `Hi ${firstName}, just a friendly reminder about the £${total.toFixed(2)} for the ${selectedChase.job.title}. Let me know if you need to talk about payment timing. — ${businessName}`,
+            firm: `Hi ${firstName}, the balance of £${total.toFixed(2)} is now ${daysOverdue} days overdue. Happy to set up a payment plan if that helps. — ${businessName}`,
+            final: `Hi ${firstName}, the balance of £${total.toFixed(2)} for the ${selectedChase.job.title} is now ${daysOverdue} days overdue. Please arrange payment at your earliest convenience. — ${businessName}`,
+          };
+          const isPaused = selectedChase.status === 'paused';
+          const isSmallClaims = selectedChase.stage === 'small_claims';
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
+                <p className="text-sm text-brand-dark">£{total.toFixed(2)} · {daysOverdue}d overdue · {selectedChase.stage}{isPaused ? ' (paused)' : ''}</p>
+              </div>
+              {isSmallClaims ? (
+                <div className="bg-status-amberBg border border-amber-200 rounded-lg p-3 mb-2">
+                  <p className="text-sm text-status-amber">This invoice is {daysOverdue} days overdue. You can file a small claims court claim for £{total.toFixed(2)}.</p>
+                </div>
+              ) : !isPaused ? (
+                <Button variant="primary" fullWidth onClick={() => {
+                  const msg = stageMessages[selectedChase.stage] || stageMessages.gentle;
+                  setSendSheetConfig({
+                    title: `Send to ${c?.name || 'customer'}?`,
+                    customerPhone: c?.phone || '',
+                    messageText: msg,
+                    onSend: async (method) => {
+                      await markChaseSent(selectedChase.id, method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
+                      const n = new Date().toISOString();
+                      const logId = crypto.randomUUID();
+                      await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Payment chase sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}: ${msg}`, created_at: n, _sync_status: 'pending' });
+                      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Payment chase sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}: ${msg}`, created_at: n }, 'insert');
+                      capturePaymentChaseSent({ jobId: selectedChase.job_id, stage: selectedChase.stage, method: method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms' });
+                      setSheet(null); setSelectedChase(null); refresh();
+                    },
+                  });
+                }}>
+                  <MessageCircle size={18} className="mr-2" />
+                  Send chase
+                </Button>
+              ) : null}
+              {isPaused ? (
+                <Button variant="secondary" fullWidth onClick={async () => { await resumeChase(selectedChase.job_id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_resumed', description: 'Payment chase resumed', created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_resumed', description: 'Payment chase resumed', created_at: n }, 'insert'); capturePaymentChaseResumed({ jobId: selectedChase.job_id }); setSheet(null); setSelectedChase(null); refresh(); showToast('Chase resumed'); }}>Resume chase</Button>
+              ) : (
+                <Button variant="secondary" fullWidth onClick={async () => { await pauseChase(selectedChase.job_id, 'manual'); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_paused', description: 'Payment chase paused', created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_paused', description: 'Payment chase paused', created_at: n }, 'insert'); capturePaymentChasePaused({ jobId: selectedChase.job_id, reason: 'manual' }); setSheet(null); setSelectedChase(null); refresh(); showToast('Chase paused'); }}>Pause chase</Button>
+              )}
+              {isSmallClaims && (
+                <Button variant="secondary" fullWidth onClick={async () => { await resolveChaseById(selectedChase.job_id); setSheet(null); setSelectedChase(null); refresh(); showToast('Marked as resolved'); }}>Mark resolved</Button>
+              )}
+              <Button variant="ghost" fullWidth onClick={() => { setSheet(null); setSelectedChase(null); navigate(`/jobs/${selectedChase.job_id}`); }}>Open job</Button>
+            </div>
+          );
+        })()}
+      </BottomSheet>
+
+      {/* P2-A: Recurring actions sheet */}
+      <BottomSheet
+        isOpen={sheet === 'recurring_actions'}
+        onClose={() => { setSheet(null); setSelectedRecurring(null); }}
+        title="Recurring job"
+        subtitle={selectedRecurring ? `${customerFor(selectedRecurring.customer_id)?.name || ''} · ${selectedRecurring.title}` : undefined}
+      >
+        {selectedRecurring && (() => {
+          const c = customerFor(selectedRecurring.customer_id);
+          const businessName = profile?.business_name || profile?.full_name || 'Your business';
+          const firstName = c?.name?.split(' ')[0] || 'there';
+          const reminderMsg = `Hi ${firstName}, your ${selectedRecurring.title} is due soon. Want to book? — ${businessName}`;
+          const intervalLabels: Record<string, string> = { monthly: 'Monthly', quarterly: 'Quarterly', six_monthly: '6-monthly', annual: 'Annual' };
+          const nextDue = new Date(selectedRecurring.next_due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
+                <p className="text-sm text-brand-dark">Next due: {nextDue} · {intervalLabels[selectedRecurring.interval] || selectedRecurring.interval}</p>
+                {selectedRecurring.status === 'dormant' && <p className="text-xs text-status-amber mt-1">Dormant — no response after multiple attempts</p>}
+              </div>
+              <Button variant="secondary" fullWidth onClick={async () => { if (c?.phone) window.open(`tel:${c.phone}`, '_self'); await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'call' }); setSheet(null); setSelectedRecurring(null); refresh(); }}>Call customer</Button>
+              <Button variant="primary" fullWidth onClick={() => {
+                setSendSheetConfig({
+                  title: `Send to ${c?.name || 'customer'}?`,
+                  customerPhone: c?.phone || '',
+                  messageText: reminderMsg,
+                  onSend: async (method) => {
+                    await incrementContactAttempt(selectedRecurring.id);
+                    const n = new Date().toISOString();
+                    const logId = crypto.randomUUID();
+                    await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${reminderMsg}`, created_at: n, _sync_status: 'pending' });
+                    await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${reminderMsg}`, created_at: n }, 'insert');
+                    captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'whatsapp' });
+                    setSheet(null); setSelectedRecurring(null); refresh();
+                  },
+                });
+              }}>
+                <MessageCircle size={18} className="mr-2" />
+                Send WhatsApp
+              </Button>
+              <Button variant="secondary" fullWidth onClick={async () => { await advanceRecurrence(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring job completed — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring job completed — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'done' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Marked as done — next cycle set'); }}>Mark as done</Button>
+              <Button variant="secondary" fullWidth onClick={async () => { await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_no_response', description: `[No response — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_no_response', description: `[No response — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'no_response' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Recorded no response'); }}>No response</Button>
+              <Button variant="ghost" fullWidth onClick={async () => { await cancelRecurrence(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_job_cancelled', description: `[Recurring job cancelled — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_job_cancelled', description: `[Recurring job cancelled — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'cancel' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Recurrence cancelled'); }}>Cancel recurrence</Button>
+              <Button variant="ghost" fullWidth onClick={() => { setSheet(null); setSelectedRecurring(null); navigate(`/jobs/${selectedRecurring.original_job_id}`); }}>Open job</Button>
+            </div>
+          );
+        })()}
+      </BottomSheet>
+
+      {/* P2-A: SendSheet for task card sends */}
+      <SendSheet
+        isOpen={!!sendSheetConfig}
+        onClose={() => setSendSheetConfig(null)}
+        title={sendSheetConfig?.title || ''}
+        customerPhone={sendSheetConfig?.customerPhone || ''}
+        messageText={sendSheetConfig?.messageText || ''}
+        onMessageChange={(text) => setSendSheetConfig(prev => prev ? { ...prev, messageText: text } : prev)}
+        onSend={(method, pdfShared) => {
+          if (sendSheetConfig) sendSheetConfig.onSend(method, pdfShared);
+          setSendSheetConfig(null);
+        }}
+      />
 
     </div>
   );
