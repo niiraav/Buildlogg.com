@@ -168,7 +168,17 @@ export default function JobDetail() {
   } | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
-  const [reviewNote, setReviewNote] = useState('');
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [editingReview, setEditingReview] = useState(false);
+
+  // Pre-fill review message from default template when prompt opens
+  useEffect(() => {
+    if (sheet === 'review_prompt' && job && customer && profile && userId) {
+      getFilledTemplateMessage(userId, 'review', job, customer, profile, 0,
+        `Hi ${customer.name.split(' ')[0] || 'there'}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}\n\n${profile.google_business_url || ''}`
+      ).then(setReviewMessage);
+    }
+  }, [sheet, job, customer, profile, userId]);
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -2879,26 +2889,39 @@ export default function JobDetail() {
       {/* P2-08: Google Review Request */}
       <BottomSheet
         isOpen={sheet === 'review_prompt'}
-        onClose={() => { setSheet(null); setReviewNote(''); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
+        onClose={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
         title="Ask for a Google review?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
         <div className="flex flex-col gap-3">
-          {/* Personal note (optional) */}
-          <textarea
-            placeholder="Add a personal note (optional)..."
-            value={reviewNote}
-            onChange={(e) => setReviewNote(e.target.value)}
-            className="w-full min-h-16 px-3.5 py-2 border-2 border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white resize-none"
-          />
+          {/* Full message preview — tap to edit */}
+          {editingReview ? (
+            <textarea
+              value={reviewMessage}
+              onChange={(e) => setReviewMessage(e.target.value)}
+              onBlur={() => setEditingReview(false)}
+              autoFocus
+              className="w-full min-h-[120px] p-3 bg-brand-surface border border-brand-border rounded-lg text-sm text-brand-dark font-normal leading-relaxed outline-none focus:border-brand-black"
+            />
+          ) : (
+            <div
+              onClick={() => setEditingReview(true)}
+              className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
+            >
+              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text">
+                {reviewMessage}
+              </p>
+              <p className="text-label text-brand-dark mt-1 italic">
+                Tap to edit
+              </p>
+            </div>
+          )}
           <Button
             variant="primary"
             onClick={async () => {
-              if (!customer || !profile?.google_business_url || !job) return;
+              if (!customer || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
-              const firstName = customer.name.split(' ')[0] || 'there';
-              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`;
-              const msg = encodeURIComponent(reviewMsg);
+              const msg = encodeURIComponent(reviewMessage);
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
@@ -2907,14 +2930,15 @@ export default function JobDetail() {
                 id: logId,
                 job_id: job.id,
                 type: 'customer_notified',
-                description: `[Review request sent via WhatsApp] ${reviewMsg}`,
+                description: `[Review request sent via WhatsApp] ${reviewMessage}`,
                 created_at: now,
                 _sync_status: 'pending',
               });
-              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMsg}`, created_at: now });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMessage}`, created_at: now });
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
-              setReviewNote('');
+              setReviewMessage('');
+              setEditingReview(false);
               window.location.href = `https://wa.me/${phone}?text=${msg}`;
             }}
             fullWidth
@@ -2925,11 +2949,9 @@ export default function JobDetail() {
           <Button
             variant="secondary"
             onClick={async () => {
-              if (!customer || !profile?.google_business_url || !job) return;
+              if (!customer || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
-              const firstName = customer.name.split(' ')[0] || 'there';
-              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
-              const msg = encodeURIComponent(reviewMsg);
+              const msg = encodeURIComponent(reviewMessage);
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
@@ -2938,14 +2960,15 @@ export default function JobDetail() {
                 id: logId,
                 job_id: job.id,
                 type: 'customer_notified',
-                description: `[Review request sent via SMS] ${reviewMsg}`,
+                description: `[Review request sent via SMS] ${reviewMessage}`,
                 created_at: now,
                 _sync_status: 'pending',
               });
-              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via SMS] ${reviewMsg}`, created_at: now });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via SMS] ${reviewMessage}`, created_at: now });
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
-              setReviewNote('');
+              setReviewMessage('');
+              setEditingReview(false);
               window.location.href = `sms:${phone}?body=${msg}`;
             }}
             fullWidth
@@ -2956,10 +2979,7 @@ export default function JobDetail() {
           <Button
             variant="ghost"
             onClick={() => {
-              if (!customer || !profile?.google_business_url || !job) return;
-              const firstName = customer.name.split(' ')[0] || 'there';
-              const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
-              navigator.clipboard.writeText(reviewMsg);
+              navigator.clipboard.writeText(reviewMessage);
               showToast('Copied to clipboard', 'success', 2000);
             }}
             fullWidth
@@ -2967,7 +2987,7 @@ export default function JobDetail() {
             <Copy size={18} className="mr-2" />
             Copy message
           </Button>
-          <Button variant="ghost" onClick={() => { setSheet(null); setReviewNote(''); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
+          <Button variant="ghost" onClick={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
             Skip
           </Button>
         </div>
