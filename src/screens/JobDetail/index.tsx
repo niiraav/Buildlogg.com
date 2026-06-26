@@ -33,6 +33,7 @@ import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
 import { captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import { addToCalendar } from '../../lib/calendar';
+import { getFilledTemplateMessage } from '../../lib/templateEngine';
 
 /* ─── helpers ─── */
 
@@ -350,12 +351,14 @@ export default function JobDetail() {
     // Prompt to notify customer about the new charge
     const customerFirstName = customer?.name.split(' ')[0] || 'there';
     const business = profile?.business_name || profile?.full_name || 'Your tradesperson';
-    setUpdateMessage(`Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`);
+    const chargeMsg = `Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`;
+    setUpdateMessage(chargeMsg);
+    const tplMsg = await getFilledTemplateMessage(userId!, 'update', job!, customer!, profile!, total, chargeMsg);
     setChargeDesc('');
     setChargeAmount('');
     setSendSheetConfig({
       title: `Send update to ${customer?.name || 'customer'}?`,
-      messageText: updateMessage,
+      messageText: tplMsg,
       onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
     });
     refresh();
@@ -727,9 +730,10 @@ export default function JobDetail() {
       ? `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr} at ${timeStr}. See you then! — ${business}`
       : `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr}. See you then! — ${business}`;
     setBookingMessage(msg);
+    const tplMsg = await getFilledTemplateMessage(userId!, 'booking', job, customer, profile!, total, msg);
     setSendSheetConfig({
       title: `Send confirmation to ${customer?.name || 'customer'}?`,
-      messageText: bookingMessage,
+      messageText: tplMsg,
       onSend: (method, pdfShared) => handleSendBookingConfirmation(method, pdfShared),
     });
   };
@@ -935,9 +939,10 @@ export default function JobDetail() {
         : 'There are some updates to your job details.';
       const msg = `Hi ${customerFirstName}, ${changeText} ${job.title}. — ${business}`;
       setUpdateMessage(msg);
+      const tplMsg = await getFilledTemplateMessage(userId!, 'update', job, customer!, profile!, total, msg);
       setSendSheetConfig({
         title: `Send update to ${customer?.name || 'customer'}?`,
-        messageText: updateMessage,
+        messageText: tplMsg,
         onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
       });
     } else {
@@ -1126,10 +1131,11 @@ export default function JobDetail() {
   const renderPaidFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => {
-          if (!job || !customer) return;
+        <Button variant="primary" onClick={async () => {
+          if (!job || !customer || !userId) return;
           const business = profile?.business_name || 'Your tradesperson';
-          const receiptMsg = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
+          const fallback = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
+          const receiptMsg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile!, total, fallback);
           setSendSheetConfig({
             title: `Send receipt to ${customer.name}?`,
             messageText: receiptMsg,
@@ -2064,9 +2070,10 @@ export default function JobDetail() {
           </Button>
         </div>
         <div className="flex-1">
-          <Button variant="secondary" onClick={() => {
-              if (!job || !customer) return;
-              const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
+          <Button variant="secondary" onClick={async () => {
+              if (!job || !customer || !userId) return;
+              const fallbackText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
+              const defaultText = await getFilledTemplateMessage(userId, 'invoice', job, customer, profile!, total, fallbackText);
               const compactText = `Hi ${customer.name}, your invoice for ${job.title} is ready. Amount due: £${total.toFixed(2)}. Details attached. Thanks!`;
               setSendSheetConfig({
                 title: `Send reminder to ${customer.name}?`,
