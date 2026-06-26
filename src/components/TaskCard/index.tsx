@@ -1,9 +1,9 @@
 import React from 'react';
 import type { Job, Customer } from '../../lib/db';
-import { Phone, AlertTriangle, FileText, Banknote, Clock, ArrowRight } from 'lucide-react';
+import { Phone, AlertTriangle, FileText, Banknote, Clock, ArrowRight, Calendar } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 
-export type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote';
+export type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
 
 export interface TaskCardProps {
   type: TaskType;
@@ -27,6 +27,9 @@ const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgen
   no_show: { icon: <Clock size={16} />, label: 'No-show', urgency: 'medium' },
   urgent_new: { icon: <Phone size={16} />, label: 'New enquiry', urgency: 'medium' },
   draft_quote: { icon: <FileText size={16} />, label: 'Draft quote', urgency: 'low' },
+  quote_follow_up: { icon: <FileText size={16} />, label: 'Follow up quote', urgency: 'medium' },
+  recurring_reminder: { icon: <Calendar size={16} />, label: 'Recurring due', urgency: 'low' },
+  payment_chase: { icon: <Banknote size={16} />, label: 'Chase payment', urgency: 'medium' },
 };
 
 export const TaskCard: React.FC<TaskCardProps> = ({

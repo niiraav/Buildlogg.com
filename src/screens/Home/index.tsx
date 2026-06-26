@@ -19,7 +19,10 @@ import { archiveSampleJobs } from '../../lib/seedSampleJob';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
-import { createPaymentChases, resolveChases } from '../../lib/paymentChase';
+import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
+import { getDueQuoteFollowUps } from '../../lib/quoteFollowUp';
+import { getUpcomingRecurringJobs } from '../../lib/recurringJobs';
+import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { capture } from '../../lib/analytics';
@@ -137,7 +140,7 @@ type SheetState =
   | 'finish_previous'
   | 'review_prompt'
 
-type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote';
+type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
 
 interface TaskItem {
   id: string;
@@ -183,6 +186,9 @@ export default function Home() {
   const [lateMsg, setLateMsg] = useState('');
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
   const [staleJobs, setStaleJobs] = useState<StaleJob[]>([]);
+  const [dueFollowUps, setDueFollowUps] = useState<Array<QuoteFollowUp & { job?: import('../../lib/db').Job }>>([]);
+  const [dueChases, setDueChases] = useState<Array<PaymentChase & { job?: import('../../lib/db').Job }>>([]);
+  const [upcomingRecurring, setUpcomingRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
   const [sampleExplored, setSampleExplored] = useState(() => localStorage.getItem('buildlogg_sample_explored') === 'true');
   // Update sampleExplored when component regains focus (e.g., returning from JobDetail)
   useEffect(() => {
@@ -268,6 +274,9 @@ export default function Home() {
   useEffect(() => {
     if (!userId) return;
     getStaleInProgressJobs(userId).then(setStaleJobs);
+    getDueQuoteFollowUps(userId).then(setDueFollowUps).catch(() => {});
+    getDuePaymentChases(userId).then(setDueChases).catch(() => {});
+    getUpcomingRecurringJobs(userId, 14).then(setUpcomingRecurring).catch(() => {});
   }, [jobs, userId]);
 
   /* tick for elapsed timer */
@@ -376,24 +385,7 @@ export default function Home() {
         });
       }
 
-      if (j.status === 'awaiting_payment' && j.invoice_sent_at && daysSince(j.invoice_sent_at) >= 30) {
-        const overdueAge = daysSince(j.invoice_sent_at);
-        items.push({
-          id: `overdue_${j.id}`,
-          jobId: j.id,
-          customerName: c.name,
-          jobTitle: j.title,
-          jobNumber: j.job_number,
-          tag: 'Overdue',
-          amount: `£${formatAmount(total)}`,
-          isL2: true,
-          type: 'overdue',
-          flag: 'overdue',
-          flagDays: overdueAge,
-          timeAgo: `${overdueAge}d overdue`,
-          contextLine: '',
-        });
-      }
+
 
       if (j.status === 'enquiry' && j.created_at) {
         const ageMs = Date.now() - new Date(j.created_at).getTime();
@@ -449,52 +441,90 @@ export default function Home() {
         }
       }
 
-      // L3: When you get a minute
-      if (j.status === 'awaiting_payment' && j.invoice_sent_at) {
-        const days = daysSince(j.invoice_sent_at);
-        if (days >= 1 && days < 30) {
-          items.push({
-            id: `chase_${j.id}`,
-            jobId: j.id,
-            customerName: c.name,
-            jobTitle: j.title,
-            jobNumber: j.job_number,
-            tag: `Chase · ${days}d`,
-            amount: `£${formatAmount(total)}`,
-            isL2: false,
-            type: 'chase',
-            flag: 'chase',
-            flagDays: days,
-            timeAgo: `${days}d since invoice`,
-            contextLine: '',
-          });
-        }
-      }
 
-      if (j.status === 'quoted' && j.quote_sent_at) {
-        const days = daysSince(j.quote_sent_at);
-        items.push({
-          id: `stale_${j.id}`,
-          jobId: j.id,
-          customerName: c.name,
-          jobTitle: j.title,
-          jobNumber: j.job_number,
-          tag: `Stale · ${days}d`,
-          amount: `£${formatAmount(total)}`,
-          isL2: false,
-          type: 'stale_quote',
-          flag: 'stale',
-          flagDays: days,
-          timeAgo: `${days}d since quote`,
-          contextLine: 'no reply yet',
-        });
-      }
+
+
+    });
+
+    // Add quote follow-up tasks (replaces stale_quote)
+    dueFollowUps.forEach((f) => {
+      if (!f.job) return;
+      const c = customers[f.job.customer_id];
+      if (!c) return;
+      const total = jobTotal(lineItems[f.job.id] || []);
+      const days = f.job.quote_sent_at ? daysSince(f.job.quote_sent_at) : 0;
+      const isExpired = f.job.quote_expires_at && new Date(f.job.quote_expires_at).getTime() < Date.now();
+      items.push({
+        id: `followup_${f.id}`,
+        jobId: f.job.id,
+        customerName: c.name,
+        jobTitle: f.job.title,
+        jobNumber: f.job.job_number,
+        tag: isExpired ? 'Quote expired' : `Follow up · ${f.nudge_count + 1}`,
+        amount: `£${formatAmount(total)}`,
+        isL2: false,
+        type: 'quote_follow_up',
+        timeAgo: `${days}d since quote`,
+        contextLine: isExpired ? 'Quote expired — resend or close' : 'no reply yet',
+      });
+    });
+
+    // Add payment chase tasks (replaces chase + overdue)
+    dueChases.forEach((chase) => {
+      if (!chase.job) return;
+      const c = customers[chase.job.customer_id];
+      if (!c) return;
+      const total = jobTotal(lineItems[chase.job.id] || []);
+      const clockStart = chase.job.actual_end || chase.job.updated_at;
+      const daysOverdue = clockStart ? daysSince(clockStart) : 0;
+      const isHighUrgency = chase.stage === 'final' || chase.stage === 'small_claims';
+      const stageLabels: Record<string, string> = {
+        gentle: `Chase · ${daysOverdue}d`,
+        firm: `Chase · ${daysOverdue}d`,
+        final: `Final chase · ${daysOverdue}d`,
+        small_claims: `Small claims? · ${daysOverdue}d`,
+      };
+      items.push({
+        id: `chase_${chase.id}`,
+        jobId: chase.job.id,
+        customerName: c.name,
+        jobTitle: chase.job.title,
+        jobNumber: chase.job.job_number,
+        tag: stageLabels[chase.stage] || `Chase · ${daysOverdue}d`,
+        amount: `£${formatAmount(total)}`,
+        isL2: isHighUrgency,
+        type: 'payment_chase',
+        flag: isHighUrgency ? 'overdue' : 'chase',
+        flagDays: daysOverdue,
+        timeAgo: `${daysOverdue}d since completed`,
+        contextLine: chase.stage === 'small_claims' ? 'Consider small claims court' : '',
+      });
+    });
+
+    // Add recurring reminder tasks
+    upcomingRecurring.forEach((r) => {
+      const c = customers[r.customer_id];
+      if (!c) return;
+      const daysUntilDue = Math.floor((new Date(r.next_due_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const isOverdue = daysUntilDue < 0;
+      items.push({
+        id: `recurring_${r.id}`,
+        jobId: r.original_job_id,
+        customerName: c.name,
+        jobTitle: r.title,
+        tag: isOverdue ? `Overdue ${Math.abs(daysUntilDue)}d` : `Due in ${daysUntilDue}d`,
+        amount: '',
+        isL2: false,
+        type: 'recurring_reminder',
+        timeAgo: isOverdue ? `${Math.abs(daysUntilDue)}d overdue` : `${daysUntilDue}d until due`,
+        contextLine: r.address || '',
+      });
     });
 
     return items;
-  }, [jobs, customers, lineItems, userId, tick]);
+  }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring]);
 
-  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue');
+  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || t.type === 'overdue' || (t.type === 'payment_chase' && t.isL2));
   const draftTasks = tasks
     .filter((t) => t.type === 'draft_quote')
     .sort((a, b) => {
@@ -504,7 +534,7 @@ export default function Home() {
       const bTime = bJob?.updated_at ? new Date(bJob.updated_at).getTime() : 0;
       return bTime - aTime; // most recently edited first
     });
-  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'overdue' && t.type !== 'draft_quote');
+  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'draft_quote' && !(t.type === 'payment_chase' && t.isL2));
   const l2Count = actTodayTasks.length;
   const draftsCount = draftTasks.length;
 
