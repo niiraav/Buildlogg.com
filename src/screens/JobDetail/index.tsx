@@ -12,7 +12,6 @@ import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber 
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
-import { VoiceInputButton } from '../../components/VoiceInputButton';
 import { Button } from '../../components/Button';
 import { MapPreview } from '../../components/MapPreview';
 import { InvoiceItemRow, InvoiceTotalRow } from '../../components/InvoiceItemRow';
@@ -2504,9 +2503,6 @@ export default function JobDetail() {
             placeholder="e.g. Callout charge"
             className="flex-1 h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
           />
-          <VoiceInputButton
-            onResult={(text) => setCalloutDesc((prev) => (prev ? prev + ' ' : '') + text)}
-          />
         </div>
       </div>
       <div className="mb-4">
@@ -2699,11 +2695,6 @@ export default function JobDetail() {
             rows={3}
             className="w-full px-3.5 py-3 pr-12 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black resize-none"
           />
-          <div className="absolute bottom-2 right-2">
-            <VoiceInputButton
-              onResult={(text) => setEditNotes((prev) => (prev ? prev + ' ' : '') + text)}
-            />
-          </div>
         </div>
       </div>
       <Button variant="primary" onClick={handleEditDetails}>

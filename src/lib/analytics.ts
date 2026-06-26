@@ -149,9 +149,6 @@ export function capturePhotoAdded() {
   capture('photo_added');
 }
 
-export function captureVoiceInputUsed() {
-  capture('voice_input_used');
-}
 
 export function capturePaymentChase(method: 'whatsapp' | 'sms') {
   capture('payment_chase', { method });

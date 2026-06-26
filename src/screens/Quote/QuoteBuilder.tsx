@@ -4,7 +4,6 @@ import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { nextJobNumber } from '../../lib/jobNumbers';
 import { SegmentedControl } from '../../components/SegmentedControl';
-import { VoiceInputButton } from '../../components/VoiceInputButton';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
@@ -717,9 +716,6 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                         item.description.trim() ? 'border-brand-border' : 'border-status-error'
                       }`}
                     />
-                    <VoiceInputButton
-                      onResult={(text) => updateItemDesc(item.id, (item.description ? item.description + ' ' : '') + text)}
-                    />
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-sm text-brand-mid">£</span>
@@ -823,11 +819,6 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               rows={3}
               className="w-full min-h-20 px-3.5 py-2.5 pr-12 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black resize-none leading-relaxed"
             />
-            <div className="absolute bottom-2 right-2">
-              <VoiceInputButton
-                onResult={(text) => handleNotesChange((notes ? notes + ' ' : '') + text)}
-              />
-            </div>
           </div>
         </div>
 

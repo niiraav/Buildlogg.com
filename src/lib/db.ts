@@ -28,6 +28,9 @@ export interface Profile {
   // P2-08: Google reviews
   google_business_url?: string;
   reviews_enabled?: boolean;
+  // Entitlements
+  subscription_status?: 'active' | 'trialing' | 'expired' | 'canceled' | null;
+  subscription_ends_at?: string;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
