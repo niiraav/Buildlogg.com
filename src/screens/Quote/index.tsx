@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
 import { captureJobCreated, captureQuoteSent, capture } from '../../lib/analytics';
+import { createQuoteFollowUp } from '../../lib/quoteFollowUp';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import { showToast } from '../../components/Toast/store';
 import { showSuccess } from '../../components/Toast/store';
@@ -315,6 +316,7 @@ export default function Quote() {
     hapticSuccess();
     showSuccess('Quote sent!');
     captureQuoteSent(method);
+    createQuoteFollowUp(jobId, userId!).catch(() => {});
     setSendMethod(method);
     setStep('sent');
   };

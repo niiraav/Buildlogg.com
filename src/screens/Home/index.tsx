@@ -19,6 +19,7 @@ import { archiveSampleJobs } from '../../lib/seedSampleJob';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
+import { createPaymentChases, resolveChases } from '../../lib/paymentChase';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { capture } from '../../lib/analytics';
@@ -671,6 +672,7 @@ export default function Home() {
       await addToSyncQueue('jobs', selectedJobId, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n }, 'update');
       await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'status_change', description: 'Job completed \u2014 payment pending', created_at: n }, 'insert');
       await ensureInvoiceNumber(j, userId);
+      createPaymentChases(selectedJobId, userId, n).catch(() => {});
     } else {
       const payments = await db.payments.where('job_id').equals(selectedJobId).toArray();
       const summary = paymentSummary(j, payments, total);
@@ -698,6 +700,7 @@ export default function Home() {
         created_at: n,
         _sync_status: 'pending',
       });
+      resolveChases(selectedJobId).catch(() => {});
       await db.jobs.update(selectedJobId, {
         status: 'paid',
         actual_end: n,

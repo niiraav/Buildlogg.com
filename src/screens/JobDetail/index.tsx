@@ -33,6 +33,8 @@ import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
 import { captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import { addToCalendar } from '../../lib/calendar';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
+import { markQuoteResponded } from '../../lib/quoteFollowUp';
+import { createPaymentChases, resolveChases, markStageSentByJob, pauseChasesOnStatusChange } from '../../lib/paymentChase';
 
 import { useEntitlements } from '../../hooks/useEntitlements';
 /* ─── helpers ─── */
@@ -468,6 +470,7 @@ export default function JobDetail() {
         await ensureInvoiceNumber(job, userId);
         await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n }, 'update');
         await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — payment pending', created_at: n }, 'insert');
+        createPaymentChases(job.id, userId!, n).catch(() => {});
       } else {
         const summary = paymentSummary(job, payments, total);
         if (summary.isFullyPaid || job.status === 'paid') {
@@ -486,6 +489,7 @@ export default function JobDetail() {
           _sync_status: 'pending',
         });
         const fullyPaidNow = summary.totalPaid + summary.amountDue >= total - 0.0001;
+        if (fullyPaidNow) resolveChases(job.id).catch(() => {});
         await db.jobs.update(job.id, {
           status: fullyPaidNow ? 'paid' : 'awaiting_payment',
           actual_end: n,
@@ -560,6 +564,7 @@ export default function JobDetail() {
         hapticSuccess();
         showSuccess('Job marked as paid');
         captureJobMarkedPaid();
+        resolveChases(job.id).catch(() => {});
 
         // P2-08: Show review prompt if Google reviews are enabled
         if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
@@ -680,6 +685,7 @@ export default function JobDetail() {
     if (!job || !customer) return;
     const n = now();
     await db.jobs.update(job.id, { status: 'booked', updated_at: n, _sync_status: 'pending' });
+    markQuoteResponded(job.id).catch(() => {});
     const logId = crypto.randomUUID();
     await db.work_log.add({ id: logId, job_id: job.id, type: 'status_change', description: 'Quote accepted — marked as booked', created_at: n, _sync_status: 'pending' });
     await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n }, 'update');
@@ -857,6 +863,10 @@ export default function JobDetail() {
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Status changed from ${prevStatus} to ${newStatus}`, created_at: n }, 'insert');
     if (newStatus === 'awaiting_payment') {
       await ensureInvoiceNumber(job, userId);
+      createPaymentChases(job.id, userId!, n).catch(() => {});
+    }
+    if (newStatus === 'in_progress' && prevStatus === 'awaiting_payment') {
+      pauseChasesOnStatusChange(job.id).catch(() => {});
     }
     setSheet(null);
     refresh();
@@ -1116,12 +1126,9 @@ export default function JobDetail() {
       created_at: n,
       _sync_status: 'pending',
     });
-    await db.jobs.update(job.id, {
-      invoice_sent_at: n,
-      updated_at: n,
-      _sync_status: 'pending',
-    });
-    await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n }, 'update');
+    // Don't overwrite invoice_sent_at — the escalation clock starts from actual_end
+    // Instead, mark the current due stage as sent
+    markStageSentByJob(job.id, 'gentle', method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms').catch(() => {});
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`, created_at: n }, 'insert');
     capturePaymentChase(method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
     setSheet(null);
