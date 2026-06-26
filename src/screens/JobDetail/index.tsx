@@ -1176,9 +1176,9 @@ export default function JobDetail() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1 h-9 pr-4 text-sm font-medium text-brand-mid cursor-pointer"
+          className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer"
         >
-          <ChevronLeft size={20} className="-mt-px text-brand-muted" />
+          <ChevronLeft size={24} className="-mt-px text-brand-muted" />
           Back
         </button>
         <div className="flex items-center gap-2">

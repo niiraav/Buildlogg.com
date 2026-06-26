@@ -207,7 +207,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
           onClick={onBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
-          <ChevronLeft size={22} className="-mt-px text-brand-muted" />
+          <ChevronLeft size={24} className="-mt-px text-brand-muted" />
           Back
         </button>
         <span className="text-base font-bold text-brand-black text-center">Preview</span>

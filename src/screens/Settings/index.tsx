@@ -211,7 +211,7 @@ export default function Settings() {
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
+      <div className="sticky top-0 z-40 px-4 pt-5 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">
           <h1 className="screen-title text-brand-black">Settings</h1>
           <SyncIndicator />
@@ -357,6 +357,17 @@ export default function Settings() {
                 <ChevronRight size={14} className="text-brand-muted" />
               </div>
             </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => can('pdf_branding') ? setShowBrandingSheet(true) : undefined}
+            >
+              <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
+              {can('pdf_branding') ? (
+                <ChevronRight size={14} className="text-brand-muted" />
+              ) : (
+                <ProBadge upgradeUrl={upgradeUrl} />
+              )}
+            </div>
           </div>
         </div>
 
@@ -399,7 +410,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* More — Stats & Customers */}
+        {/* App — Stats, Customers & Google reviews */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             More
@@ -418,17 +429,6 @@ export default function Settings() {
             >
               <span className="text-sm font-medium text-brand-dark">Customers</span>
               <ChevronRight size={14} className="text-brand-muted" />
-            </div>
-            <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
-              onClick={() => can('pdf_branding') ? setShowBrandingSheet(true) : undefined}
-            >
-              <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
-              {can('pdf_branding') ? (
-                <ChevronRight size={14} className="text-brand-muted" />
-              ) : (
-                <ProBadge upgradeUrl={upgradeUrl} />
-              )}
             </div>
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
@@ -545,31 +545,9 @@ export default function Settings() {
         {/* About */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            About
+            About · v1.0.0
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-            <div className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface">
-              <span className="text-sm text-brand-dark">Version</span>
-              <span className="text-sm text-brand-muted">1.0.0</span>
-            </div>
-            <div
-              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
-              onClick={() => window.open('https://buildlogg.com/privacy', '_blank')}
-            >
-              <span className="text-sm text-brand-dark">Privacy policy</span>
-              <div className="flex items-center gap-2">
-                <ExternalLink size={14} className="text-brand-muted" />
-              </div>
-            </div>
-            <div
-              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
-              onClick={() => window.open('https://buildlogg.com/terms', '_blank')}
-            >
-              <span className="text-sm text-brand-dark">Terms of service</span>
-              <div className="flex items-center gap-2">
-                <ExternalLink size={14} className="text-brand-muted" />
-              </div>
-            </div>
             <div
               className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
               onClick={() => setFeedbackSheetOpen(true)}
@@ -580,6 +558,26 @@ export default function Settings() {
               </div>
               <ChevronRight size={14} className="text-brand-muted" />
             </div>
+            <div
+              className="min-h-13 flex items-center justify-between px-4 border-b border-brand-surface cursor-pointer"
+              onClick={() => window.open('https://buildlogg.com/privacy', '_blank')}
+            >
+              <span className="text-sm text-brand-dark">Privacy policy</span>
+              <ExternalLink size={14} className="text-brand-muted" />
+            </div>
+            <div
+              className="min-h-13 flex items-center justify-between px-4 cursor-pointer"
+              onClick={() => window.open('https://buildlogg.com/terms', '_blank')}
+            >
+              <span className="text-sm text-brand-dark">Terms of service</span>
+              <ExternalLink size={14} className="text-brand-muted" />
+            </div>
+          </div>
+        </div>
+
+        {/* Log out — separate from About, it's a destructive action */}
+        <div className="mb-6">
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
               className="min-h-13 flex items-center justify-between px-4 cursor-pointer"
               onClick={handleLogout}

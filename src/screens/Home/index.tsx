@@ -1104,10 +1104,10 @@ export default function Home() {
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header */}
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-2 bg-[var(--app-shell-bg)]">
+      <div className="sticky top-0 z-40 px-4 pt-5 pb-2 bg-[var(--app-shell-bg)]">
         <div className="flex items-start justify-between">
           <div>
-            <span className="text-lg font-bold text-brand-black block">
+            <span className="text-xl font-extrabold text-brand-black block">
               {getGreeting()}, {firstName}
             </span>
             <span className="text-sm text-brand-muted block mt-0.5">

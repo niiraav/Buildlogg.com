@@ -96,8 +96,8 @@ export const HomeTabSwitcher: React.FC<HomeTabSwitcherProps> = ({
       <motion.div
         className="absolute bottom-0 h-0.5 bg-brand-black rounded-full"
         animate={{
-          left: underline.left,
-          width: underline.width,
+          left: underline.left + 2,
+          width: Math.max(underline.width - 18, 32),
         }}
         transition={{ type: 'spring', stiffness: 400, damping: 35, duration: 0.2 }}
       />

@@ -176,7 +176,9 @@ export default function Customers() {
       {/* Sticky footer with Find duplicates button — Pro only */}
       {can('customer_dedup') && (
       <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px+env(safe-area-inset-bottom))]">
-        <button
+        <Button
+          variant="secondary"
+          fullWidth
           onClick={async () => {
             if (!userId) return;
             setDedupLoading(true);
@@ -193,10 +195,9 @@ export default function Customers() {
               setDedupLoading(false);
             }
           }}
-          className="w-full text-sm font-medium text-brand-mid cursor-pointer py-1"
         >
           Find duplicate customers
-        </button>
+        </Button>
       </div>
       )}
 
