@@ -34,6 +34,7 @@ import { captureReviewRequestShown, captureReviewRequestSent, captureReviewReque
 import { addToCalendar } from '../../lib/calendar';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
 
+import { useEntitlements } from '../../hooks/useEntitlements';
 /* ─── helpers ─── */
 
 function now() { return new Date().toISOString(); }
@@ -146,6 +147,7 @@ type SheetState =
 
 export default function JobDetail() {
   const navigate = useNavigate();
+  const { can } = useEntitlements();
   const location = useLocation();
   const { jobId } = useParams<{ jobId: string }>();
   const userId = useAppStore((s) => s.userId);
@@ -495,7 +497,7 @@ export default function JobDetail() {
           captureJobMarkedPaid();
 
           // P2-08: Show review prompt if Google reviews are enabled
-          if (profile?.google_business_url && profile?.reviews_enabled !== false) {
+          if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
             setTimeout(() => {
               setSheet('review_prompt');
               captureReviewRequestShown({ jobId: job.id });
@@ -559,7 +561,7 @@ export default function JobDetail() {
         captureJobMarkedPaid();
 
         // P2-08: Show review prompt if Google reviews are enabled
-        if (profile?.google_business_url && profile?.reviews_enabled !== false) {
+        if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
           setTimeout(() => {
             setSheet('review_prompt');
             captureReviewRequestShown({ jobId: job.id });
@@ -579,7 +581,7 @@ export default function JobDetail() {
       await addToSyncQueue('payments', payId, { id: payId, job_id: job.id, type: summary.nextPaymentType, method, amount: summary.amountDue, recorded_at: n, created_at: n }, 'insert');
       await addToSyncQueue('jobs', job.id, { status: fullyPaidNow ? 'paid' : 'awaiting_payment', updated_at: n }, 'update');
       await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`, amount: summary.amountDue, created_at: n }, 'insert');
-      if (fullyPaidNow && profile?.google_business_url && profile?.reviews_enabled !== false) {
+      if (fullyPaidNow && profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
         // Don't close sheet — review prompt will open
       } else {
         setSheet(null);
@@ -691,7 +693,7 @@ export default function JobDetail() {
     if (!job || !customer) return;
 
     // P2-05: Check for scheduling conflicts before booking
-    if (job.scheduled_start && userId) {
+    if (job.scheduled_start && userId && can('scheduling_conflicts')) {
       const detected = await detectConflicts(
         userId,
         job.scheduled_start,

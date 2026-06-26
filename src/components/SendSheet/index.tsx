@@ -5,8 +5,12 @@ import { Button } from '../Button';
 import { haptic } from '../../lib/haptics';
 import { showToast } from '../Toast/store';
 import PDFPreview from '../../screens/Quote/PDFPreview';
+import { useEntitlements } from '../../hooks/useEntitlements';
+import { ProBadge } from '../ProBadge';
 
 export type SendMethod = 'whatsapp' | 'whatsapp_pdf' | 'sms' | 'text_pdf';
+
+const SIGNATURE = '— Sent via Buildlogg.com';
 
 export interface SendSheetPdfOptions {
   label: string;
@@ -42,6 +46,10 @@ export function SendSheet({
   fullMessage,
   compactMessage,
 }: SendSheetProps) {
+  const { can, upgradeUrl } = useEntitlements();
+  const canRemoveSignature = can('remove_signature');
+  const canSendPdf = can('pdf_send');
+
   const [attachPDF, setAttachPDF] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -50,6 +58,11 @@ export function SendSheet({
   const [showSharePdfToast, setShowSharePdfToast] = useState(false);
   const [lastAutoVariant, setLastAutoVariant] = useState<'full' | 'compact' | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The full message that gets sent (messageText + signature if not Pro)
+  const fullSendText = canRemoveSignature
+    ? messageText
+    : messageText + '\n' + SIGNATURE;
 
   // Reset state when sheet closes
   useEffect(() => {
@@ -79,16 +92,13 @@ export function SendSheet({
 
   const handleTogglePDF = () => {
     if (attachPDF) {
-      // Turning OFF
       setAttachPDF(false);
       setPdfBlob(null);
       setShowSharePdfToast(false);
-      // Swap message back to full if we were on compact
       if (lastAutoVariant === 'compact' && fullMessage) {
         onMessageChange(fullMessage);
       }
     } else {
-      // Turning ON
       haptic('light');
       setGeneratingPdf(true);
       try {
@@ -96,7 +106,6 @@ export function SendSheet({
         setPdfBlob(blob);
         setAttachPDF(true);
         pdfOptions?.onPdfGenerated?.();
-        // Swap to compact message if currently on full
         if (lastAutoVariant === 'full' && compactMessage) {
           onMessageChange(compactMessage);
         }
@@ -113,10 +122,7 @@ export function SendSheet({
     if (!customerPhone) return;
     haptic('light');
     const phone = customerPhone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(messageText);
-    // Use window.location.href so iOS PWA doesn't leave a blank Safari tab.
-    // The OS intercepts the wa.me universal link and opens WhatsApp directly.
-    // Call onSend before navigation so work_log is recorded.
+    const encoded = encodeURIComponent(fullSendText);
     if (attachPDF && pdfBlob) {
       if (canShareFiles) {
         setShowSharePdfToast(true);
@@ -146,7 +152,7 @@ export function SendSheet({
         await navigator.share({ files: [file] });
       }
     } catch {
-      // User cancelled — no action needed
+      // User cancelled
     }
   };
 
@@ -156,28 +162,24 @@ export function SendSheet({
 
     if (attachPDF && pdfBlob) {
       if (canShareFiles) {
-        // Single step: navigator.share with files + text
         try {
           const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
           if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], text: messageText });
+            await navigator.share({ files: [file], text: fullSendText });
             onSend('text_pdf', true);
           } else {
             setShowPdfPreview(true);
             onSend('text_pdf', false);
           }
         } catch {
-          // User cancelled
           onSend('text_pdf', false);
         }
       } else {
-        // Desktop fallback
         setShowPdfPreview(true);
         onSend('text_pdf', false);
       }
     } else {
-      // Text only — direct sms: link
-      window.location.href = `sms:${customerPhone}?body=${encodeURIComponent(messageText)}`;
+      window.location.href = `sms:${customerPhone}?body=${encodeURIComponent(fullSendText)}`;
       onSend('sms', false);
     }
   };
@@ -185,7 +187,7 @@ export function SendSheet({
   const handleCopyMessage = async () => {
     haptic('light');
     try {
-      await navigator.clipboard.writeText(messageText);
+      await navigator.clipboard.writeText(fullSendText);
       showToast('Message copied');
     } catch {
       showToast('Could not copy — try selecting the text manually');
@@ -198,6 +200,12 @@ export function SendSheet({
   };
 
   const hasPhone = !!customerPhone?.trim();
+
+  // Determine if PDF toggle should be shown
+  // pdfOptions must be provided AND user must have pdf_send entitlement
+  const showPdfToggle = pdfOptions && canSendPdf;
+  // If pdfOptions provided but user can't send PDF, show locked state
+  const pdfLocked = pdfOptions && !canSendPdf;
 
   return (
     <>
@@ -224,6 +232,12 @@ export function SendSheet({
               <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text">
                 {messageText}
               </p>
+              {/* Non-editable signature line — only for free tier */}
+              {!canRemoveSignature && (
+                <p className="text-xs text-brand-muted mt-1.5 pt-1.5 border-t border-brand-border select-text">
+                  {SIGNATURE}
+                </p>
+              )}
               <p className="text-label text-brand-dark mt-1 italic">
                 Tap to edit
               </p>
@@ -231,13 +245,21 @@ export function SendSheet({
           )}
         </div>
 
-        {/* PDF toggle — only when pdfOptions provided */}
-        {pdfOptions && (
+        {/* Signature upgrade nudge — only for free tier, only in non-editing mode */}
+        {!canRemoveSignature && !editingMessage && (
+          <div className="flex items-center justify-between mb-4 px-1">
+            <span className="text-xs text-brand-muted">Remove "Sent via" signature</span>
+            <ProBadge upgradeUrl={upgradeUrl} />
+          </div>
+        )}
+
+        {/* PDF toggle — only when pdfOptions provided AND user has pdf_send entitlement */}
+        {showPdfToggle && (
           <div className="flex items-center justify-between mb-6 px-1">
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-brand-mid" />
               <span className="text-sm font-medium text-brand-dark">
-                {generatingPdf ? 'Generating…' : pdfOptions.label}
+                {generatingPdf ? 'Generating…' : pdfOptions!.label}
               </span>
             </div>
             <button
@@ -254,8 +276,19 @@ export function SendSheet({
           </div>
         )}
 
+        {/* PDF locked — pdfOptions provided but user doesn't have pdf_send */}
+        {pdfLocked && (
+          <div className="flex items-center justify-between mb-6 px-1">
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-brand-mid" />
+              <span className="text-sm font-medium text-brand-mid">Attach PDF</span>
+            </div>
+            <ProBadge upgradeUrl={upgradeUrl} />
+          </div>
+        )}
+
         {/* Thin divider between toggle and send actions */}
-        {pdfOptions && (
+        {(showPdfToggle || pdfLocked) && (
           <div className="h-px bg-brand-border mb-4 -mt-2" />
         )}
 
@@ -296,7 +329,7 @@ export function SendSheet({
         </div>
       </BottomSheet>
 
-      {/* "Share PDF" toast — appears after WhatsApp text send when PDF is attached */}
+      {/* "Share PDF" toast */}
       {showSharePdfToast && (
         <div className="fixed bottom-0 left-0 right-0 z-[65] px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))] bg-brand-black">
           <div className="flex items-center justify-between gap-3 max-w-[430px] mx-auto">
@@ -320,7 +353,7 @@ export function SendSheet({
         </div>
       )}
 
-      {/* PDFPreview — desktop fallback when navigator.canShare unavailable */}
+      {/* PDFPreview — desktop fallback */}
       {showPdfPreview && pdfBlob && (
         <PDFPreview
           blob={pdfBlob}

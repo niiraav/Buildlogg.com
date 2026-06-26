@@ -9,10 +9,12 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { showToast } from '../../components/Toast/store';
 import BrandedLoader from '../../components/BrandedLoader';
+import { useEntitlements } from '../../hooks/useEntitlements';
 
 export default function Customers() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
+  const { can } = useEntitlements();
   const [query, setQuery] = useState('');
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [searchResults, setSearchResults] = useState<Customer[]>([]);
@@ -155,7 +157,7 @@ export default function Customers() {
                     )}
                     {c.address && <span className="truncate">{c.address}</span>}
                   </div>
-                  {s && !isArchived && (
+                  {s && !isArchived && can('customer_crm_stats') && (
                     <div className="flex items-center gap-3 mt-1.5 text-xs">
                       <span className="text-brand-dark font-medium">{s.jobCount} job{s.jobCount !== 1 ? 's' : ''}</span>
                       <span className="text-brand-black font-bold">£{s.totalSpent.toFixed(0)}</span>
@@ -171,7 +173,8 @@ export default function Customers() {
         )}
       </div>
 
-      {/* Sticky footer with Find duplicates button */}
+      {/* Sticky footer with Find duplicates button — Pro only */}
+      {can('customer_dedup') && (
       <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px+env(safe-area-inset-bottom))]">
         <button
           onClick={async () => {
@@ -195,6 +198,7 @@ export default function Customers() {
           Find duplicate customers
         </button>
       </div>
+      )}
 
       {/* Dedup BottomSheet */}
       <BottomSheet

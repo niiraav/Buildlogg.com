@@ -15,6 +15,8 @@ import { capturePDFGenerated } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
 import BrandedLoader from '../../components/BrandedLoader';
 import FeedbackSheet from '../../components/FeedbackSheet';
+import { useEntitlements } from '../../hooks/useEntitlements';
+import { ProBadge } from '../../components/ProBadge';
 
 const TRADE_OPTIONS: Array<{ value: Profile['trade']; label: string }> = [
   { value: 'plumber', label: 'Plumber' },
@@ -62,6 +64,7 @@ function isValidGoogleReviewUrl(url: string): boolean {
 
 export default function Settings() {
   const userId = useAppStore((s) => s.userId);
+  const { can, upgradeUrl } = useEntitlements();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -365,25 +368,33 @@ export default function Settings() {
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
-              onClick={() => navigate('/settings/custom-items')}
+              onClick={() => can('custom_item_library') ? navigate('/settings/custom-items') : undefined}
             >
               <span className="text-sm font-medium text-brand-dark">Saved items</span>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-medium text-brand-black">
-                  {customItemCount} saved
-                </span>
-                <ChevronRight size={14} className="text-brand-muted" />
-              </div>
+              {can('custom_item_library') ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-medium text-brand-black">
+                    {customItemCount} saved
+                  </span>
+                  <ChevronRight size={14} className="text-brand-muted" />
+                </div>
+              ) : (
+                <ProBadge upgradeUrl={upgradeUrl} />
+              )}
             </div>
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
-              onClick={() => navigate('/settings/message-templates')}
+              onClick={() => can('message_templates') ? navigate('/settings/message-templates') : undefined}
             >
               <div>
                 <span className="text-sm font-medium text-brand-dark">Message templates</span>
                 <p className="text-xs text-brand-muted mt-0.5">Pre-fill WhatsApp messages for common situations</p>
               </div>
-              <ChevronRight size={14} className="text-brand-muted" />
+              {can('message_templates') ? (
+                <ChevronRight size={14} className="text-brand-muted" />
+              ) : (
+                <ProBadge upgradeUrl={upgradeUrl} />
+              )}
             </div>
           </div>
         </div>
@@ -410,17 +421,25 @@ export default function Settings() {
             </div>
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
-              onClick={() => setShowBrandingSheet(true)}
+              onClick={() => can('pdf_branding') ? setShowBrandingSheet(true) : undefined}
             >
               <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
-              <ChevronRight size={14} className="text-brand-muted" />
+              {can('pdf_branding') ? (
+                <ChevronRight size={14} className="text-brand-muted" />
+              ) : (
+                <ProBadge upgradeUrl={upgradeUrl} />
+              )}
             </div>
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
-              onClick={() => setShowReviewsSheet(true)}
+              onClick={() => can('google_reviews') ? setShowReviewsSheet(true) : undefined}
             >
               <span className="text-sm font-medium text-brand-dark">Google reviews</span>
-              <ChevronRight size={14} className="text-brand-muted" />
+              {can('google_reviews') ? (
+                <ChevronRight size={14} className="text-brand-muted" />
+              ) : (
+                <ProBadge upgradeUrl={upgradeUrl} />
+              )}
             </div>
 
           </div>

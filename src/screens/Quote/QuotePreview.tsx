@@ -5,6 +5,7 @@ import { db, type Job, type LineItem, type Customer, type Profile } from '../../
 import { generateQuotePDF } from '../../lib/pdfGenerator';
 import { capturePDFGenerated } from '../../lib/analytics';
 import { SendSheet, type SendMethod } from '../../components/SendSheet';
+import { useEntitlements } from '../../hooks/useEntitlements';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { QuotePreviewCard } from '../../components/QuotePreviewCard';
@@ -157,9 +158,8 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     onSend(parentMethod, messageText);
   };
 
-  // PRO FEATURE: gate behind paywall — during beta, everyone is Pro
-  const isPro = true;
-  const pdfOptions = isPro && job && customer && profile ? {
+  const { can } = useEntitlements();
+  const pdfOptions = can('pdf_quotes') && job && customer && profile ? {
     label: 'Attach PDF quote',
     generatePdf: () => {
       const validUntil = new Date();
