@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { db, type Profile } from './lib/db';
+import { seedMissingTemplates } from './lib/seedMessageTemplates';
 import { useAppStore } from './store/useAppStore';
 import { syncWorker } from './lib/sync';
 import { identifyUser, capture, initAnalytics } from './lib/analytics';
@@ -141,6 +142,8 @@ function AuthGuard() {
         syncWorker().catch(() => {});
       }
 
+      // Ensure existing users get new default templates (receipt, update, etc.)
+      if (resolvedUserId) seedMissingTemplates(resolvedUserId).catch(() => {});
       initialCheckDone.current = true;
       setChecking(false);
     }
@@ -188,7 +191,6 @@ function AuthGuard() {
         // If the persisted session arrives after the initial getSession() race
         // sent us to /auth, mark the initial check done and recover the user
         // into the app so they don't stay stuck on the sign-in screen.
-        initialCheckDone.current = true;
         if (location.pathname === '/auth') {
           db.profiles.get(session.user.id).then((profile) => {
             if (!mounted) return;

@@ -1,6 +1,6 @@
 /**
- * Seed 5 default message templates on first login.
- * Only seeds if the user has no templates yet.
+ * Seed default message templates on first login.
+ * Also provides seedMissingTemplates() for existing users who need new categories.
  */
 import { db } from './db';
 import { addToSyncQueue } from './syncQueue';
@@ -38,9 +38,23 @@ const DEFAULT_TEMPLATES: Array<Omit<MessageTemplate, 'id' | 'user_id' | 'created
   {
     category: 'review',
     name: 'Review request',
-    body: 'Hi {firstName}, glad the {jobTitle} is sorted! If you were happy with the work, a quick Google review helps me a lot. Only takes 30 seconds. Thanks! — {businessName}',
+    body: 'Hi {firstName}, glad the {jobTitle} is sorted! If you were happy with the work, a quick Google review helps me a lot. Only takes 30 seconds. Thanks! — {businessName}\n\n{reviewLink}',
     is_default: true,
     sort_order: 4,
+  },
+  {
+    category: 'receipt',
+    name: 'Payment receipt',
+    body: 'Hi {firstName}, payment of {amount} for {jobTitle} has been confirmed. Thanks for your business! — {businessName}',
+    is_default: true,
+    sort_order: 5,
+  },
+  {
+    category: 'update',
+    name: 'Job update',
+    body: 'Hi {firstName}, just an update on your {jobTitle}. — {businessName}',
+    is_default: true,
+    sort_order: 6,
   },
 ];
 
@@ -63,4 +77,53 @@ export async function seedMessageTemplates(userId: string): Promise<number> {
     await addToSyncQueue('message_templates', id, { ...record }, 'insert');
   }
   return DEFAULT_TEMPLATES.length;
+}
+
+/**
+ * Insert any missing default templates for existing users.
+ * Checks each category individually and only inserts if no template
+ * exists for that category yet. Also updates the review template
+ * to include {reviewLink} on a separate line if the old version is found.
+ */
+export async function seedMissingTemplates(userId: string): Promise<number> {
+  let inserted = 0;
+  const now = new Date().toISOString();
+
+  for (const tmpl of DEFAULT_TEMPLATES) {
+    const existing = await db.message_templates
+      .where('user_id')
+      .equals(userId)
+      .filter((t) => t.category === tmpl.category)
+      .count();
+
+    if (existing === 0) {
+      const id = crypto.randomUUID();
+      const record: MessageTemplate = {
+        ...tmpl,
+        id,
+        user_id: userId,
+        created_at: now,
+        updated_at: now,
+        _sync_status: 'pending',
+      };
+      await db.message_templates.add(record);
+      await addToSyncQueue('message_templates', id, { ...record }, 'insert');
+      inserted++;
+    }
+  }
+
+  // Update old review template to include {reviewLink} on a separate line
+  const reviewTemplates = await db.message_templates
+    .where('user_id')
+    .equals(userId)
+    .filter((t) => t.category === 'review' && !t.body.includes('{reviewLink}'))
+    .toArray();
+
+  for (const tmpl of reviewTemplates) {
+    const updatedBody = tmpl.body + '\n\n{reviewLink}';
+    await db.message_templates.update(tmpl.id, { body: updatedBody, updated_at: now, _sync_status: 'pending' });
+    await addToSyncQueue('message_templates', tmpl.id, { body: updatedBody, updated_at: now }, 'update');
+  }
+
+  return inserted;
 }

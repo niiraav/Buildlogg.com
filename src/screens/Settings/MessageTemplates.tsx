@@ -16,6 +16,8 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   invoice: 'Invoice',
   follow_up: 'Follow-up',
   review: 'Review',
+  receipt: 'Receipt',
+  update: 'Update',
   custom: 'Custom',
 };
 
@@ -45,6 +47,16 @@ const TEMPLATE_PRESETS: Record<TemplateCategory, Array<{ name: string; body: str
     { name: 'Review request', body: 'Hi {firstName}, glad the {jobTitle} is sorted! If you were happy with the work, a quick Google review helps me a lot: [review link]. Thanks! — {businessName}' },
     { name: 'Review (short)', body: 'Hi {firstName}, hope you\'re happy with the {jobTitle}! A Google review would mean a lot: [review link]. Only takes 30 seconds. — {businessName}' },
     { name: 'Review + thanks', body: 'Hi {firstName}, thanks for choosing {businessName} for the {jobTitle}! If you could spare 30 seconds for a Google review, I\'d really appreciate it: [review link] — {businessName}' },
+  ],
+  receipt: [
+    { name: 'Payment receipt', body: 'Hi {firstName}, payment of {amount} for {jobTitle} has been confirmed. Thanks for your business! — {businessName}' },
+    { name: 'Receipt (warm)', body: 'Hi {firstName}, thanks for the payment of {amount}! Really appreciate your business. If you need anything else, just let me know. — {businessName}' },
+    { name: 'Receipt + review nudge', body: 'Hi {firstName}, payment of {amount} received for {jobTitle}. If you were happy with the work, a Google review would mean a lot: {reviewLink} — {businessName}' },
+  ],
+  update: [
+    { name: 'Job update', body: 'Hi {firstName}, just an update on your {jobTitle}. — {businessName}' },
+    { name: 'Schedule change', body: 'Hi {firstName}, your {jobTitle} is now scheduled for {date} at {time}. Let me know if that still works for you. — {businessName}' },
+    { name: 'Running late', body: 'Hi {firstName}, sorry but I\'m running about 30 minutes late for the {jobTitle}. See you shortly. — {businessName}' },
   ],
   custom: [
     { name: 'Blank template', body: '' },
