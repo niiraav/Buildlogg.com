@@ -26,6 +26,8 @@ import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollow
 import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
 import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
+import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests } from '../../lib/booking';
+import type { BookingRequest } from '../../lib/db';
 import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
@@ -151,8 +153,9 @@ type SheetState =
   | 'follow_up_actions'
   | 'chase_actions'
   | 'recurring_actions'
+  | 'booking_request'
 
-type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder';
+type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder' | 'booking_request';
 
 interface TaskItem {
   id: string;
@@ -205,6 +208,8 @@ export default function Home() {
   const [selectedFollowUp, setSelectedFollowUp] = useState<(QuoteFollowUp & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedChase, setSelectedChase] = useState<(PaymentChase & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
+  const [pendingBookings, setPendingBookings] = useState<BookingRequest[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
   const [sendSheetConfig, setSendSheetConfig] = useState<{
     title: string;
     customerPhone: string;
@@ -299,6 +304,7 @@ export default function Home() {
     getDuePaymentChases(userId).then(setDueChases).catch(() => {});
     getUpcomingRecurringJobs(userId, 14).then(setUpcomingRecurring).catch(() => {});
     getUpcomingRecurringJobs(userId, 90).then(setAllRecurring).catch(() => {});
+    getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
   }, [jobs, userId]);
 
   /* tick for elapsed timer */
@@ -544,9 +550,9 @@ export default function Home() {
     });
 
     return items;
-  }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring]);
+  }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring, pendingBookings]);
 
-  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || (t.type === 'payment_chase' && t.isL2));
+  const actTodayTasks = tasks.filter((t) => t.type === 'missed_call' || (t.type === 'payment_chase' && t.isL2) || t.type === 'booking_request');
   const draftTasks = tasks
     .filter((t) => t.type === 'draft_quote')
     .sort((a, b) => {
@@ -556,7 +562,7 @@ export default function Home() {
       const bTime = bJob?.updated_at ? new Date(bJob.updated_at).getTime() : 0;
       return bTime - aTime; // most recently edited first
     });
-  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'draft_quote' && !(t.type === 'payment_chase' && t.isL2) && t.type !== 'recurring_reminder');
+  const followUpTasks = tasks.filter((t) => t.type !== 'missed_call' && t.type !== 'draft_quote' && !(t.type === 'payment_chase' && t.isL2) && t.type !== 'recurring_reminder' && t.type !== 'booking_request');
   const l2Count = actTodayTasks.length;
   const draftsCount = draftTasks.length;
 

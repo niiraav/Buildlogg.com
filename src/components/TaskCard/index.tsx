@@ -3,7 +3,7 @@ import type { Job, Customer } from '../../lib/db';
 import { Phone, FileText, Banknote, Clock, ArrowRight, Calendar } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 
-export type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
+export type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase' | 'booking_request';
 
 export interface TaskCardProps {
   type: TaskType;
