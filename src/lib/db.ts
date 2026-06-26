@@ -110,7 +110,14 @@ export interface LineItem {
   _sync_status: SyncStatus;
 }
 
-export type WorkLogType = 'note' | 'charge' | 'status_change' | 'customer_notified' | 'running_late' | 'quote_sent';
+export type WorkLogType =
+  | 'note' | 'charge' | 'status_change' | 'customer_notified'
+  | 'running_late' | 'quote_sent'
+  | 'expense'
+  | 'quote_follow_up_sent' | 'quote_follow_up_snoozed' | 'quote_follow_up_responded'
+  | 'recurring_reminder_sent' | 'recurring_reminder_no_response'
+  | 'payment_chase_sent' | 'payment_chase_paused' | 'payment_chase_resumed'
+  | 'recurring_job_created' | 'recurring_job_cancelled';
 
 export interface WorkLogEntry {
   id: string;

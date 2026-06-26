@@ -7,7 +7,7 @@ import { SegmentedControl } from '../../components/SegmentedControl';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
-import { getPricingHistory, getJobTitlePricingHistory } from '../../lib/pricingHistory';
+import { getPricingHistory, getJobTitlePricingHistory, clearPricingCache, type PricingHistory } from '../../lib/pricingHistory';
 import { capture } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
 
@@ -106,6 +106,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   const [itemPricingHints, setItemPricingHints] = useState<Record<string, PricingHistory | null>>({});
   const [profile, setProfile] = useState<Profile | null>(null);
   const depositSectionRef = useRef<HTMLDivElement>(null);
+  const pricingDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   /* load customer and job */
   useEffect(() => {
@@ -508,21 +509,6 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     ]);
   };
 
-  const addQuickItem = (customItem: CustomItem) => {
-    setItems((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), description: customItem.description, detail: customItem.detail, amount: customItem.amount.toFixed(2), amountNum: customItem.amount },
-    ]);
-    // BN-4: Fetch pricing history for this item
-    if (userId) {
-      getPricingHistory(userId, customItem.description).then(h => {
-        if (h) {
-          setItemPricingHints(prev => ({ ...prev, [customItem.description.toLowerCase().trim()]: h }));
-        }
-      }).catch(() => {});
-    }
-  };
-
 
 
   /* Starter suggestions when user has no custom items */
@@ -552,21 +538,6 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
   const handleRemoveEmptyItems = () => {
     setItems((prev) => prev.filter((i) => i.description.trim() || i.amountNum > 0));
-  };
-
-  const updateItemDesc = (id: string, desc: string) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, description: desc } : i)));
-    // BN-4: Debounced pricing history fetch
-    if (userId && desc.trim()) {
-      const key = desc.toLowerCase().trim();
-      if (!itemPricingHints[key]) {
-        setTimeout(() => {
-          getPricingHistory(userId, desc.trim()).then(h => {
-            setItemPricingHints(prev => ({ ...prev, [key]: h }));
-          }).catch(() => {});
-        }, 300);
-      }
-    }
   };
 
   const updateItemAmount = (id: string, amt: string) => {

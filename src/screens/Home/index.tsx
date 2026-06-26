@@ -16,9 +16,10 @@ import { paymentSummary, paymentMethodLabel } from '../../lib/paymentHelpers';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { showToast } from '../../components/Toast/store';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
+import NotificationBanner from '../../components/NotificationBanner';
 
 /* --- helpers --- */
-import { requestNotificationPermission } from '../../lib/notifications';
+import { shouldShowBanner as shouldShowNotificationBanner } from '../../lib/notificationManager';
 import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
 import { getDueQuoteFollowUps } from '../../lib/quoteFollowUp';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
@@ -241,8 +242,6 @@ export default function Home() {
 
   useEffect(() => {
     refresh();
-    // Request notification permission on first home visit (after onboarding)
-    requestNotificationPermission();
 
     // Anti-forgetting: fetch stale in-progress jobs + run overnight auto-complete
     if (userId) {
@@ -1186,6 +1185,9 @@ export default function Home() {
       {activeTab === 'today' && (
         <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
           {/* Active bar */}
+
+          {/* Notification permission banner */}
+          {shouldShowNotificationBanner() && <NotificationBanner />}
 
           {/* Sample job banner — shows when user has no real jobs yet */}
           {showSampleBanner && (

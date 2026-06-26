@@ -113,6 +113,25 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* BN-2: Profit card — full width below the grid */}
+        <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <PoundSterling size={14} className="text-brand-mid" />
+            <span className="text-xs font-semibold text-brand-mid">Profit (this month)</span>
+          </div>
+          <div className="flex items-baseline gap-3">
+            <p className="text-2xl font-extrabold text-brand-black">£{(stats.monthProfit ?? stats.monthEarnings).toFixed(0)}</p>
+            {stats.monthExpenses > 0 && (
+              <p className="text-xs font-medium text-brand-muted">
+                Revenue £{stats.monthEarnings.toFixed(0)} - Expenses £{stats.monthExpenses.toFixed(0)}
+              </p>
+            )}
+          </div>
+          {stats.monthExpenses === 0 && (
+            <p className="text-xs text-brand-muted mt-1">Log expenses on jobs to see your true profit</p>
+          )}
+        </div>
+
         {stats.topJobType && (
           <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
             <p className="text-xs font-semibold text-brand-mid mb-2">Top job type</p>

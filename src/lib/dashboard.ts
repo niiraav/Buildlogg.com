@@ -15,6 +15,8 @@ export interface DashboardStats {
   paymentMethodBreakdown: { cash: number; bank_transfer: number; terminal: number; other: number };
   lastMonthEarnings: number;
   reviewRequestsSent: number;
+  monthExpenses: number;
+  monthProfit: number;
 }
 
 function isSameMonth(date: Date, ref: Date): boolean {
@@ -34,6 +36,15 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
   // This month's earnings: payments recorded this month
   const monthPayments = allPayments.filter((p) => isSameMonth(new Date(p.recorded_at), ref));
   const monthEarnings = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+
+  // BN-2: Query expense work_log entries for this month
+  const allWorkLogs = allJobIds.length > 0
+    ? await db.work_log.where('job_id').anyOf(allJobIds).toArray()
+    : [];
+  const monthExpenses = allWorkLogs
+    .filter(log => log.type === 'expense' && isSameMonth(new Date(log.created_at), ref))
+    .reduce((sum, log) => sum + (log.amount || 0), 0);
+  const monthProfit = monthEarnings - monthExpenses;
 
   // Last month's earnings for trend
   const lastMonthPayments = allPayments.filter((p) => isSameMonth(new Date(p.recorded_at), lastMonth));
@@ -105,6 +116,8 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
     paymentMethodBreakdown,
     lastMonthEarnings,
     reviewRequestsSent,
+    monthExpenses,
+    monthProfit,
   };
 }
 
@@ -116,16 +129,22 @@ export async function exportMonthlyCSV(userId: string, month?: Date): Promise<st
   const allPayments = allJobIds.length > 0
     ? await db.payments.where('job_id').anyOf(allJobIds).toArray()
     : [];
+  const allWorkLogs = allJobIds.length > 0
+    ? await db.work_log.where('job_id').anyOf(allJobIds).toArray()
+    : [];
   const customers = await db.customers.where('user_id').equals(userId).toArray();
   const customerMap = new Map(customers.map((c) => [c.id, c.name]));
 
   const monthJobs = allJobs.filter((j) => isSameMonth(new Date(j.created_at), ref));
 
-  const headers = ['Date', 'Job Number', 'Customer', 'Title', 'Status', 'Quoted', 'Paid', 'Method', 'Outstanding'];
+  const headers = ['Date', 'Job Number', 'Customer', 'Title', 'Status', 'Quoted', 'Paid', 'Expenses', 'Method', 'Outstanding'];
   const rows = monthJobs.map((j) => {
     const jobPayments = allPayments.filter((p) => p.job_id === j.id);
     const paid = jobPayments.reduce((s, p) => s + p.amount, 0);
     const method = jobPayments.map((p) => p.method).join(', ') || '';
+    const jobExpenses = allWorkLogs
+      .filter(log => log.job_id === j.id && log.type === 'expense' && isSameMonth(new Date(log.created_at), ref))
+      .reduce((sum, log) => sum + (log.amount || 0), 0);
     return [
       new Date(j.created_at).toLocaleDateString('en-GB'),
       j.job_number || '',
@@ -134,10 +153,15 @@ export async function exportMonthlyCSV(userId: string, month?: Date): Promise<st
       j.status,
       '', // Quoted amount - would need line items
       paid.toFixed(2),
+      jobExpenses.toFixed(2),
       method,
       Math.max(0, 0 - paid).toFixed(2), // Simplified
     ];
   });
 
-  return [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+  const totalExpenses = allWorkLogs
+    .filter(log => log.type === 'expense' && isSameMonth(new Date(log.created_at), ref))
+    .reduce((sum, log) => sum + (log.amount || 0), 0);
+  const summaryRow = ['', '', '', 'TOTAL EXPENSES', '', '', '', totalExpenses.toFixed(2), '', ''];
+  return [headers, ...rows, summaryRow].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
 }
