@@ -379,6 +379,11 @@ export default function Home() {
     setMarkDoneStep('photo');
     setEodReviewJobIds(prev => prev.filter(id => id !== jobId));
     setSheet(null);
+    if (eodReviewJobIds.length <= 1) {
+      setShowEodReview(false);
+      setEodDismissedToday(true);
+      localStorage.setItem('buildlogg_eod_review', JSON.stringify({ date: new Date().toDateString(), dismissed: true }));
+    }
     capture('eod_review_completed', { jobCount: 1 });
     setTimeout(() => {
       if (j.payment_terms === 'deposit' && j.deposit_pct) {
@@ -1328,7 +1333,7 @@ export default function Home() {
           {/* Active bar */}
 
           {/* W1-2: End-of-day review banner */}
-          {showEodReview && !eodDismissedToday && (
+          {showEodReview && !eodDismissedToday && todaysActiveCount > 0 && (
             <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
               <Clock size={18} className="text-status-blue shrink-0 mt-0.5" />
               <div className="flex-1">
@@ -1336,17 +1341,21 @@ export default function Home() {
                   {todaysActiveCount} job{todaysActiveCount > 1 ? 's' : ''} still in progress. Done for the day?
                 </p>
                 <div className="flex gap-2 mt-2">
-                  <Button variant="primary" size="sm" onClick={() => {
-                    const ids = jobs.filter(j => j.status === 'in_progress' && j.actual_start && isToday(j.actual_start) && !j.is_sample && !j.is_multi_day).map(j => j.id);
-                    setEodReviewJobIds(ids);
-                    setSheet('eod_review');
-                  }}>Review now</Button>
-                  <button onClick={() => {
-                    setShowEodReview(false);
-                    setEodDismissedToday(true);
-                    localStorage.setItem('buildlogg_eod_review', JSON.stringify({ date: new Date().toDateString(), dismissed: true }));
-                    capture('eod_review_dismissed', {});
-                  }} className="text-sm font-medium text-status-blue underline underline-offset-2 cursor-pointer px-3">Maybe later</button>
+                  <div className="flex-1">
+                    <Button variant="primary" size="sm" fullWidth onClick={() => {
+                      const ids = jobs.filter(j => j.status === 'in_progress' && j.actual_start && isToday(j.actual_start) && !j.is_sample && !j.is_multi_day).map(j => j.id);
+                      setEodReviewJobIds(ids);
+                      setSheet('eod_review');
+                    }}>Review now</Button>
+                  </div>
+                  <div className="flex-1">
+                    <Button variant="secondary" size="sm" fullWidth onClick={() => {
+                      setShowEodReview(false);
+                      setEodDismissedToday(true);
+                      localStorage.setItem('buildlogg_eod_review', JSON.stringify({ date: new Date().toDateString(), dismissed: true }));
+                      capture('eod_review_dismissed', {});
+                    }}>Maybe later</Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2109,7 +2118,12 @@ export default function Home() {
                 <Button variant="primary" size="sm" onClick={() => handleEodComplete(jobId)}>Complete</Button>
                 <Button variant="secondary" size="sm" onClick={() => {
                   setEodReviewJobIds(prev => prev.filter(id => id !== jobId));
-                  if (eodReviewJobIds.length <= 1) setSheet(null);
+                  if (eodReviewJobIds.length <= 1) {
+                    setSheet(null);
+                    setShowEodReview(false);
+                    setEodDismissedToday(true);
+                    localStorage.setItem('buildlogg_eod_review', JSON.stringify({ date: new Date().toDateString(), dismissed: true }));
+                  }
                 }}>Still working</Button>
               </div>
             </div>

@@ -188,10 +188,11 @@ export function SendSheet({
     haptic('light');
     try {
       await navigator.clipboard.writeText(fullSendText);
-      showToast('Message copied');
+      showToast('Message copied — paste it wherever you need', 'info', 3000);
     } catch {
       showToast('Could not copy — try selecting the text manually');
     }
+    onClose();
   };
 
   const handleSaveDraft = () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { db, type Job, type Customer } from '../../lib/db';
 import { Button } from '../../components/Button';
@@ -24,6 +25,7 @@ interface QuoteSentProps {
 /* ─── component ─── */
 
 export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: QuoteSentProps) {
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [total, setTotal] = useState(0);
@@ -115,7 +117,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
 
         {/* Add to Home Screen — peak moment: user just sent a quote */}
         <div className="w-full mb-6">
-          <AddToHomeScreen compact />
+          <AddToHomeScreen variant="minimal" />
         </div>
       </div>
 
@@ -127,6 +129,12 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
         <Button variant="secondary" onClick={onHome}>
           Back to home
         </Button>
+        <button
+          onClick={() => navigate('/quote', { state: { jobId, entryPoint: 'revise' } })}
+          className="w-full text-sm font-medium text-brand-mid underline underline-offset-2 cursor-pointer min-h-11 mt-1"
+        >
+          Resend quote
+        </button>
       </StickyFooter>
     </div>
   );

@@ -103,6 +103,13 @@ export default function Jobs() {
     return urlFilter && ['all', 'active', 'unpaid'].includes(urlFilter) ? urlFilter : 'all';
   });
   const [expanded, setExpanded] = useState<Set<JobStatus>>(new Set(['in_progress', 'booked', 'quoted', 'awaiting_payment']));
+
+  // When a date filter is active, auto-expand all groups so filtered jobs are visible
+  useEffect(() => {
+    if (dateFilter) {
+      setExpanded(new Set(['enquiry', 'in_progress', 'booked', 'quoted', 'awaiting_payment', 'no_show', 'paid', 'cancelled', 'written_off']));
+    }
+  }, [dateFilter]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customers, setCustomers] = useState<Record<string, Customer>>({});
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -131,6 +138,7 @@ export default function Jobs() {
   }, [userId]);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh(); }, [dateFilter]);
 
   /* derived */
   const jobsWithData = useMemo<JobWithTotal[]>(() => {
@@ -379,6 +387,20 @@ export default function Jobs() {
         </div>
       </div>
 
+      {/* Date filter banner */}
+      {dateFilter && (
+        <div className="flex items-center justify-between bg-brand-surface border border-brand-border rounded-lg px-3 py-2 mb-3 mx-4 mt-3">
+          <span className="text-sm font-medium text-brand-dark">
+            {new Date(dateFilter).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+          </span>
+          <button onClick={() => {
+            const params = new URLSearchParams(searchParams);
+            params.delete('date');
+            setSearchParams(params);
+          }} className="text-sm text-brand-mid underline cursor-pointer">Clear</button>
+        </div>
+      )}
+
       {/* Filter chips */}
       <div className="px-4 pt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {filters.map((f) => {
@@ -386,7 +408,12 @@ export default function Jobs() {
           return (
             <button
               key={f.key}
-              onClick={() => { setFilter(f.key); setSearchParams(f.key === 'all' ? {} : { filter: f.key }); }}
+              onClick={() => {
+                setFilter(f.key);
+                const params = new URLSearchParams(searchParams);
+                if (f.key === 'all') params.delete('filter'); else params.set('filter', f.key);
+                setSearchParams(params);
+              }}
               className={`
                 h-11 px-3.5 rounded-2xl flex items-center text-sm font-semibold whitespace-nowrap cursor-pointer shrink-0 border-2
                 transition-colors

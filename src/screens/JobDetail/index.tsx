@@ -2857,9 +2857,9 @@ export default function JobDetail() {
             <p className="text-sm text-status-amber leading-relaxed whitespace-pre-line">
               {notesBannerExpanded ? customer.notes : (customer.notes.length > 200 ? customer.notes.substring(0, 200) + '...' : customer.notes)}
             </p>
-            {customer.notes.length > 200 && !notesBannerExpanded && (
-              <button onClick={() => setNotesBannerExpanded(true)} className="text-xs font-semibold text-status-amber underline mt-1 cursor-pointer">
-                Show all
+            {customer.notes.length > 200 && (
+              <button onClick={() => setNotesBannerExpanded(!notesBannerExpanded)} className="text-xs font-semibold text-status-amber underline mt-1 cursor-pointer">
+                {notesBannerExpanded ? 'Show less' : 'Show all'}
               </button>
             )}
           </div>
