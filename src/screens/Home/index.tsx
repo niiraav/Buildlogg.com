@@ -656,6 +656,7 @@ export default function Home() {
       await db.jobs.update(selectedJobId, {
         status: 'awaiting_payment',
         actual_end: n,
+        invoice_sent_at: n,
         updated_at: n,
         _sync_status: 'pending',
       });
@@ -667,7 +668,7 @@ export default function Home() {
         created_at: n,
         _sync_status: 'pending',
       });
-      await addToSyncQueue('jobs', selectedJobId, { status: 'awaiting_payment', actual_end: n, updated_at: n }, 'update');
+      await addToSyncQueue('jobs', selectedJobId, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n }, 'update');
       await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'status_change', description: 'Job completed \u2014 payment pending', created_at: n }, 'insert');
       await ensureInvoiceNumber(j, userId);
     } else {

@@ -453,6 +453,7 @@ export default function JobDetail() {
         await db.jobs.update(job.id, {
           status: 'awaiting_payment',
           actual_end: n,
+          invoice_sent_at: n,
           updated_at: n,
           _sync_status: 'pending',
         });
@@ -465,7 +466,7 @@ export default function JobDetail() {
           _sync_status: 'pending',
         });
         await ensureInvoiceNumber(job, userId);
-        await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, updated_at: n }, 'update');
+        await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n }, 'update');
         await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — payment pending', created_at: n }, 'insert');
       } else {
         const summary = paymentSummary(job, payments, total);
@@ -839,7 +840,7 @@ export default function JobDetail() {
     }
     await db.jobs.update(job.id, {
       status: newStatus,
-      ...(newStatus === 'awaiting_payment' ? { actual_end: n } : {}),
+      ...(newStatus === 'awaiting_payment' ? { actual_end: n, invoice_sent_at: n } : {}),
       updated_at: n,
       _sync_status: 'pending',
     });
