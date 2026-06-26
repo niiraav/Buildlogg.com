@@ -5,7 +5,7 @@ import { db, type MessageTemplate, type TemplateCategory } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { haptic } from '../../lib/haptics';
 import { addToSyncQueue } from '../../lib/syncQueue';
-import { getAvailablePlaceholders, setDefaultForCategory, hasDefaultForCategory } from '../../lib/templateEngine';
+import { getAvailablePlaceholders } from '../../lib/templateEngine';
 import { captureTemplateEdited } from '../../lib/analytics';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { Button } from '../../components/Button';
@@ -16,8 +16,6 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   invoice: 'Invoice',
   follow_up: 'Follow-up',
   review: 'Review',
-  receipt: 'Receipt',
-  update: 'Update',
   custom: 'Custom',
 };
 
@@ -47,16 +45,6 @@ const TEMPLATE_PRESETS: Record<TemplateCategory, Array<{ name: string; body: str
     { name: 'Review request', body: 'Hi {firstName}, glad the {jobTitle} is sorted! If you were happy with the work, a quick Google review helps me a lot: [review link]. Thanks! — {businessName}' },
     { name: 'Review (short)', body: 'Hi {firstName}, hope you\'re happy with the {jobTitle}! A Google review would mean a lot: [review link]. Only takes 30 seconds. — {businessName}' },
     { name: 'Review + thanks', body: 'Hi {firstName}, thanks for choosing {businessName} for the {jobTitle}! If you could spare 30 seconds for a Google review, I\'d really appreciate it: [review link] — {businessName}' },
-  ],
-  receipt: [
-    { name: 'Payment receipt', body: 'Hi {firstName}, payment of {amount} for {jobTitle} has been confirmed. Thanks for your business! — {businessName}' },
-    { name: 'Receipt (warm)', body: 'Hi {firstName}, thanks for the payment of {amount}! Really appreciate your business. If you need anything else, just let me know. — {businessName}' },
-    { name: 'Receipt + review nudge', body: 'Hi {firstName}, payment of {amount} received for {jobTitle}. If you were happy with the work, a Google review would mean a lot: {reviewLink} — {businessName}' },
-  ],
-  update: [
-    { name: 'Job update', body: 'Hi {firstName}, just an update on your {jobTitle}. — {businessName}' },
-    { name: 'Schedule change', body: 'Hi {firstName}, your {jobTitle} is now scheduled for {date} at {time}. Let me know if that still works for you. — {businessName}' },
-    { name: 'Running late', body: 'Hi {firstName}, sorry but I\'m running about 30 minutes late for the {jobTitle}. See you shortly. — {businessName}' },
   ],
   custom: [
     { name: 'Blank template', body: '' },
@@ -89,34 +77,14 @@ export default function MessageTemplates() {
       showToast('Name and message body are required', 'info');
       return;
     }
-    if (!userId) return;
-
-    // Auto-default: if this template is marked default, unset others in the same category.
-    // If not marked default but no other template in the category has a default, auto-set it.
-    let finalTemplate = { ...tmpl };
-    if (tmpl.is_default) {
-      await setDefaultForCategory(userId, tmpl.id, tmpl.category);
-    } else {
-      const hasDefault = await hasDefaultForCategory(userId, tmpl.category);
-      if (!hasDefault) {
-        finalTemplate = { ...tmpl, is_default: true };
-      }
-    }
-
     const now = new Date().toISOString();
-    const updated = { ...finalTemplate, updated_at: now, _sync_status: 'pending' as const };
+    const updated = { ...tmpl, updated_at: now, _sync_status: 'pending' as const };
     await db.message_templates.put(updated);
     await addToSyncQueue('message_templates', tmpl.id, { ...updated }, 'update');
     setTemplates((prev) => {
       const idx = prev.findIndex((t) => t.id === tmpl.id);
       if (idx >= 0) {
         const next = [...prev];
-        // Reflect is_default changes on other templates in the same category
-        next.forEach((t, i) => {
-          if (t.category === tmpl.category && t.id !== tmpl.id && t.is_default && finalTemplate.is_default) {
-            next[i] = { ...t, is_default: false };
-          }
-        });
         next[idx] = updated;
         return next;
       }
@@ -126,7 +94,7 @@ export default function MessageTemplates() {
     haptic('light');
     showSuccess('Template saved');
     setEditing(null);
-  }, [userId]);
+  }, []);
 
   const handleDelete = useCallback(async (id: string) => {
     await db.message_templates.delete(id);
@@ -200,16 +168,9 @@ export default function MessageTemplates() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold text-brand-black">{tmpl.name || 'Untitled'}</span>
-                  <div className="flex items-center gap-1.5">
-                    {tmpl.is_default && (
-                      <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded">
-                        Default
-                      </span>
-                    )}
-                    <span className="text-xs font-medium text-brand-mid bg-brand-surface px-2 py-0.5 rounded">
-                      {CATEGORY_LABELS[tmpl.category]}
-                    </span>
-                  </div>
+                  <span className="text-xs font-medium text-brand-mid bg-brand-surface px-2 py-0.5 rounded">
+                    {CATEGORY_LABELS[tmpl.category]}
+                  </span>
                 </div>
                 <p className="text-xs text-brand-dark line-clamp-2 leading-relaxed">{tmpl.body || '(empty — tap to edit)'}</p>
               </div>
@@ -243,7 +204,6 @@ function TemplateEditor({
   const [name, setName] = useState(template.name);
   const [body, setBody] = useState(template.body);
   const [category, setCategory] = useState<TemplateCategory>(template.category);
-  const [isDefault, setIsDefault] = useState(template.is_default);
   const [showPresets, setShowPresets] = useState(false);
   const placeholders = getAvailablePlaceholders();
 
@@ -315,23 +275,6 @@ function TemplateEditor({
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Default toggle */}
-        <div className="flex items-center justify-between px-1 py-1">
-          <span className="text-sm font-medium text-brand-dark">
-            Use as default for {CATEGORY_LABELS[category]}
-          </span>
-          <button
-            onClick={() => { setIsDefault(!isDefault); haptic('light'); }}
-            className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
-              isDefault ? 'bg-brand-black' : 'bg-brand-border'
-            }`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-              isDefault ? 'left-[22px]' : 'left-0.5'
-            }`} />
-          </button>
         </div>
 
         {/* Preset variations — shown when category is selected or toggled */}
@@ -417,7 +360,7 @@ function TemplateEditor({
       <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))]">
         <Button
           variant="primary"
-          onClick={() => onSave({ ...template, name, body, category, is_default: isDefault })}
+          onClick={() => onSave({ ...template, name, body, category })}
           disabled={!canSave}
           fullWidth
         >

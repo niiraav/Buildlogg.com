@@ -5,36 +5,12 @@ import { useAppStore } from '../../store/useAppStore';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
 import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
-import { useEntitlements } from '../../hooks/useEntitlements';
-import { ProBadge } from '../../components/ProBadge';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
-  const { can, upgradeUrl } = useEntitlements();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Gate: Revenue dashboard is a Pro feature
-  if (!can('revenue_dashboard')) {
-    return (
-      <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
-        <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
-          <button onClick={() => navigate('/settings')} className="flex items-center gap-1 text-brand-dark cursor-pointer mb-2">
-            <ChevronLeft size={20} />
-          </button>
-          <h1 className="screen-title text-brand-black">Stats & revenue</h1>
-        </div>
-        <div className="flex-1 flex items-center justify-center px-4">
-          <ProBadge
-            variant="locked"
-            label="Revenue dashboard, win rate, payment breakdown, and monthly trends."
-            upgradeUrl={upgradeUrl}
-          />
-        </div>
-      </div>
-    );
-  }
 
   useEffect(() => {
     if (!userId) return;
