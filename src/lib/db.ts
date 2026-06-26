@@ -219,6 +219,60 @@ export interface MessageTemplate {
   _sync_status: SyncStatus;
 }
 
+export interface QuoteFollowUp {
+  id: string;
+  job_id: string;
+  user_id: string;
+  status: 'pending' | 'snoozed' | 'responded' | 'dismissed';
+  first_nudge_at: string;
+  last_nudge_at?: string;
+  nudge_count: number;
+  snooze_until?: string;
+  snooze_reason?: string;
+  created_at: string;
+  updated_at: string;
+  _sync_status: SyncStatus;
+}
+
+export type RecurrenceInterval = 'monthly' | 'quarterly' | 'six_monthly' | 'annual';
+
+export interface RecurringJob {
+  id: string;
+  user_id: string;
+  original_job_id: string;
+  customer_id: string;
+  title: string;
+  address?: string;
+  interval: RecurrenceInterval;
+  next_due_at: string;
+  reminder_lead_days: number;
+  status: 'active' | 'dormant' | 'cancelled';
+  last_completed_at?: string;
+  contact_attempts: number;
+  suggested_month?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  _sync_status: SyncStatus;
+}
+
+export type ChaseStage = 'gentle' | 'firm' | 'final' | 'small_claims';
+
+export interface PaymentChase {
+  id: string;
+  job_id: string;
+  user_id: string;
+  stage: ChaseStage;
+  due_at: string;
+  sent_at?: string;
+  status: 'pending' | 'sent' | 'paused' | 'resolved';
+  pause_reason?: string;
+  message_method?: 'whatsapp' | 'sms';
+  created_at: string;
+  updated_at: string;
+  _sync_status: SyncStatus;
+}
+
 class BuildloggDB extends Dexie {
   profiles!: Table<Profile>;
   customers!: Table<Customer>;
@@ -232,6 +286,9 @@ class BuildloggDB extends Dexie {
   material_items!: Table<MaterialItem>;
   generated_documents!: Table<GeneratedDocument>;
   message_templates!: Table<MessageTemplate>;
+  quote_follow_ups!: Table<QuoteFollowUp>;
+  recurring_jobs!: Table<RecurringJob>;
+  payment_chases!: Table<PaymentChase>;
 
   constructor() {
     super('BuildloggDB');
@@ -254,6 +311,15 @@ class BuildloggDB extends Dexie {
     });
     this.version(4).stores({
       message_templates: 'id, user_id, category, [user_id+sort_order], _sync_status',
+    });
+    this.version(5).stores({
+      quote_follow_ups: 'id, job_id, user_id, status, first_nudge_at, _sync_status',
+    });
+    this.version(6).stores({
+      recurring_jobs: 'id, user_id, customer_id, status, next_due_at, _sync_status',
+    });
+    this.version(7).stores({
+      payment_chases: 'id, job_id, user_id, stage, status, due_at, _sync_status',
     });
   }
 }
