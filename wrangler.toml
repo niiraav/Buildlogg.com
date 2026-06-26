@@ -1,6 +1,5 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "tradepadapp"
-main = "worker.js"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -9,8 +8,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./dist"
 binding = "ASSETS"
 
-# SPA routing — all non-asset requests serve index.html
-not_found_handling = "single-page-application"
+# Use 404-page instead of single-page-application so Functions can handle
+# /api/* and /book/* paths without the SPA fallback intercepting them first.
+# The _middleware.js handles SPA routing for /app/* explicitly.
+not_found_handling = "404-page"
 
 # Build configuration for Cloudflare Workers Git integration
 [build]
