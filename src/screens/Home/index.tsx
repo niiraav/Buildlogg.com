@@ -17,6 +17,7 @@ import { addToSyncQueue } from '../../lib/syncQueue';
 import { showToast } from '../../components/Toast/store';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import NotificationBanner from '../../components/NotificationBanner';
+import WeekView from '../../components/WeekView';
 import { SendSheet, type SendMethod } from '../../components/SendSheet';
 
 /* --- helpers --- */
@@ -154,6 +155,8 @@ type SheetState =
   | 'chase_actions'
   | 'recurring_actions'
   | 'booking_request'
+  | 'eod_review'
+  | 'week_view'
 
 type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder' | 'booking_request';
 
@@ -218,6 +221,16 @@ export default function Home() {
   } | null>(null);
   const [allRecurring, setAllRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
   const [recurringListExpanded, setRecurringListExpanded] = useState(false);
+  const [showEodReview, setShowEodReview] = useState(false);
+  const [eodReviewJobIds, setEodReviewJobIds] = useState<string[]>([]);
+  const [eodDismissedToday, setEodDismissedToday] = useState(() => {
+    try {
+      const saved = localStorage.getItem('buildlogg_eod_review');
+      if (!saved) return false;
+      const parsed = JSON.parse(saved);
+      return parsed.date === new Date().toDateString() && parsed.dismissed;
+    } catch { return false; }
+  });
   // Update sampleExplored when component regains focus (e.g., returning from JobDetail)
   useEffect(() => {
     const update = () => setSampleExplored(localStorage.getItem('buildlogg_sample_explored') === 'true');
@@ -344,6 +357,38 @@ export default function Home() {
 
   const sampleJob = useMemo(() => jobs.find((j) => j.is_sample === true), [jobs]);
   const hasRealJobs = useMemo(() => jobs.some((j) => !j.is_sample && j.status !== 'cancelled' && j.status !== 'written_off'), [jobs]);
+  const todaysActiveCount = useMemo(() =>
+    jobs.filter(j => j.status === 'in_progress' && j.actual_start && isToday(j.actual_start) && !j.is_sample && !j.is_multi_day).length,
+  [jobs]);
+
+  // W1-2: End-of-day review banner
+  useEffect(() => {
+    if (eodDismissedToday || loading) return;
+    const hour = new Date().getHours();
+    if (hour < 18) return;
+    if (todaysActiveCount > 0) {
+      setShowEodReview(true);
+      capture('eod_review_shown', { jobCount: todaysActiveCount });
+    }
+  }, [jobs, eodDismissedToday, loading, todaysActiveCount]);
+
+  const handleEodComplete = (jobId: string) => {
+    const j = jobs.find(job => job.id === jobId);
+    if (!j) return;
+    setSelectedJobId(jobId);
+    setMarkDoneStep('photo');
+    setEodReviewJobIds(prev => prev.filter(id => id !== jobId));
+    setSheet(null);
+    capture('eod_review_completed', { jobCount: 1 });
+    setTimeout(() => {
+      if (j.payment_terms === 'deposit' && j.deposit_pct) {
+        setSheet('mark_done_deposit');
+      } else {
+        setSheet('mark_done');
+      }
+    }, 200);
+  };
+
   const showSampleBanner = !!sampleJob && !hasRealJobs;
 
   const handleRemoveSample = async () => {
@@ -1239,6 +1284,10 @@ export default function Home() {
             <span className="text-sm text-brand-muted block mt-0.5">
               {todayLabel} · {subLabel}
             </span>
+            <button onClick={() => { setSheet('week_view'); capture('week_view_opened', {}); }}
+              className="text-xs font-medium text-brand-mid underline underline-offset-2 cursor-pointer mt-1 block">
+              View week →
+            </button>
           </div>
           {totalOwed > 0 && (
             <div
@@ -1277,6 +1326,31 @@ export default function Home() {
       {activeTab === 'today' && (
         <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
           {/* Active bar */}
+
+          {/* W1-2: End-of-day review banner */}
+          {showEodReview && !eodDismissedToday && (
+            <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
+              <Clock size={18} className="text-status-blue shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-status-blue">
+                  {todaysActiveCount} job{todaysActiveCount > 1 ? 's' : ''} still in progress. Done for the day?
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="primary" size="sm" onClick={() => {
+                    const ids = jobs.filter(j => j.status === 'in_progress' && j.actual_start && isToday(j.actual_start) && !j.is_sample && !j.is_multi_day).map(j => j.id);
+                    setEodReviewJobIds(ids);
+                    setSheet('eod_review');
+                  }}>Review now</Button>
+                  <button onClick={() => {
+                    setShowEodReview(false);
+                    setEodDismissedToday(true);
+                    localStorage.setItem('buildlogg_eod_review', JSON.stringify({ date: new Date().toDateString(), dismissed: true }));
+                    capture('eod_review_dismissed', {});
+                  }} className="text-sm font-medium text-status-blue underline underline-offset-2 cursor-pointer px-3">Maybe later</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Notification permission banner */}
           {shouldShowNotificationBanner() && <NotificationBanner />}
@@ -1986,6 +2060,64 @@ export default function Home() {
             </div>
           );
         })()}
+      </BottomSheet>
+
+      {/* W1-1: Week view sheet */}
+      <BottomSheet
+        isOpen={sheet === 'week_view'}
+        onClose={() => setSheet(null)}
+        title="This week"
+      >
+        <WeekView
+          jobs={jobs}
+          customers={customers}
+          lineItems={lineItems}
+          onDayTap={(date) => {
+            setSheet(null);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayJobs = jobs.filter(j =>
+              j.scheduled_start &&
+              new Date(j.scheduled_start).toDateString() === date.toDateString() &&
+              ['booked', 'in_progress'].includes(j.status) &&
+              !j.is_sample
+            );
+            if (dayJobs.length === 1) {
+              navigate(`/jobs/${dayJobs[0].id}`);
+            } else {
+              navigate(`/jobs?date=${dateStr}`);
+            }
+            capture('week_view_day_tapped', { jobCount: dayJobs.length });
+          }}
+        />
+      </BottomSheet>
+
+      {/* W1-2: End-of-day review sheet */}
+      <BottomSheet
+        isOpen={sheet === 'eod_review'}
+        onClose={() => setSheet(null)}
+        title="End of day review"
+        subtitle={eodReviewJobIds.length > 0 ? `${eodReviewJobIds.length} job${eodReviewJobIds.length > 1 ? 's' : ''} still in progress` : undefined}
+      >
+        {eodReviewJobIds.map(jobId => {
+          const j = jobs.find(x => x.id === jobId);
+          const c = j ? customers[j.customer_id] : null;
+          if (!j || !c) return null;
+          return (
+            <div key={jobId} className="bg-white border border-brand-border rounded-lg p-3 mb-2">
+              <p className="text-sm font-semibold text-brand-black">{c.name} · {j.title}</p>
+              <div className="flex gap-2 mt-2">
+                <Button variant="primary" size="sm" onClick={() => handleEodComplete(jobId)}>Complete</Button>
+                <Button variant="secondary" size="sm" onClick={() => {
+                  setEodReviewJobIds(prev => prev.filter(id => id !== jobId));
+                  if (eodReviewJobIds.length <= 1) setSheet(null);
+                }}>Still working</Button>
+              </div>
+            </div>
+          );
+        })}
+        {eodReviewJobIds.length === 0 && (
+          <p className="text-sm text-brand-muted text-center py-4">All caught up</p>
+        )}
       </BottomSheet>
 
       {/* P2-A: SendSheet for task card sends */}

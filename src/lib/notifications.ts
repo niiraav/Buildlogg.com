@@ -1,6 +1,10 @@
 import { db } from './db';
 import { getStaleInProgressJobs } from './jobStaleness';
 
+function isToday(dateStr: string): boolean {
+  return new Date(dateStr).toDateString() === new Date().toDateString();
+}
+
 export async function requestNotificationPermission() {
   if ('Notification' in window && Notification.permission === 'default') {
     await Notification.requestPermission();
@@ -74,6 +78,32 @@ export async function checkEndOfDay() {
     notification.onclick = function () {
       window.focus();
       window.location.href = `/app/jobs/${mostStale.id}`;
+    };
+  }
+
+  /* ── W1-2: End-of-day review for today's in-progress jobs ── */
+  const todaysInProgress = await db.jobs
+    .where('status')
+    .equals('in_progress')
+    .filter((j) => {
+      if (!j.actual_start) return false;
+      if (j.is_multi_day) return false;
+      if (j.is_sample) return false;
+      return isToday(j.actual_start);
+    })
+    .toArray();
+
+  if (todaysInProgress.length > 0 && Notification.permission === 'granted') {
+    const eodNotification = new Notification('Buildlogg', {
+      body: `${todaysInProgress.length} job${todaysInProgress.length > 1 ? 's' : ''} still in progress. Done for the day?`,
+      icon: '/icons/icon-192.png',
+      tag: 'eod-review',
+      data: { url: '/app' },
+    });
+    eodNotification.onclick = function () {
+      window.focus();
+      localStorage.removeItem('buildlogg_eod_review');
+      window.location.href = '/app';
     };
   }
 }

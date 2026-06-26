@@ -16,17 +16,17 @@ export async function getPendingBookingRequests(userId: string): Promise<Booking
 }
 
 export async function acceptBookingRequest(
-  bookingId: string,
-  userId: string,
-): Promise<{ jobId: string; customerId: string }> {
+  _bookingId: string,
+  _userId: string,
+): Promise<{ jobId: string; customerId: string; confirmationMessage: string; customer: { name: string; phone: string } }> {
   // Stub — wave-2 will implement the full accept flow
   throw new Error('Not implemented — booking accept is a wave-2 feature');
 }
 
-export async function rejectBookingRequest(bookingId: string): Promise<void> {
+export async function rejectBookingRequest(_bookingId: string): Promise<void> {
   // Stub — wave-2 will implement the full reject flow
   try {
-    await db.booking_requests.update(bookingId, { status: 'rejected' });
+    await db.booking_requests.update(_bookingId, { status: 'rejected' });
   } catch {
     // Table might not exist yet
   }

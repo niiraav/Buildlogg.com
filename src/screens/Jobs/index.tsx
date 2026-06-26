@@ -97,6 +97,7 @@ export default function Jobs() {
   const userId = useAppStore((s) => s.userId);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const dateFilter = searchParams.get('date');
   const [filter, setFilter] = useState<Filter>(() => {
     const urlFilter = searchParams.get('filter') as Filter;
     return urlFilter && ['all', 'active', 'unpaid'].includes(urlFilter) ? urlFilter : 'all';
@@ -166,16 +167,24 @@ export default function Jobs() {
     return searchFilteredJobs;
   }, [searchFilteredJobs, filter]);
 
+  const dateFilteredJobs = useMemo<JobWithTotal[]>(() => {
+    if (!dateFilter) return filteredJobs;
+    return filteredJobs.filter(j =>
+      j.scheduled_start &&
+      new Date(j.scheduled_start).toDateString() === new Date(dateFilter).toDateString()
+    );
+  }, [filteredJobs, dateFilter]);
+
   const groups = useMemo(() => {
     const g: Record<JobStatus, JobWithTotal[]> = {
       enquiry: [], in_progress: [], booked: [], quoted: [], awaiting_payment: [],
       no_show: [], paid: [], cancelled: [], written_off: [],
     };
-    filteredJobs.forEach((j) => {
+    dateFilteredJobs.forEach((j) => {
       g[j.status].push(j);
     });
     return g;
-  }, [filteredJobs]);
+  }, [dateFilteredJobs]);
 
   const hasAnyJobs = jobsWithData.length > 0;
 
