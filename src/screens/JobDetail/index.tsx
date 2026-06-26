@@ -35,6 +35,7 @@ import { addToCalendar } from '../../lib/calendar';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
 import { markQuoteResponded } from '../../lib/quoteFollowUp';
 import { createPaymentChases, resolveChases, markStageSentByJob, pauseChasesOnStatusChange } from '../../lib/paymentChase';
+import { createRecurringJob } from '../../lib/recurringJobs';
 
 import { useEntitlements } from '../../hooks/useEntitlements';
 /* ─── helpers ─── */
@@ -143,7 +144,8 @@ type SheetState =
   | 'finish_previous'
   | 'record_deposit'
   | 'write_off'
-  | 'review_prompt';
+  | 'review_prompt'
+  | 'recurring_prompt';
 
 /* ─── component ─── */
 
@@ -588,7 +590,10 @@ export default function JobDetail() {
       await addToSyncQueue('jobs', job.id, { status: fullyPaidNow ? 'paid' : 'awaiting_payment', updated_at: n }, 'update');
       await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `Payment recorded — ${paymentMethodLabel(method)} · £${formatAmount(summary.amountDue)}`, amount: summary.amountDue, created_at: n }, 'insert');
       if (fullyPaidNow && profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
-        // Don't close sheet — review prompt will open
+        // Don't close sheet — review prompt will open, then chains to recurring
+      } else if (fullyPaidNow && job.title !== 'Callout charge') {
+        setSheet(null);
+        setTimeout(() => setSheet('recurring_prompt'), 500);
       } else {
         setSheet(null);
       }
@@ -2890,7 +2895,7 @@ export default function JobDetail() {
       {/* P2-08: Google Review Request */}
       <BottomSheet
         isOpen={sheet === 'review_prompt'}
-        onClose={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
+        onClose={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); if (job?.status === 'paid') setTimeout(() => setSheet('recurring_prompt'), 500); }}
         title="Ask for a Google review?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
@@ -2940,6 +2945,7 @@ export default function JobDetail() {
               setSheet(null);
               setReviewMessage('');
               setEditingReview(false);
+              setTimeout(() => setSheet('recurring_prompt'), 500);
               window.location.href = `https://wa.me/${phone}?text=${msg}`;
             }}
             fullWidth
@@ -2970,6 +2976,7 @@ export default function JobDetail() {
               setSheet(null);
               setReviewMessage('');
               setEditingReview(false);
+              setTimeout(() => setSheet('recurring_prompt'), 500);
               window.location.href = `sms:${phone}?body=${msg}`;
             }}
             fullWidth
@@ -2988,9 +2995,59 @@ export default function JobDetail() {
             <Copy size={18} className="mr-2" />
             Copy message
           </Button>
-          <Button variant="ghost" onClick={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
+          <Button variant="ghost" onClick={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); if (job?.status === 'paid') setTimeout(() => setSheet('recurring_prompt'), 500); }}>
             Skip
           </Button>
+        </div>
+      </BottomSheet>
+
+      {/* P2-02: Recurring Job Prompt */}
+      <BottomSheet
+        isOpen={sheet === 'recurring_prompt'}
+        onClose={() => setSheet(null)}
+        title="Is this a recurring job?"
+        subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
+      >
+        <div className="flex flex-col gap-2">
+          {job?.title === 'Callout charge' ? null : (
+            <>
+              <Button variant="ghost" onClick={() => setSheet(null)} fullWidth>
+                One-off
+              </Button>
+              <Button variant="secondary" onClick={async () => {
+                if (!job || !userId) return;
+                await createRecurringJob(job, 'monthly');
+                showSuccess('Monthly reminder set');
+                setSheet(null);
+              }} fullWidth>
+                Monthly
+              </Button>
+              <Button variant="secondary" onClick={async () => {
+                if (!job || !userId) return;
+                await createRecurringJob(job, 'quarterly');
+                showSuccess('Quarterly reminder set');
+                setSheet(null);
+              }} fullWidth>
+                Quarterly
+              </Button>
+              <Button variant="secondary" onClick={async () => {
+                if (!job || !userId) return;
+                await createRecurringJob(job, 'six_monthly');
+                showSuccess('6-monthly reminder set');
+                setSheet(null);
+              }} fullWidth>
+                6-monthly
+              </Button>
+              <Button variant="primary" onClick={async () => {
+                if (!job || !userId) return;
+                await createRecurringJob(job, 'annual');
+                showSuccess('Annual reminder set');
+                setSheet(null);
+              }} fullWidth>
+                Annual
+              </Button>
+            </>
+          )}
         </div>
       </BottomSheet>
 

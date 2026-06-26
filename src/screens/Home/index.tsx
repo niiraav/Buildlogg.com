@@ -21,7 +21,7 @@ import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import { requestNotificationPermission } from '../../lib/notifications';
 import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
 import { getDueQuoteFollowUps } from '../../lib/quoteFollowUp';
-import { getUpcomingRecurringJobs } from '../../lib/recurringJobs';
+import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
@@ -139,6 +139,7 @@ type SheetState =
   | 'dismiss_confirm'
   | 'finish_previous'
   | 'review_prompt'
+  | 'recurring_prompt'
 
 type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
 
@@ -1559,7 +1560,7 @@ export default function Home() {
       {/* --- Bottom Sheet: Google Review Request --- */}
       <BottomSheet
         isOpen={sheet === 'review_prompt'}
-        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: selectedJobId || '' }); }}
+        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: selectedJobId || '' }); const j = jobs.find(x => x.id === selectedJobId); if (j?.status === 'paid' && j.title !== 'Callout charge') setTimeout(() => setSheet('recurring_prompt'), 500); }}
         title="Ask for a Google review?"
         subtitle={selectedCustomer ? `${selectedCustomer.name} · ${selectedJob?.title || ''}` : undefined}
       >
@@ -1601,6 +1602,48 @@ export default function Home() {
           <Button variant="ghost" onClick={() => { setSheet(null); captureReviewRequestSkipped({ jobId: selectedJobId || '' }); }}>
             Skip
           </Button>
+        </div>
+      </BottomSheet>
+
+      {/* P2-02: Recurring Job Prompt */}
+      <BottomSheet
+        isOpen={sheet === 'recurring_prompt'}
+        onClose={() => setSheet(null)}
+        title="Is this a recurring job?"
+        subtitle={selectedJobId ? `${customerFor(selectedJobId)?.name || ''} · ${jobs.find(x => x.id === selectedJobId)?.title || ''}` : undefined}
+      >
+        <div className="flex flex-col gap-2">
+          <Button variant="ghost" onClick={() => setSheet(null)} fullWidth>
+            One-off
+          </Button>
+          <Button variant="secondary" onClick={async () => {
+            const j = jobs.find(x => x.id === selectedJobId);
+            if (!j || !userId) return;
+            await createRecurringJob(j, 'monthly');
+            showToast('Monthly reminder set');
+            setSheet(null);
+          }} fullWidth>Monthly</Button>
+          <Button variant="secondary" onClick={async () => {
+            const j = jobs.find(x => x.id === selectedJobId);
+            if (!j || !userId) return;
+            await createRecurringJob(j, 'quarterly');
+            showToast('Quarterly reminder set');
+            setSheet(null);
+          }} fullWidth>Quarterly</Button>
+          <Button variant="secondary" onClick={async () => {
+            const j = jobs.find(x => x.id === selectedJobId);
+            if (!j || !userId) return;
+            await createRecurringJob(j, 'six_monthly');
+            showToast('6-monthly reminder set');
+            setSheet(null);
+          }} fullWidth>6-monthly</Button>
+          <Button variant="primary" onClick={async () => {
+            const j = jobs.find(x => x.id === selectedJobId);
+            if (!j || !userId) return;
+            await createRecurringJob(j, 'annual');
+            showToast('Annual reminder set');
+            setSheet(null);
+          }} fullWidth>Annual</Button>
         </div>
       </BottomSheet>
 
