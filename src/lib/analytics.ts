@@ -11,36 +11,11 @@ export async function initAnalytics() {
     return;
   }
 
-  // Pre-flight: check if the PostHog ingestion endpoint is reachable.
-  // Use POST (not HEAD) because ad-blockers often block POST to /e/ but allow HEAD.
-  // With mode: 'no-cors', fetch resolves with an opaque response if the request
-  // goes through (even if the server returns 4xx/5xx). It only throws if the
-  // request is blocked at the network level (ad-blocker, DNS failure, etc).
-  const ingestionHost = POSTHOG_HOST.replace('eu.posthog.com', 'eu.i.posthog.com');
-  let posthogBlocked = false;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    await fetch(`${ingestionHost}/e/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: '', // Empty body — server will reject but won't throw
-      signal: controller.signal,
-      mode: 'no-cors',
-    });
-    clearTimeout(timeout);
-    // If we get here, the request wasn't blocked at network level.
-    // With no-cors, we can't check the response status — but that's fine.
-    // The point is: the request went through (not blocked by ad-blocker).
-  } catch {
-    posthogBlocked = true;
-  }
-  if (posthogBlocked) {
-    console.warn('[Analytics] PostHog blocked by client (ad-blocker or privacy extension). Analytics disabled.');
-    isReady = false;
-    return;
-  }
-
+  // No pre-flight check — the /e/ endpoint returns 400 for any non-PostHog
+  // request (HEAD, POST, GET), which caused false positives in the pre-flight.
+  // Instead, we initialize PostHog unconditionally and suppress network errors
+  // silently in the loaded() callback. If an ad-blocker blocks requests,
+  // PostHog's events fail silently without console spam.
   try {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
