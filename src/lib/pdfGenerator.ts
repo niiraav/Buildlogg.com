@@ -48,30 +48,33 @@ function buildHeader(doc: jsPDF, profile: Profile, docType: 'QUOTE' | 'INVOICE',
   }
 
   // Business name — offset right if logo is present
+  // Y positions adjusted so text block is vertically centered with logo
+  // (logo center = Y=18; text block: name@15, phone@21, fullname@25 → center ≈ Y=18)
   const nameX = profile.logo_data_url ? 38 : 14;
   doc.setFontSize(18);
   doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
-  doc.text(profile.business_name || profile.full_name, nameX, 20);
+  doc.text(profile.business_name || profile.full_name, nameX, profile.logo_data_url ? 15 : 20);
 
   // Contact info
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED);
-  if (profile.phone) doc.text(profile.phone, nameX, 26);
-  if (profile.business_name) doc.text(profile.full_name, nameX, 30);
+  if (profile.phone) doc.text(profile.phone, nameX, profile.logo_data_url ? 21 : 26);
+  if (profile.business_name) doc.text(profile.full_name, nameX, profile.logo_data_url ? 25 : 30);
 
   // Document type + number (right-aligned)
+  const rightY = profile.logo_data_url ? 15 : 20;
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...INK);
-  doc.text(docType, 196, 20, { align: 'right' });
+  doc.text(docType, 196, rightY, { align: 'right' });
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED);
-  doc.text(docNumber, 196, 26, { align: 'right' });
-  doc.text(dateStr, 196, 30, { align: 'right' });
+  doc.text(docNumber, 196, profile.logo_data_url ? 21 : 26, { align: 'right' });
+  doc.text(dateStr, 196, profile.logo_data_url ? 25 : 30, { align: 'right' });
 
   // Hairline
   doc.setDrawColor(...HAIRLINE);

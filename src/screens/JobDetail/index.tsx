@@ -1123,7 +1123,7 @@ export default function JobDetail() {
   const handleMessage = () => {
     if (!customer?.phone) return;
     const body = encodeURIComponent(`Hi ${customer.name}, it's ${profile?.full_name?.split(' ')[0] || 'Dave'}.`);
-    window.open(`sms:${customer.phone}?body=${body}`, '_blank');
+    window.location.href = `sms:${customer.phone}?body=${body}`;
   };
 
   /* ─── render helpers ─── */
@@ -2899,7 +2899,6 @@ export default function JobDetail() {
               const firstName = customer.name.split(' ')[0] || 'there';
               const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`;
               const msg = encodeURIComponent(reviewMsg);
-              window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
@@ -2916,6 +2915,7 @@ export default function JobDetail() {
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
               setReviewNote('');
+              window.location.href = `https://wa.me/${phone}?text=${msg}`;
             }}
             fullWidth
           >
@@ -2930,7 +2930,6 @@ export default function JobDetail() {
               const firstName = customer.name.split(' ')[0] || 'there';
               const reviewMsg = `Hi ${firstName}${reviewNote ? ', ' + reviewNote : ''}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
               const msg = encodeURIComponent(reviewMsg);
-              window.open(`sms:${phone}?body=${msg}`, '_blank');
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
@@ -2947,6 +2946,7 @@ export default function JobDetail() {
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
               setReviewNote('');
+              window.location.href = `sms:${phone}?body=${msg}`;
             }}
             fullWidth
           >
