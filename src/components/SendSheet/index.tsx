@@ -150,9 +150,11 @@ export function SendSheet({
       const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file] });
+        onSend('whatsapp_pdf', true);
       }
     } catch {
-      // User cancelled
+      // User cancelled — still mark as sent (text went through)
+      onSend('whatsapp_pdf', false);
     }
   };
 
@@ -337,7 +339,11 @@ export function SendSheet({
             <span className="text-sm font-medium text-white">PDF ready to share</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowSharePdfToast(false)}
+                onClick={() => {
+                  setShowSharePdfToast(false);
+                  if (toastTimerRef.current) { clearTimeout(toastTimerRef.current); toastTimerRef.current = null; }
+                  onSend('whatsapp_pdf', false);
+                }}
                 className="text-xs text-white/60 cursor-pointer"
               >
                 <X size={16} />
