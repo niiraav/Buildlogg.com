@@ -1,4 +1,5 @@
 import { db, type Job, type Customer } from './db';
+import { createPaymentChases } from './paymentChase';
 
 /* ─── Constants ─── */
 
@@ -181,6 +182,8 @@ export async function autoCompleteJob(job: Job): Promise<void> {
     created_at: n,
     retry_count: 0,
   });
+  // P2-03: Create payment chase records for the auto-completed job
+  await createPaymentChases(job.id, job.user_id, n).catch(() => {});
 }
 
 /* ─── Time formatting helpers ─── */

@@ -7,6 +7,7 @@ import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Pro
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { useAppStore } from '../../store/useAppStore';
+import { setContextualFlag } from '../../lib/notificationManager';
 import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded } from '../../lib/analytics';
 import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
@@ -128,6 +129,7 @@ type SheetState =
   | null
   | 'cancel'
   | 'more_options'
+  | 'log_expense'
   | 'add_charge'
   | 'mark_done'
   | 'add_note'
@@ -186,6 +188,8 @@ export default function JobDetail() {
   }, [sheet, job, customer, profile, userId]);
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
+  const [expenseDesc, setExpenseDesc] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
   const [noteText, setNoteText] = useState('');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [photos, setPhotos] = useState<JobPhoto[]>([]);
@@ -332,6 +336,31 @@ export default function JobDetail() {
 
     refresh();
   }, [jobId, userId, refresh]);
+
+  const handleLogExpense = async () => {
+    const amount = parseFloat(expenseAmount);
+    if (!expenseDesc.trim() || isNaN(amount) || amount <= 0) return;
+    const n = now();
+    const workLogId = crypto.randomUUID();
+    await db.work_log.add({
+      id: workLogId,
+      job_id: jobId!,
+      type: 'expense',
+      description: expenseDesc.trim(),
+      amount,
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await addToSyncQueue('work_log', workLogId, {
+      id: workLogId, job_id: jobId!, type: 'expense',
+      description: expenseDesc.trim(), amount, created_at: n,
+    }, 'insert');
+    setExpenseDesc('');
+    setExpenseAmount('');
+    setSheet(null);
+    refresh();
+    showToast('Expense logged');
+  };
 
   const handleAddCharge = async () => {
     const amount = parseFloat(chargeAmount);
@@ -501,6 +530,7 @@ export default function JobDetail() {
         if (fullyPaidNow) {
           hapticSuccess();
           showSuccess('Job marked as paid');
+          setContextualFlag();
           captureJobMarkedPaid();
 
           // P2-08: Show review prompt if Google reviews are enabled
@@ -565,6 +595,7 @@ export default function JobDetail() {
       if (fullyPaidNow) {
         hapticSuccess();
         showSuccess('Job marked as paid');
+        setContextualFlag();
         captureJobMarkedPaid();
         resolveChases(job.id).catch(() => {});
 
@@ -1389,8 +1420,8 @@ export default function JobDetail() {
                     {log.description}
                   </span>
                   {log.amount !== undefined && log.amount > 0 && (
-                    <span className="text-sm font-bold text-status-green shrink-0 whitespace-nowrap">
-                      +£{log.amount.toFixed(2)}
+                    <span className={`text-sm font-bold shrink-0 whitespace-nowrap ${log.type === 'expense' ? 'text-status-red' : 'text-status-green'}`}>
+                      {log.type === 'expense' ? '-' : '+'}£{log.amount.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -1772,11 +1803,32 @@ export default function JobDetail() {
     </div>
   );
 
+  const handleReviseQuote = () => {
+    if (!job || !customer) return;
+    navigate('/quote', {
+      state: {
+        jobId: job.id,
+        customerId: job.customer_id,
+        entryPoint: 'revise',
+      },
+    });
+  };
+
   const renderQuotedFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
-      <Button variant="primary" onClick={handleMarkAsBooked}>
-        Mark as Booked
-      </Button>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Button variant="primary" onClick={handleMarkAsBooked} disabled={!!job?.is_sample}>
+            Mark as Booked
+          </Button>
+        </div>
+        <div className="flex-1">
+          <Button variant="secondary" onClick={handleReviseQuote} disabled={!!job?.is_sample}>
+            Revise quote
+          </Button>
+        </div>
+      </div>
+      {job?.is_sample && <p className="text-xs text-brand-muted text-center mt-2">This is a sample — create a real job to use this</p>}
     </div>
   );
 
@@ -1936,8 +1988,8 @@ export default function JobDetail() {
                       {displayText}
                     </span>
                     {log.amount !== undefined && log.amount > 0 && (
-                      <span className="text-sm font-bold text-status-green shrink-0 whitespace-nowrap">
-                        +£{log.amount.toFixed(2)}
+                      <span className={`text-sm font-bold shrink-0 whitespace-nowrap ${log.type === 'expense' ? 'text-status-red' : 'text-status-green'}`}>
+                        {log.type === 'expense' ? '-' : '+'}£{log.amount.toFixed(2)}
                       </span>
                     )}
                   </div>
@@ -2054,8 +2106,8 @@ export default function JobDetail() {
                     {log.description}
                   </span>
                   {log.amount !== undefined && log.amount > 0 && (
-                    <span className="text-sm font-bold text-status-green shrink-0 whitespace-nowrap">
-                      +£{log.amount.toFixed(2)}
+                    <span className={`text-sm font-bold shrink-0 whitespace-nowrap ${log.type === 'expense' ? 'text-status-red' : 'text-status-green'}`}>
+                      {log.type === 'expense' ? '-' : '+'}£{log.amount.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -2142,10 +2194,16 @@ export default function JobDetail() {
         onTap={() => setSheet('add_note')}
       />
       {(job?.status === 'in_progress' || job?.status === 'awaiting_payment' || job?.status === 'booked' || job?.status === 'no_show' || job?.status === 'quoted') && (
-        <SheetRow
-          label="Add charge"
-          onTap={() => setSheet('add_charge')}
-        />
+        <>
+          <SheetRow
+            label="Log expense"
+            onTap={() => setSheet('log_expense')}
+          />
+          <SheetRow
+            label="Add charge"
+            onTap={() => setSheet('add_charge')}
+          />
+        </>
       )}
       {(job?.status === 'in_progress' || job?.status === 'awaiting_payment') && (
         <SheetRow
@@ -2209,6 +2267,51 @@ export default function JobDetail() {
         variant="destructive"
         isLast
       />
+    </BottomSheet>
+  );
+
+  const renderLogExpenseSheet = () => (
+    <BottomSheet
+      isOpen={sheet === 'log_expense'}
+      onClose={() => setSheet(null)}
+      title="Log expense"
+      subtitle="Materials or costs for this job"
+    >
+      <div className="mb-3">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+          Description
+        </label>
+        <input
+          type="text"
+          value={expenseDesc}
+          onChange={(e) => setExpenseDesc(e.target.value)}
+          placeholder="e.g. Boiler parts from Screwfix"
+          className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+          Amount
+        </label>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-medium text-brand-black">£</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={expenseAmount}
+            onChange={(e) => setExpenseAmount(e.target.value)}
+            placeholder="0.00"
+            className="w-full h-12 pl-8 pr-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+          />
+        </div>
+      </div>
+      <Button
+        variant="primary"
+        onClick={handleLogExpense}
+        disabled={!expenseDesc.trim() || !expenseAmount || parseFloat(expenseAmount) <= 0}
+      >
+        Log expense
+      </Button>
     </BottomSheet>
   );
 
@@ -2766,6 +2869,7 @@ export default function JobDetail() {
 
       {renderCancelSheet()}
       {renderMoreOptionsSheet()}
+      {renderLogExpenseSheet()}
       {renderAddChargeSheet()}
       {renderAddNoteSheet()}
       {renderMarkDoneSheet()}

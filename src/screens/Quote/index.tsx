@@ -5,6 +5,7 @@ import { db } from '../../lib/db';
 import { captureJobCreated, captureQuoteSent, capture } from '../../lib/analytics';
 import { createQuoteFollowUp } from '../../lib/quoteFollowUp';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
+import { setContextualFlag } from '../../lib/notificationManager';
 import { showToast } from '../../components/Toast/store';
 import { showSuccess } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
@@ -21,7 +22,7 @@ function now() { return new Date().toISOString(); }
 
 /* ─── types ─── */
 
-type EntryPoint = 'missed_call' | 'new_quote' | 'task';
+type EntryPoint = 'missed_call' | 'new_quote' | 'task' | 'revise';
 
 type QuoteStep = 'missed_call' | 'customer_details' | 'builder' | 'preview' | 'sent';
 
@@ -316,6 +317,7 @@ export default function Quote() {
     hapticSuccess();
     showSuccess('Quote sent!');
     captureQuoteSent(method);
+    setContextualFlag();
     createQuoteFollowUp(jobId, userId!).catch(() => {});
     setSendMethod(method);
     setStep('sent');
@@ -376,7 +378,7 @@ export default function Quote() {
           customerId={customerId}
           jobId={jobId}
           onPreview={handleBuilderPreview}
-          onBack={() => setStep('customer_details')}
+          onBack={entryPoint === 'revise' ? () => navigate(-1) : () => setStep('customer_details')}
           onSaveDraft={handleSaveDraft}
         />
       );

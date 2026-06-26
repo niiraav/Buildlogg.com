@@ -7,6 +7,8 @@ import { SegmentedControl } from '../../components/SegmentedControl';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
+import { getPricingHistory, getJobTitlePricingHistory } from '../../lib/pricingHistory';
+import { capture } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
 
 /* ─── helpers ─── */
@@ -100,6 +102,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   /* custom items library */
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
 
+  const [jobTitlePricing, setJobTitlePricing] = useState<any>(null);
+  const [itemPricingHints, setItemPricingHints] = useState<Record<string, PricingHistory | null>>({});
   const [profile, setProfile] = useState<Profile | null>(null);
   const depositSectionRef = useRef<HTMLDivElement>(null);
 
@@ -290,6 +294,33 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   const depositAmount = paymentTerms === 'deposit' ? total * (depositPct / 100) : 0;
   const balance = total - depositAmount;
 
+  // Clear pricing cache on unmount
+  useEffect(() => {
+    return () => clearPricingCache();
+  }, []);
+
+  /* ─── BN-4: Pricing history helpers ─── */
+  const fetchItemPricing = useCallback(async (description: string) => {
+    if (!description.trim() || !userId) return;
+    const history = await getPricingHistory(userId, description.trim());
+    setItemPricingHints(prev => ({ ...prev, [description.toLowerCase().trim()]: history }));
+    if (history) capture('pricing_hint_shown', { type: 'line_item', count: history.count });
+  }, [userId]);
+
+  const updateItemDescWithPricing = (id: string, desc: string) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, description: desc } : i)));
+    if (pricingDebounceRef.current) clearTimeout(pricingDebounceRef.current);
+    pricingDebounceRef.current = setTimeout(() => fetchItemPricing(desc), 300);
+  };
+
+  const addQuickItemWithPricing = (customItem: CustomItem) => {
+    setItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), description: customItem.description, detail: customItem.detail, amount: customItem.amount.toFixed(2), amountNum: customItem.amount },
+    ]);
+    fetchItemPricing(customItem.description);
+  };
+
   /* ─── auto-save helpers ─── */
   const saveJob = useCallback(async () => {
     if (!currentJobId || !userId) return;
@@ -376,9 +407,16 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
   }, [currentJobId, userId, items]);
 
   /* ─── event handlers ─── */
-  const handleTitleBlur = () => {
+  const handleTitleBlur = async () => {
     setTitleFocused(false);
     saveJob();
+    if (title.trim() && userId) {
+      const history = await getJobTitlePricingHistory(userId, title.trim());
+      setJobTitlePricing(history);
+      if (history) capture('pricing_hint_shown', { type: 'job_title', count: history.count });
+    } else {
+      setJobTitlePricing(null);
+    }
   };
 
   const handleDateBlur = () => saveJob();
@@ -475,6 +513,14 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
       ...prev,
       { id: crypto.randomUUID(), description: customItem.description, detail: customItem.detail, amount: customItem.amount.toFixed(2), amountNum: customItem.amount },
     ]);
+    // BN-4: Fetch pricing history for this item
+    if (userId) {
+      getPricingHistory(userId, customItem.description).then(h => {
+        if (h) {
+          setItemPricingHints(prev => ({ ...prev, [customItem.description.toLowerCase().trim()]: h }));
+        }
+      }).catch(() => {});
+    }
   };
 
 
@@ -510,6 +556,17 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
   const updateItemDesc = (id: string, desc: string) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, description: desc } : i)));
+    // BN-4: Debounced pricing history fetch
+    if (userId && desc.trim()) {
+      const key = desc.toLowerCase().trim();
+      if (!itemPricingHints[key]) {
+        setTimeout(() => {
+          getPricingHistory(userId, desc.trim()).then(h => {
+            setItemPricingHints(prev => ({ ...prev, [key]: h }));
+          }).catch(() => {});
+        }, 300);
+      }
+    }
   };
 
   const updateItemAmount = (id: string, amt: string) => {
@@ -617,6 +674,13 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 titleFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
+            {jobTitlePricing && !titleFocused && (
+              <p className="text-xs text-brand-mid mt-1">
+                {jobTitlePricing.highVariance
+                  ? `You've quoted this ${jobTitlePricing.count}× — £${jobTitlePricing.min.toFixed(0)} to £${jobTitlePricing.max.toFixed(0)} (varies widely)`
+                  : `You've quoted this ${jobTitlePricing.count}× — £${jobTitlePricing.min.toFixed(0)} to £${jobTitlePricing.max.toFixed(0)}, avg £${jobTitlePricing.avg.toFixed(0)}`}
+              </p>
+            )}
           </div>
 
           <div className="mb-2.5">
@@ -709,7 +773,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                     <input
                       type="text"
                       value={item.description}
-                      onChange={(e) => updateItemDesc(item.id, e.target.value)}
+                      onChange={(e) => updateItemDescWithPricing(item.id, e.target.value)}
                       onBlur={saveItemBlur}
                       placeholder="Item description"
                       className={`flex-1 min-w-0 min-h-12 px-2 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black ${
@@ -739,6 +803,28 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                     <X size={14} className="text-brand-muted" />
                   </button>
                 </div>
+                {/* BN-4: Line item pricing hint */}
+                {(() => {
+                  const hint = itemPricingHints[item.description.toLowerCase().trim()];
+                  if (!hint) return null;
+                  return (
+                    <div className="text-xs text-brand-mid mt-1 flex items-center gap-2 flex-wrap">
+                      <span>
+                        {hint.count > 0
+                          ? `Default: \u00a3${hint.defaultAmount.toFixed(0)}. Last ${hint.count} ${hint.count === 1 ? 'charge' : 'charges'}: \u00a3${hint.minCharged.toFixed(0)}-\u00a3${hint.maxCharged.toFixed(0)}${!hint.highVariance ? `, avg \u00a3${hint.avgCharged.toFixed(0)}` : ''}.`
+                          : `Default: \u00a3${hint.defaultAmount.toFixed(0)}.`}
+                      </span>
+                      {!hint.highVariance && hint.avgCharged > 0 && (
+                        <button
+                          onClick={() => { updateItemAmount(item.id, hint.avgCharged.toFixed(2)); capture('pricing_hint_used', { type: 'line_item', amount_used: 'avg' }); }}
+                          className="text-brand-dark font-semibold underline cursor-pointer"
+                        >
+                          Use \u00a3{hint.avgCharged.toFixed(0)}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Detail sub-text input (Issue E) */}
                 <input
                   type="text"
@@ -767,7 +853,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               {filteredDisplayItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => addQuickItem(item)}
+                  onClick={() => addQuickItemWithPricing(item)}
                   className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-borderLight text-sm font-medium text-brand-dark cursor-pointer border border-brand-border hover:bg-brand-border active:bg-brand-borderLight transition-colors"
                 >
                   <Plus size={12} className="text-brand-muted" />

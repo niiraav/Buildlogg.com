@@ -262,3 +262,48 @@ export function captureReviewRequestSent(data: { jobId: string }) {
 export function captureReviewRequestSkipped(data: { jobId: string }) {
   capture('review_request_skipped', data);
 }
+
+/* ─── P2-01: Quote Follow-Up Analytics ─── */
+
+export function captureQuoteFollowUpShown(data: { jobId: string; nudgeCount: number }) {
+  capture('quote_follow_up_shown', data);
+}
+export function captureQuoteFollowUpSent(data: { jobId: string; nudgeCount: number; method: 'whatsapp' | 'sms' }) {
+  capture('quote_follow_up_sent', data);
+}
+export function captureQuoteFollowUpSnoozed(data: { jobId: string; duration: string }) {
+  capture('quote_follow_up_snoozed', data);
+}
+export function captureQuoteFollowUpResponded(data: { jobId: string }) {
+  capture('quote_follow_up_responded', data);
+}
+
+/* ─── P2-02: Recurring Job Analytics ─── */
+
+export function captureRecurringJobCreated(data: { interval: string; hasSuggestedMonth: boolean }) {
+  capture('recurring_job_created', data);
+}
+export function captureRecurringReminderShown(data: { recurringId: string; daysUntilDue: number }) {
+  capture('recurring_reminder_shown', data);
+}
+export function captureRecurringReminderActed(data: { recurringId: string; action: 'call' | 'whatsapp' | 'done' | 'no_response' | 'cancel' }) {
+  capture('recurring_reminder_acted', data);
+}
+export function captureRecurringJobDormant(data: { recurringId: string }) {
+  capture('recurring_job_dormant', data);
+}
+
+/* ─── P2-03: Payment Chase Analytics ─── */
+
+export function capturePaymentChaseShown(data: { jobId: string; stage: string }) {
+  capture('payment_chase_shown', data);
+}
+export function capturePaymentChaseSent(data: { jobId: string; stage: string; method: 'whatsapp' | 'sms' }) {
+  capture('payment_chase_sent', data);
+}
+export function capturePaymentChasePaused(data: { jobId: string; reason: string }) {
+  capture('payment_chase_paused', data);
+}
+export function capturePaymentChaseResumed(data: { jobId: string }) {
+  capture('payment_chase_resumed', data);
+}
