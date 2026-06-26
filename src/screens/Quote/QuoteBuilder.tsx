@@ -781,19 +781,22 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   )}
                 </button>
               ))}
-              {/* Save to library pill — shows when an item isn't in the library yet */}
-              {items.filter((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum)).slice(0, 1).map((item) => (
-                <button
-                  key={`save-${item.id}`}
-                  onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-brand-surface text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
-                >
-                  <BookmarkPlus size={14} />
-                  <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>
-                </button>
-              ))}
             </div>
           )}
+
+          {/* Save to library pill — always visible when there's an unsaved item,
+              even if all chips are filtered out (prevents the pill from disappearing) */}
+          {items.filter((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum)).slice(0, 1).map((item) => (
+            <div key={`save-wrapper-${item.id}`} className="mt-2">
+              <button
+                onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-brand-surface text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
+              >
+                <BookmarkPlus size={14} />
+                <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>
+              </button>
+            </div>
+          ))}
 
           {/* Total bar */}
           {items.length > 0 && (

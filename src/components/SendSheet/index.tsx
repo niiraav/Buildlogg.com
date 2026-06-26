@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, FileText, Share2, X, Copy } from 'lucide-react';
+import { MessageCircle, FileText, Share2, X, Clipboard } from 'lucide-react';
 import { BottomSheet } from '../BottomSheet';
 import { Button } from '../Button';
 import { haptic } from '../../lib/haptics';
@@ -282,17 +282,7 @@ export function SendSheet({
             onClick={handleCopyMessage}
             className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-mid cursor-pointer"
           >
-            <Copy size={16} />
-            Copy message
-          </button>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(messageText);
-              showToast('Copied to clipboard', 'success', 2000);
-            }}
-            className="flex items-center justify-center w-full min-h-11 text-sm font-medium text-brand-muted cursor-pointer"
-          >
-            <Copy size={16} className="mr-2" />
+            <Clipboard size={16} />
             Copy message
           </button>
           {onSaveDraft && (

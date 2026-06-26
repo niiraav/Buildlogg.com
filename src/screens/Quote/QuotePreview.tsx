@@ -121,8 +121,9 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     return lines.join('\n');
   }, [job, customer, customerFirstName, items, total, termsLabel, depositPct, depositAmount, quoteValidDays, businessName]);
 
-  // Sync message text with the default template when data changes,
-  // unless the user is actively editing (prevents overwriting their edits)
+  // Sync messageText with the default template when data changes, unless the
+  // user has manually edited the message in the SendSheet (editingMessage=true).
+  // editingMessage is reset to false when the SendSheet closes.
   useEffect(() => {
     if (!editingMessage) {
       setMessageText(defaultMessage);
