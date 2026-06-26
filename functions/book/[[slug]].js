@@ -70,7 +70,7 @@ export async function onRequest(context) {
   const slug = params.slug ? params.slug[0] : '';
   if (!slug) return render404();
   const SU = env.SUPABASE_URL, SK = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!SU || !SK) { console.error("[booking] Missing env vars: SUPABASE_URL=" + !!SU + ", SUPABASE_SERVICE_ROLE_KEY=" + !!SK); return html("<!DOCTYPE html><html><body><h1>Booking temporarily unavailable</h1><p>Debug: SUPABASE_URL=" + !!SU + ", KEY=" + !!SK + "</p></body></html>", 500); }
+  if (!SU || !SK) return html("<!DOCTYPE html><html><body><h1>Booking temporarily unavailable</h1></body></html>", 500);
 
   if (request.method === 'GET') {
     try {
