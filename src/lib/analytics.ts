@@ -11,23 +11,27 @@ export async function initAnalytics() {
     return;
   }
 
-  // Check if the PostHog ingestion endpoint is reachable before initializing.
-  // Ad-blockers block requests to eu.i.posthog.com (the ingestion endpoint).
-  // We test the actual /e/ endpoint — if the fetch throws (network error),
-  // the endpoint is blocked. A 4xx response is fine (endpoint exists, just
-  // rejected our empty request). A throw = blocked by ad-blocker.
+  // Pre-flight: check if the PostHog ingestion endpoint is reachable.
+  // Use POST (not HEAD) because ad-blockers often block POST to /e/ but allow HEAD.
+  // With mode: 'no-cors', fetch resolves with an opaque response if the request
+  // goes through (even if the server returns 4xx/5xx). It only throws if the
+  // request is blocked at the network level (ad-blocker, DNS failure, etc).
   const ingestionHost = POSTHOG_HOST.replace('eu.posthog.com', 'eu.i.posthog.com');
   let posthogBlocked = false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    // Use HEAD to avoid any response body — just checking reachability
     await fetch(`${ingestionHost}/e/`, {
-      method: 'HEAD',
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: '', // Empty body — server will reject but won't throw
       signal: controller.signal,
       mode: 'no-cors',
     });
     clearTimeout(timeout);
+    // If we get here, the request wasn't blocked at network level.
+    // With no-cors, we can't check the response status — but that's fine.
+    // The point is: the request went through (not blocked by ad-blocker).
   } catch {
     posthogBlocked = true;
   }
@@ -38,7 +42,7 @@ export async function initAnalytics() {
   }
 
   try {
-    const posthogConfig: any = {
+    posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
       person_profiles: 'identified_only',
       capture_pageview: false,
@@ -46,23 +50,39 @@ export async function initAnalytics() {
       dead_clicks_autocapture: false,
       advanced_disable_decide: true,
       advanced_disable_feature_flags: true,
-      // Limit retries to prevent console spam if events are blocked after init
-      loaded: (posthog: any) => {
-        // Override the retry mechanism to fail fast on network errors
-        if (posthog._retriableRequest) {
-          const original = posthog._retriableRequest;
-          posthog._retriableRequest = function(...args: any[]) {
+      // Disable opt-out caching to avoid stale state
+      disable_session_recording: true,
+      // Reduce retry attempts — if the first event fails, don't spam the console
+      loaded: (ph: any) => {
+        // Override the internal retry mechanism to fail fast
+        // PostHog stores events in a queue and retries failed sends.
+        // We patch the send function to catch network errors silently.
+        if (ph._send_request) {
+          const originalSend = ph._send_request.bind(ph);
+          ph._send_request = function(...args: any[]) {
+            return originalSend(...args).catch(() => {
+              // Network error (ad-blocker, offline, etc) — silently drop
+              return Promise.resolve();
+            });
+          };
+        }
+        // Also patch the retriableRequest if it exists
+        if (ph._retriableRequest) {
+          const originalRetry = ph._retriableRequest.bind(ph);
+          ph._retriableRequest = function(...args: any[]) {
             try {
-              return original.apply(this, args);
-            } catch (e) {
-              // Silently fail on network errors
+              const result = originalRetry(...args);
+              if (result && typeof result.catch === 'function') {
+                return result.catch(() => Promise.resolve());
+              }
+              return result;
+            } catch {
               return Promise.resolve();
             }
           };
         }
       },
-    };
-    posthog.init(POSTHOG_KEY, posthogConfig);
+    } as any);
     isReady = true;
   } catch (err) {
     console.warn('[Analytics] PostHog init failed; events will be no-ops.', err);
@@ -75,7 +95,6 @@ function safePostHogCall<T>(fn: () => T): T | undefined {
   try {
     return fn();
   } catch (err) {
-    // Swallow analytics failures so the app keeps working when blocked.
     if (import.meta.env.DEV) {
       console.warn('[Analytics] PostHog call failed:', err);
     }
