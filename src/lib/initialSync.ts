@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { db } from './db';
-import type { Profile, Customer, Job, LineItem, WorkLogEntry, Payment, JobPhoto } from './db';
+import type { Profile, Customer, Job, LineItem, WorkLogEntry, Payment, JobPhoto, BookingRequest } from './db';
 import type { Table } from 'dexie';
 
 async function safeBulkPut<T extends { id: string; _sync_status: string }>(
@@ -18,7 +18,7 @@ async function safeBulkPut<T extends { id: string; _sync_status: string }>(
 }
 
 export async function initialSync(userId: string) {
-  const [profile, customers, jobs, lineItems, workLog, payments, jobPhotos] = await Promise.all([
+  const [profile, customers, jobs, lineItems, workLog, payments, jobPhotos, bookingRequests] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single(),
     supabase.from('customers').select('*').eq('user_id', userId),
     supabase.from('jobs').select('*').eq('user_id', userId),
@@ -26,6 +26,7 @@ export async function initialSync(userId: string) {
     supabase.from('work_log').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
     supabase.from('payments').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
     supabase.from('job_photos').select('*, jobs!inner(user_id)').eq('jobs.user_id', userId),
+    supabase.from('booking_requests').select('*').eq('merchant_id', userId),
   ]);
 
   if (profile.error) console.error('[initialSync] profiles fetch failed:', profile.error);
@@ -35,8 +36,9 @@ export async function initialSync(userId: string) {
   if (workLog.error) console.error('[initialSync] work_log fetch failed:', workLog.error);
   if (payments.error) console.error('[initialSync] payments fetch failed:', payments.error);
   if (jobPhotos.error) console.error('[initialSync] job_photos fetch failed:', jobPhotos.error);
+  if (bookingRequests.error) console.error('[initialSync] booking_requests fetch failed:', bookingRequests.error);
 
-  await db.transaction('rw', [db.profiles, db.customers, db.jobs, db.line_items, db.work_log, db.payments, db.job_photos], async () => {
+  await db.transaction('rw', [db.profiles, db.customers, db.jobs, db.line_items, db.work_log, db.payments, db.job_photos, db.booking_requests], async () => {
     if (profile.data) {
       const local = await db.profiles.get(profile.data.id);
       if (!local || local._sync_status !== 'pending') {
@@ -60,6 +62,9 @@ export async function initialSync(userId: string) {
     }
     if (jobPhotos.data) {
       await safeBulkPut(db.job_photos, jobPhotos.data as JobPhoto[]);
+    }
+    if (bookingRequests.data) {
+      await safeBulkPut(db.booking_requests, bookingRequests.data as BookingRequest[]);
     }
   });
 }

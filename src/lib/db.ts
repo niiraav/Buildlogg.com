@@ -25,9 +25,20 @@ export interface Profile {
   bank_account_number?: string;
   bank_sort_code?: string;
   terms_and_conditions?: string;
+  // W2-3: Referral tracking
+  referral_source?: string;
+  referral_detail?: string;
   // P2-08: Google reviews
   google_business_url?: string;
   reviews_enabled?: boolean;
+  // W2-1: Booking page
+  booking_slug?: string;
+  booking_enabled?: boolean;
+  booking_buffer_hours?: number;
+  booking_show_phone?: boolean;
+  // W2-2: Stripe
+  stripe_account_id?: string;
+  stripe_connected?: boolean;
   // Entitlements
   subscription_status?: 'active' | 'trialing' | 'expired' | 'canceled' | null;
   subscription_ends_at?: string;
@@ -89,6 +100,9 @@ export interface Job {
   deposit_requested_at?: string;
   deposit_paid_at?: string;
   cancellation_policy_hours?: number;
+  // W2-3: Referral tracking
+  referral_source?: string;
+  referral_detail?: string;
   // P2-08: Google reviews
   review_requested_at?: string;
   is_sample?: boolean;
@@ -173,6 +187,8 @@ export interface CustomItem {
   detail?: string;          // optional sub-text for library items
   amount: number;
   sort_order: number;
+  is_public?: boolean;
+  duration_minutes?: number;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -280,6 +296,30 @@ export interface PaymentChase {
   _sync_status: SyncStatus;
 }
 
+export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+
+export interface BookingRequest {
+  id: string;
+  merchant_id: string;
+  service_description: string;
+  service_amount: number;
+  client_name: string;
+  client_phone: string;
+  client_email?: string;
+  requested_date: string;
+  requested_time: string;
+  notes?: string;
+  status: BookingStatus;
+  referral_source?: string;
+  referral_detail?: string;
+  stripe_checkout_session_id?: string;
+  deposit_amount?: number;
+  created_at: string;
+  responded_at?: string;
+  accepted_job_id?: string;
+  _sync_status: SyncStatus;
+}
+
 class BuildloggDB extends Dexie {
   profiles!: Table<Profile>;
   customers!: Table<Customer>;
@@ -296,6 +336,7 @@ class BuildloggDB extends Dexie {
   quote_follow_ups!: Table<QuoteFollowUp>;
   recurring_jobs!: Table<RecurringJob>;
   payment_chases!: Table<PaymentChase>;
+  booking_requests!: Table<BookingRequest>;
 
   constructor() {
     super('BuildloggDB');
@@ -327,6 +368,9 @@ class BuildloggDB extends Dexie {
     });
     this.version(7).stores({
       payment_chases: 'id, job_id, user_id, stage, status, due_at, _sync_status',
+    });
+    this.version(8).stores({
+      booking_requests: 'id, merchant_id, status, created_at, _sync_status',
     });
   }
 }
