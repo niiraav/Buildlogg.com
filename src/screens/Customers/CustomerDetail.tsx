@@ -6,7 +6,8 @@ import { getCustomerStats, getCustomerJobs, getCustomerPayments, archiveCustomer
 import { StatusBadge } from '../../components/StatusBadge';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
-import { captureCustomerDetailViewed } from '../../lib/analytics';
+import { captureCustomerDetailViewed, capture } from '../../lib/analytics';
+import { addToSyncQueue } from '../../lib/syncQueue';
 import { showSuccess } from '../../components/Toast/store';
 
 export default function CustomerDetail() {
@@ -20,6 +21,8 @@ export default function CustomerDetail() {
   const [showMergeSheet, setShowMergeSheet] = useState(false);
   const [mergeQuery, setMergeQuery] = useState('');
   const [mergeResults, setMergeResults] = useState<Customer[]>([]);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState('');
 
   useEffect(() => {
     if (!customerId) return;
@@ -37,6 +40,17 @@ export default function CustomerDetail() {
       if (c) captureCustomerDetailViewed({ customerId, jobCount: j.length });
     });
   }, [customerId]);
+
+  const handleSaveNotes = async () => {
+    if (!customerId || !customer) return;
+    const value = notesValue.trim();
+    const n = new Date().toISOString();
+    await db.customers.update(customerId, { notes: value, updated_at: n, _sync_status: 'pending' });
+    await addToSyncQueue('customers', customerId, { notes: value, updated_at: n }, 'update');
+    setCustomer(prev => prev ? { ...prev, notes: value } : prev);
+    setEditingNotes(false);
+    capture('customer_notes_updated', { customerId });
+  };
 
   const handleArchive = async () => {
     if (!customerId) return;
@@ -166,8 +180,34 @@ export default function CustomerDetail() {
               <span className="text-sm text-brand-muted">{customer.email}</span>
             )}
           </div>
-          {customer.notes && (
-            <p className="text-xs text-brand-muted mt-3 pt-3 border-t border-brand-borderLight">{customer.notes}</p>
+        </div>
+
+        {/* Notes section */}
+        <div className="mb-4">
+          <p className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Notes</p>
+          {editingNotes ? (
+            <div>
+              <textarea
+                value={notesValue}
+                onChange={(e) => setNotesValue(e.target.value)}
+                onBlur={handleSaveNotes}
+                autoFocus
+                placeholder="e.g. Allergic to latex adhesive. Prefers Friday appointments."
+                className="w-full min-h-[80px] px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black bg-white resize-none"
+              />
+              <p className="text-xs text-brand-muted mt-1">Tap outside to save</p>
+            </div>
+          ) : (
+            <div
+              onClick={() => { setNotesValue(customer.notes || ''); setEditingNotes(true); }}
+              className="bg-white border border-brand-border rounded-lg p-3.5 cursor-text"
+            >
+              {customer.notes ? (
+                <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">{customer.notes}</p>
+              ) : (
+                <p className="text-sm text-brand-muted italic">Add notes — allergies, preferences, job details</p>
+              )}
+            </div>
           )}
         </div>
 

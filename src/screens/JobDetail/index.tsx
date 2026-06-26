@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -190,6 +190,8 @@ export default function JobDetail() {
   const [chargeAmount, setChargeAmount] = useState('');
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
+  const [notesBannerDismissed, setNotesBannerDismissed] = useState(false);
+  const [notesBannerExpanded, setNotesBannerExpanded] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [photos, setPhotos] = useState<JobPhoto[]>([]);
@@ -2846,6 +2848,26 @@ export default function JobDetail() {
   return (
     <div className="flex flex-col min-h-[100dvh] relative">
       {renderHeader()}
+
+      {/* W1-3: Customer notes banner */}
+      {customer?.notes && !notesBannerDismissed && (
+        <div className="bg-status-amberBg border border-amber-200 rounded-lg p-3 mx-4 mb-3 flex items-start gap-2">
+          <AlertTriangle size={16} className="text-status-amber shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-status-amber leading-relaxed whitespace-pre-line">
+              {notesBannerExpanded ? customer.notes : (customer.notes.length > 200 ? customer.notes.substring(0, 200) + '...' : customer.notes)}
+            </p>
+            {customer.notes.length > 200 && !notesBannerExpanded && (
+              <button onClick={() => setNotesBannerExpanded(true)} className="text-xs font-semibold text-status-amber underline mt-1 cursor-pointer">
+                Show all
+              </button>
+            )}
+          </div>
+          <button onClick={() => setNotesBannerDismissed(true)} className="text-status-amber/60 shrink-0 cursor-pointer" aria-label="Dismiss">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {job.status === 'enquiry' && renderEnquiryBody()}
       {job.status === 'booked' && renderBookedBody()}

@@ -1908,6 +1908,86 @@ export default function Home() {
         })()}
       </BottomSheet>
 
+      {/* W2-1: Booking request sheet */}
+      <BottomSheet
+        isOpen={sheet === 'booking_request'}
+        onClose={() => { setSheet(null); setSelectedBooking(null); }}
+        title="Booking request"
+        subtitle={selectedBooking ? `${selectedBooking.client_name} · ${selectedBooking.service_description}` : undefined}
+      >
+        {selectedBooking && (() => {
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
+                <p className="text-sm text-brand-dark">
+                  <span className="font-semibold">{selectedBooking.service_description}</span>
+                  {selectedBooking.service_amount > 0 && <span className="text-brand-muted"> · £{selectedBooking.service_amount.toFixed(0)}</span>}
+                </p>
+                <p className="text-xs text-brand-muted mt-1">
+                  {selectedBooking.requested_date} at {selectedBooking.requested_time}
+                </p>
+                <p className="text-xs text-brand-muted mt-1">📞 {selectedBooking.client_phone}</p>
+                {selectedBooking.notes && <p className="text-xs text-brand-mid mt-1.5 italic">"{selectedBooking.notes}"</p>}
+                {selectedBooking.referral_source && <p className="text-xs text-brand-muted mt-1">How they found you: {selectedBooking.referral_source}{selectedBooking.referral_detail ? ` (${selectedBooking.referral_detail})` : ''}</p>}
+              </div>
+              <Button variant="primary" fullWidth onClick={async () => {
+                if (!userId) return;
+                try {
+                  const result = await acceptBookingRequest(selectedBooking.id, userId);
+                  // Send confirmation message via SendSheet
+                  setSheet(null);
+                  setSelectedBooking(null);
+                  setSendSheetConfig({
+                    title: `Send confirmation to ${result.customer.name}?`,
+                    customerPhone: result.customer.phone,
+                    messageText: result.confirmationMessage,
+                    onSend: () => {
+                      setSendSheetConfig(null);
+                      refresh();
+                      showToast('Booking accepted — job created');
+                    },
+                  });
+                  refresh();
+                } catch (e) {
+                  showToast('Could not accept booking', 'error');
+                }
+              }}>
+                <Check size={18} className="mr-2" />
+                Accept booking
+              </Button>
+              <Button variant="secondary" fullWidth onClick={async () => {
+                await rejectBookingRequest(selectedBooking.id);
+                const businessName = profile?.business_name || profile?.full_name || 'Your business';
+                const rescheduleMsg = `Hi ${selectedBooking.client_name.split(' ')[0]}, sorry I'm not available on ${selectedBooking.requested_date} at ${selectedBooking.requested_time}. Can we find another time? — ${businessName}`;
+                setSheet(null);
+                setSelectedBooking(null);
+                setSendSheetConfig({
+                  title: `Send to ${selectedBooking.client_name}?`,
+                  customerPhone: selectedBooking.client_phone,
+                  messageText: rescheduleMsg,
+                  onSend: () => {
+                    setSendSheetConfig(null);
+                    refresh();
+                    showToast('Booking rejected — reschedule sent');
+                  },
+                });
+                refresh();
+              }}>
+                Reject — send reschedule
+              </Button>
+              <Button variant="secondary" fullWidth onClick={() => {
+                window.open(`tel:${selectedBooking.client_phone}`, '_self');
+              }}>
+                Call client
+              </Button>
+              <Button variant="ghost" fullWidth onClick={() => { setSheet(null); setSelectedBooking(null); }}>
+                Close
+              </Button>
+            </div>
+          );
+        })()}
+      </BottomSheet>
+
       {/* P2-A: SendSheet for task card sends */}
       <SendSheet
         isOpen={!!sendSheetConfig}

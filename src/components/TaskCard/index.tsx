@@ -27,6 +27,7 @@ const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgen
   quote_follow_up: { icon: <FileText size={16} />, label: 'Follow up quote', urgency: 'medium' },
   recurring_reminder: { icon: <Calendar size={16} />, label: 'Recurring due', urgency: 'low' },
   payment_chase: { icon: <Banknote size={16} />, label: 'Chase payment', urgency: 'medium' },
+  booking_request: { icon: <Calendar size={16} />, label: 'Booking request', urgency: 'high' },
 };
 
 export const TaskCard: React.FC<TaskCardProps> = ({
