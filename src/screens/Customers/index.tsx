@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, ChevronLeft, Phone, Archive } from 'lucide-react';
 import { db, type Customer } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
-import { searchCustomers, getCustomerStats, type CustomerStats } from '../../lib/customers';
+import { searchCustomers, getCustomerStats, findDuplicateCustomers, mergeCustomers, type CustomerStats, type DuplicatePair } from '../../lib/customers';
 import { captureCustomerSearched } from '../../lib/analytics';
+import { BottomSheet } from '../../components/BottomSheet';
+import { Button } from '../../components/Button';
+import { showToast } from '../../components/Toast/store';
+import BrandedLoader from '../../components/BrandedLoader';
 
 export default function Customers() {
   const navigate = useNavigate();
@@ -15,6 +19,9 @@ export default function Customers() {
   const [statsMap, setStatsMap] = useState<Record<string, CustomerStats>>({});
   const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dedupSheetOpen, setDedupSheetOpen] = useState(false);
+  const [duplicatePairs, setDuplicatePairs] = useState<DuplicatePair[]>([]);
+  const [dedupLoading, setDedupLoading] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -163,6 +170,90 @@ export default function Customers() {
           </div>
         )}
       </div>
+
+      {/* Sticky footer with Find duplicates button */}
+      <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px+env(safe-area-inset-bottom))]">
+        <button
+          onClick={async () => {
+            if (!userId) return;
+            setDedupLoading(true);
+            setDedupSheetOpen(true);
+            try {
+              const pairs = await findDuplicateCustomers(userId);
+              setDuplicatePairs(pairs);
+              if (pairs.length === 0) {
+                showToast('No duplicate customers found', 'info', 2500);
+              }
+            } catch (e) {
+              showToast('Could not scan customers', 'error', 2500);
+            } finally {
+              setDedupLoading(false);
+            }
+          }}
+          className="w-full text-sm font-medium text-brand-mid cursor-pointer py-1"
+        >
+          Find duplicate customers
+        </button>
+      </div>
+
+      {/* Dedup BottomSheet */}
+      <BottomSheet
+        isOpen={dedupSheetOpen}
+        onClose={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }}
+        title="Duplicate customers"
+        subtitle={dedupLoading ? 'Scanning...' : duplicatePairs.length > 0 ? `${duplicatePairs.length} pair${duplicatePairs.length > 1 ? 's' : ''} found` : undefined}
+      >
+        {dedupLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <BrandedLoader size={36} fullscreen={false} />
+          </div>
+        ) : duplicatePairs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <p className="text-sm text-brand-mid text-center">No duplicate customers found.<br />Your customer list is clean.</p>
+            <Button variant="ghost" onClick={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }} fullWidth>
+              Close
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 mb-4">
+            {duplicatePairs.map((pair, idx) => (
+              <div key={idx} className="border border-brand-border rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pair.matchType === 'phone' ? 'bg-status-amberBg text-status-amber' : 'bg-brand-borderLight text-brand-mid'}`}>
+                    {pair.matchType === 'phone' ? 'Same phone' : 'Same name'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-brand-black truncate">{pair.customerA.name}</p>
+                    <p className="text-xs text-brand-muted">{pair.customerA.phone}</p>
+                  </div>
+                  <span className="text-xs text-brand-muted mx-2">vs</span>
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-sm font-semibold text-brand-black truncate">{pair.customerB.name}</p>
+                    <p className="text-xs text-brand-muted">{pair.customerB.phone}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={async () => {
+                    if (!userId) return;
+                    await mergeCustomers(pair.customerB.id, pair.customerA.id);
+                    setDuplicatePairs((prev) => prev.filter((_, i) => i !== idx));
+                    showToast(`Merged "${pair.customerB.name}" into "${pair.customerA.name}"`, 'success', 3000);
+                  }}
+                >
+                  Merge into {pair.customerA.name.split(' ')[0]}
+                </Button>
+              </div>
+            ))}
+            <Button variant="ghost" onClick={() => { setDedupSheetOpen(false); setDuplicatePairs([]); }} fullWidth>
+              Close
+            </Button>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }
