@@ -487,6 +487,9 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     { id: 'starter-3', user_id: '', description: 'Callout charge', amount: profile?.callout_charge || 75, sort_order: 2, created_at: '', updated_at: '', _sync_status: 'pending' },
   ];
   const displayItems = customItems.length > 0 ? customItems : starterItems;
+  const filteredDisplayItems = displayItems.filter(
+    (ci) => !items.some((i) => i.description.trim().toLowerCase() === ci.description.trim().toLowerCase())
+  );
 
   const isInLibrary = (description: string, amount: number): boolean => {
     return displayItems.some((ci) => ci.description === description && ci.amount === amount);
@@ -625,6 +628,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
               <input
                 type="date"
                 value={date}
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDate(e.target.value)}
                 onBlur={handleDateBlur}
                 className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
@@ -642,6 +646,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 <input
                   type="time"
                   value={startTime}
+                  min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
                   onChange={(e) => setStartTime(e.target.value)}
                   onBlur={handleStartTimeBlur}
                   className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
@@ -671,6 +676,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   <input
                     type="time"
                     value={endTime}
+                    min={startTime || undefined}
                     onChange={(e) => setEndTime(e.target.value)}
                     onBlur={handleEndTimeBlur}
                     className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
@@ -760,9 +766,9 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           </button>
 
           {/* Quick-add chips — custom item library */}
-          {displayItems.length > 0 && (
+          {filteredDisplayItems.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {displayItems.map((item) => (
+              {filteredDisplayItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => addQuickItem(item)}
@@ -775,19 +781,22 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   )}
                 </button>
               ))}
-              {/* Save to library pill — shows when an item isn't in the library yet */}
-              {items.filter((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum)).slice(0, 1).map((item) => (
-                <button
-                  key={`save-${item.id}`}
-                  onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-brand-surface text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
-                >
-                  <BookmarkPlus size={14} />
-                  <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>
-                </button>
-              ))}
             </div>
           )}
+
+          {/* Save to library pill — always visible when there's an unsaved item,
+              even if all chips are filtered out (prevents the pill from disappearing) */}
+          {items.filter((i) => i.description.trim() && i.amountNum > 0 && !isInLibrary(i.description, i.amountNum)).slice(0, 1).map((item) => (
+            <div key={`save-wrapper-${item.id}`} className="mt-2">
+              <button
+                onClick={() => saveToLibrary(item.description.trim(), item.amountNum, item.detail?.trim())}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-brand-black text-brand-surface text-sm font-medium cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity"
+              >
+                <BookmarkPlus size={14} />
+                <span className="truncate max-w-[100px]">Save "{item.description.trim()}"</span>
+              </button>
+            </div>
+          ))}
 
           {/* Total bar */}
           {items.length > 0 && (

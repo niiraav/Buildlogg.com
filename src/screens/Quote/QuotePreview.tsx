@@ -35,6 +35,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const [loading, setLoading] = useState(true);
   const [showSendSheet, setShowSendSheet] = useState(false);
   const [messageText, setMessageText] = useState('');
+  const [editingMessage, setEditingMessage] = useState(false);
 
   /* Load data */
   useEffect(() => {
@@ -120,12 +121,14 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
     return lines.join('\n');
   }, [job, customer, customerFirstName, items, total, termsLabel, depositPct, depositAmount, quoteValidDays, businessName]);
 
-  // BUG FIX: Always regenerate message when data changes, unless user is actively editing
+  // Sync messageText with the default template when data changes, unless the
+  // user has manually edited the message in the SendSheet (editingMessage=true).
+  // editingMessage is reset to false when the SendSheet closes.
   useEffect(() => {
-    if (true) {
+    if (!editingMessage) {
       setMessageText(defaultMessage);
     }
-  }, [defaultMessage]);
+  }, [defaultMessage, editingMessage]);
 
   // Compact message for when PDF is attached (no line items, just total)
   const compactMessage = useMemo(() => {
@@ -141,7 +144,11 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
 
   /* ─── handlers ─── */
   const handleOpenSend = () => {
-    if (!messageText) setMessageText(defaultMessage);
+    // Always ensure the message is populated — fall back to defaultMessage
+    // if messageText is empty or stale
+    if (!messageText || messageText.trim() === '') {
+      setMessageText(defaultMessage);
+    }
     setShowSendSheet(true);
   };
   const handleSend = (method: SendMethod, _pdfShared: boolean) => {
@@ -269,11 +276,11 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       {/* Send Sheet */}
       <SendSheet
         isOpen={showSendSheet}
-        onClose={() => setShowSendSheet(false)}
+        onClose={() => { setShowSendSheet(false); setEditingMessage(false); }}
         title={`Send to ${customerFirstName}?`}
         customerPhone={customer?.phone || ''}
         messageText={messageText}
-        onMessageChange={setMessageText}
+        onMessageChange={(text) => { setEditingMessage(true); setMessageText(text); }}
         onSend={handleSend}
         onSaveDraft={handleSaveDraft}
         pdfOptions={pdfOptions}

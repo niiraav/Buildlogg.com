@@ -17,7 +17,7 @@ import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
 import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
 import { captureVerticalSelected } from '../../lib/analytics';
-import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
+import { seedMessageTemplates, seedMissingTemplates } from '../../lib/seedMessageTemplates';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -219,6 +219,7 @@ export default function Onboarding() {
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
+    seedMissingTemplates(resolvedUserId).catch(() => {});
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
     captureUserSignedUp(trade, window.location.search);

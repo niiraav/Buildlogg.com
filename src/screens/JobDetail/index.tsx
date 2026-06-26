@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -29,10 +29,11 @@ import {
 import { formatElapsed as formatStaleElapsed } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
+import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
-import { capturePDFGenerated, capturePDFShared, captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
-import PDFPreview from '../Quote/PDFPreview';
+import { captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import { addToCalendar } from '../../lib/calendar';
+import { getFilledTemplateMessage } from '../../lib/templateEngine';
 
 /* ─── helpers ─── */
 
@@ -157,9 +158,27 @@ export default function JobDetail() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [sendSheetConfig, setSendSheetConfig] = useState<{
+    title: string;
+    messageText: string;
+    onSend: (method: SendMethod, pdfShared: boolean) => void;
+    pdfOptions?: { label: string; generatePdf: () => Blob; fileName: string; onPdfGenerated?: () => void };
+    fullMessage?: string;
+    compactMessage?: string;
+  } | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [editingReview, setEditingReview] = useState(false);
+
+  // Pre-fill review message from default template when prompt opens
+  useEffect(() => {
+    if (sheet === 'review_prompt' && job && customer && profile && userId) {
+      getFilledTemplateMessage(userId, 'review', job, customer, profile, 0,
+        `Hi ${customer.name.split(' ')[0] || 'there'}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}\n\n${profile.google_business_url || ''}`
+      ).then(setReviewMessage);
+    }
+  }, [sheet, job, customer, profile, userId]);
   const [chargeDesc, setChargeDesc] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -178,7 +197,7 @@ export default function JobDetail() {
       setCalloutAmount('75');
     }
   }, [profile]);
-  const [reminderText, setReminderText] = useState('');
+  const [reminderText, _setReminderText] = useState('');
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [calloutDesc, setCalloutDesc] = useState('Callout charge');
   const [calloutAmount, setCalloutAmount] = useState('');
@@ -342,10 +361,16 @@ export default function JobDetail() {
     // Prompt to notify customer about the new charge
     const customerFirstName = customer?.name.split(' ')[0] || 'there';
     const business = profile?.business_name || profile?.full_name || 'Your tradesperson';
-    setUpdateMessage(`Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`);
+    const chargeMsg = `Hi ${customerFirstName}, I've added ${chargeDesc.trim()} — £${amount.toFixed(2)} to your quote for ${job?.title || 'your job'}. New total: £${newTotal.toFixed(2)}. — ${business}`;
+    setUpdateMessage(chargeMsg);
+    const tplMsg = await getFilledTemplateMessage(userId!, 'update', job!, customer!, profile!, total, chargeMsg);
     setChargeDesc('');
     setChargeAmount('');
-    setSheet('send_update');
+    setSendSheetConfig({
+      title: `Send update to ${customer?.name || 'customer'}?`,
+      messageText: tplMsg,
+      onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
+    });
     refresh();
   };
 
@@ -715,7 +740,12 @@ export default function JobDetail() {
       ? `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr} at ${timeStr}. See you then! — ${business}`
       : `Hi ${customerFirstName}, your booking for ${job.title} is confirmed for ${dateStr}. See you then! — ${business}`;
     setBookingMessage(msg);
-    setSheet('booking_confirmation');
+    const tplMsg = await getFilledTemplateMessage(userId!, 'booking', job, customer, profile!, total, msg);
+    setSendSheetConfig({
+      title: `Send confirmation to ${customer?.name || 'customer'}?`,
+      messageText: tplMsg,
+      onSend: (method, pdfShared) => handleSendBookingConfirmation(method, pdfShared),
+    });
   };
 
   const handleStartJob = async () => {
@@ -919,7 +949,12 @@ export default function JobDetail() {
         : 'There are some updates to your job details.';
       const msg = `Hi ${customerFirstName}, ${changeText} ${job.title}. — ${business}`;
       setUpdateMessage(msg);
-      setSheet('send_update');
+      const tplMsg = await getFilledTemplateMessage(userId!, 'update', job, customer!, profile!, total, msg);
+      setSendSheetConfig({
+        title: `Send update to ${customer?.name || 'customer'}?`,
+        messageText: tplMsg,
+        onSend: (method, pdfShared) => handleSendUpdate(method, pdfShared),
+      });
     } else {
       setSheet(null);
     }
@@ -936,16 +971,8 @@ export default function JobDetail() {
     setEditAddress(customer?.address || '');
   };
 
-  const handleSendUpdate = async (method: 'whatsapp' | 'sms') => {
+  const handleSendUpdate = async (method: SendMethod, _pdfShared: boolean) => {
     if (!customer || !updateMessage) return;
-    const phone = customer.phone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(updateMessage);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -953,7 +980,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
+      description: `[Update sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -961,7 +988,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Update sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
+      description: `[Update sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${updateMessage}`,
       created_at: n,
     }, 'insert');
 
@@ -969,16 +996,8 @@ export default function JobDetail() {
     setUpdateMessage('');
   };
 
-  const handleSendBookingConfirmation = async (method: 'whatsapp' | 'sms') => {
+  const handleSendBookingConfirmation = async (method: SendMethod, _pdfShared: boolean) => {
     if (!customer || !bookingMessage) return;
-    const phone = customer.phone.replace(/\D/g, '');
-    const encoded = encodeURIComponent(bookingMessage);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -986,7 +1005,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -994,25 +1013,17 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'note',
-      description: `[Booking confirmation sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
+      description: `[Booking confirmation sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${bookingMessage}`,
       created_at: n,
     }, 'insert');
 
     setSheet(null);
   };
 
-  const handleSendReceipt = async (method: 'whatsapp' | 'sms') => {
+  const handleSendReceipt = async (method: SendMethod, _pdfShared: boolean) => {
     if (!job || !customer) return;
-    const phone = customer.phone.replace(/\D/g, '');
     const business = profile?.business_name || 'Your tradesperson';
     const msg = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
-    const encoded = encodeURIComponent(msg);
-
-    if (method === 'whatsapp') {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-    } else if (method === 'sms') {
-      window.open(`sms:${customer.phone}?body=${encoded}`, '_self');
-    }
 
     const n = now();
     const logId = crypto.randomUUID();
@@ -1020,7 +1031,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
+      description: `[Receipt sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1028,7 +1039,7 @@ export default function JobDetail() {
       id: logId,
       job_id: jobId!,
       type: 'customer_notified',
-      description: `[Receipt sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${msg}`,
+      description: `[Receipt sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${msg}`,
       created_at: n,
     }, 'insert');
 
@@ -1087,26 +1098,19 @@ export default function JobDetail() {
     navigate(`/jobs/${newJobId}`);
   };
 
-  const handleSendReminder = async (method: 'whatsapp' | 'sms') => {
+  const handleSendReminder = async (method: SendMethod, pdfShared: boolean) => {
     if (!job || !customer) return;
     const n = now();
     const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
     const body = reminderText || defaultText;
-    const encodedBody = encodeURIComponent(body);
-
-    if (method === 'whatsapp') {
-      const phone = customer.phone.replace(/^\+/, '').replace(/^0/, '44');
-      window.open(`https://wa.me/${phone}?text=${encodedBody}`, '_blank');
-    } else {
-      window.open(`sms:${customer.phone}?body=${encodedBody}`, '_blank');
-    }
+    const methodLabel = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS';
 
     const logId = crypto.randomUUID();
     await db.work_log.add({
       id: logId,
       job_id: job.id,
       type: 'status_change',
-      description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`,
+      description: `[Reminder sent via ${methodLabel}${pdfShared ? ' (PDF attached)' : ''}] ${body}`,
       created_at: n,
       _sync_status: 'pending',
     });
@@ -1117,7 +1121,7 @@ export default function JobDetail() {
     });
     await addToSyncQueue('jobs', job.id, { invoice_sent_at: n, updated_at: n }, 'update');
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: `[Reminder sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${body}`, created_at: n }, 'insert');
-    capturePaymentChase(method);
+    capturePaymentChase(method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
     setSheet(null);
     refresh();
   };
@@ -1129,48 +1133,25 @@ export default function JobDetail() {
   const handleMessage = () => {
     if (!customer?.phone) return;
     const body = encodeURIComponent(`Hi ${customer.name}, it's ${profile?.full_name?.split(' ')[0] || 'Dave'}.`);
-    window.open(`sms:${customer.phone}?body=${body}`, '_blank');
+    window.location.href = `sms:${customer.phone}?body=${body}`;
   };
-
-  const renderSendReceiptSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'send_receipt'}
-      onClose={() => setSheet(null)}
-      title="Send receipt to customer?"
-      subtitle={customer ? `${customer.name} · £${total.toFixed(2)}` : undefined}
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed">
-            Hi {customer?.name}, payment of £{total.toFixed(2)} for {job?.title} has been confirmed. Thanks for your business! — {profile?.business_name || 'Your tradesperson'}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendReceipt('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendReceipt('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip
-        </button>
-      </div>
-    </BottomSheet>
-  );
 
   /* ─── render helpers ─── */
 
   const renderPaidFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => setSheet('send_receipt')}>
+        <Button variant="primary" onClick={async () => {
+          if (!job || !customer || !userId) return;
+          const business = profile?.business_name || 'Your tradesperson';
+          const fallback = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
+          const receiptMsg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile!, total, fallback);
+          setSendSheetConfig({
+            title: `Send receipt to ${customer.name}?`,
+            messageText: receiptMsg,
+            onSend: (method, pdfShared) => handleSendReceipt(method, pdfShared),
+          });
+        }}>
           Send receipt
         </Button>
         <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -2090,27 +2071,6 @@ export default function JobDetail() {
     );
   };
 
-  const handleGenerateInvoicePDF = async () => {
-    if (!job || !customer || !userId) return;
-    const prof = await db.profiles.get(userId);
-    if (!prof) return;
-    const items = lineItems;
-    const pays = payments;
-    const summary = paymentSummary(job, pays, items.reduce((s, i) => s + i.amount, 0));
-    const blob = generateInvoicePDF({
-      profile: prof,
-      customer,
-      job,
-      lineItems: items,
-      total: items.reduce((s, i) => s + i.amount, 0),
-      payments: pays,
-      amountDue: summary.amountDue,
-      dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-    });
-    setPdfBlob(blob);
-    capturePDFGenerated({ jobId: job.id, type: 'invoice', hasLogo: !!prof.logo_data_url, isVat: !!prof.vat_registered });
-  };
-
   const renderAwaitingPaymentFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
@@ -2120,18 +2080,34 @@ export default function JobDetail() {
           </Button>
         </div>
         <div className="flex-1">
-          <Button variant="secondary" onClick={() => setSheet('send_reminder')}>
+          <Button variant="secondary" onClick={async () => {
+              if (!job || !customer || !userId) return;
+              const fallbackText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
+              const defaultText = await getFilledTemplateMessage(userId, 'invoice', job, customer, profile!, total, fallbackText);
+              const compactText = `Hi ${customer.name}, your invoice for ${job.title} is ready. Amount due: £${total.toFixed(2)}. Details attached. Thanks!`;
+              setSendSheetConfig({
+                title: `Send reminder to ${customer.name}?`,
+                messageText: reminderText || defaultText,
+                onSend: (method, pdfShared) => handleSendReminder(method, pdfShared),
+                pdfOptions: {
+                  label: 'Attach PDF invoice',
+                  generatePdf: () => {
+                    if (!profile || !customer || !job) throw new Error('Missing data');
+                    return generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: total, dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined });
+                  },
+                  fileName: `invoice-${job.invoice_number || job.job_number}.pdf`,
+                },
+                fullMessage: defaultText,
+                compactMessage: compactText,
+              });
+            }}>
             Send reminder
           </Button>
         </div>
       </div>
-      <div className="flex gap-2 mt-2">
-        <div className="flex-1">
-          <Button variant="secondary" onClick={handleGenerateInvoicePDF} fullWidth>
-            Invoice PDF
-          </Button>
-        </div>
-      </div>
+      <button onClick={() => navigate('/jobs')} className="text-sm text-brand-mid underline underline-offset-2 mt-2 w-full text-center cursor-pointer">
+        Close
+      </button>
     </div>
   );
 
@@ -2481,41 +2457,6 @@ export default function JobDetail() {
     </BottomSheet>
   );
 
-  const renderSendReminderSheet = () => {
-    if (!job || !customer) return null;
-    const defaultText = `Hi ${customer.name}, just a reminder about the invoice for ${job.title}. Amount due: £${total.toFixed(2)}. Thanks, ${profile?.full_name?.split(' ')[0] || 'Dave'}`;
-
-    return (
-      <BottomSheet
-        isOpen={sheet === 'send_reminder'}
-        onClose={() => setSheet(null)}
-        title={`Send reminder to ${customer.name}?`}
-      >
-        <div className="mb-3">
-          <textarea
-            value={reminderText || defaultText}
-            onChange={(e) => setReminderText(e.target.value)}
-            rows={4}
-            className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-dark placeholder:text-brand-muted outline-none focus:border-brand-black resize-none leading-relaxed"
-          />
-          <p className="text-micro text-brand-mid text-right mt-1">Tap to edit before sending</p>
-        </div>
-        <SheetRow
-          icon={<MessageCircle size={18} className="text-brand-dark" />}
-          label="Send via WhatsApp"
-          onTap={() => handleSendReminder('whatsapp')}
-        />
-        <SheetRow
-          icon={<MessageSquare size={18} className="text-brand-dark" />}
-          label="Send via SMS"
-          onTap={() => handleSendReminder('sms')}
-          isLast
-        />
-      </BottomSheet>
-    );
-  };
-
-
   const renderRescheduleSheet = () => (
     <BottomSheet
       isOpen={sheet === 'reschedule'}
@@ -2659,36 +2600,6 @@ export default function JobDetail() {
     );
   };
 
-  const renderBookingConfirmationSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'booking_confirmation'}
-      onClose={() => setSheet(null)}
-      title="Send booking confirmation?"
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">{bookingMessage}</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendBookingConfirmation('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendBookingConfirmation('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip — already told them
-        </button>
-      </div>
-    </BottomSheet>
-  );
-
   const renderEditDetailsSheet = () => (
     <BottomSheet
       isOpen={sheet === 'edit_details'}
@@ -2801,36 +2712,6 @@ export default function JobDetail() {
     </BottomSheet>
   );
 
-  const renderSendUpdateSheet = () => (
-    <BottomSheet
-      isOpen={sheet === 'send_update'}
-      onClose={() => { setSheet(null); setUpdateMessage(''); }}
-      title="Send update to customer?"
-    >
-      <div className="mb-4">
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5">
-          <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line">{updateMessage}</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={() => handleSendUpdate('whatsapp')} fullWidth>
-          <MessageCircle size={18} className="mr-2" />
-          Send via WhatsApp
-        </Button>
-        <Button variant="secondary" onClick={() => handleSendUpdate('sms')} fullWidth>
-          <Phone size={18} className="mr-2" />
-          Send via SMS
-        </Button>
-        <button
-          onClick={() => setSheet(null)}
-          className="w-full h-11.5 flex items-center justify-center text-sm font-medium text-brand-muted cursor-pointer"
-        >
-          Skip — already told them
-        </button>
-      </div>
-    </BottomSheet>
-  );
-
   /* ─── main render ─── */
 
   if (loading) {
@@ -2885,15 +2766,13 @@ export default function JobDetail() {
       {renderMarkPaidSheet()}
       {renderDepositSheet()}
       {renderWriteOffSheet()}
-      {renderSendReminderSheet()}
+      
       {renderRescheduleSheet()}
       {renderCalloutChargeSheet()}
       {renderChangeStatusSheet()}
       {renderEditPaymentMethodSheet()}
-      {renderBookingConfirmationSheet()}
+      
       {renderEditDetailsSheet()}
-      {renderSendUpdateSheet()}
-      {renderSendReceiptSheet()}
 
       {/* --- Bottom Sheet: Finish Previous Job (new-job intercept) --- */}
       <BottomSheet
@@ -2957,6 +2836,23 @@ export default function JobDetail() {
         </div>
       </BottomSheet>
 
+            {/* SendSheet — used by reminder and other send flows */}
+      <SendSheet
+        isOpen={!!sendSheetConfig}
+        onClose={() => { setSendSheetConfig(null); setSheet(null); }}
+        title={sendSheetConfig?.title || ''}
+        customerPhone={customer?.phone || ''}
+        messageText={sendSheetConfig?.messageText || ''}
+        onMessageChange={(text: string) => setSendSheetConfig(prev => prev ? { ...prev, messageText: text } : prev)}
+        onSend={(method: SendMethod, pdfShared: boolean) => {
+          if (sendSheetConfig) sendSheetConfig.onSend(method, pdfShared);
+          setSendSheetConfig(null);
+        }}
+        pdfOptions={sendSheetConfig?.pdfOptions}
+        fullMessage={sendSheetConfig?.fullMessage}
+        compactMessage={sendSheetConfig?.compactMessage}
+      />
+
       {/* P2-05: Scheduling conflict warning */}
       {conflicts.length > 0 && (
         <BottomSheet
@@ -2977,7 +2873,13 @@ export default function JobDetail() {
             <Button variant="primary" onClick={handleConfirmWithConflicts} fullWidth>
               Keep both
             </Button>
-            <Button variant="secondary" onClick={() => setConflicts([])} fullWidth>
+            <Button variant="secondary" onClick={() => {
+              setConflicts([]);
+              navigate('/quote', { state: { jobId: job?.id, customerId: job?.customer_id, entryPoint: 'reschedule' } });
+            }} fullWidth>
+              Change time
+            </Button>
+            <Button variant="ghost" onClick={() => setConflicts([])} fullWidth>
               Cancel
             </Button>
           </div>
@@ -2987,57 +2889,110 @@ export default function JobDetail() {
       {/* P2-08: Google Review Request */}
       <BottomSheet
         isOpen={sheet === 'review_prompt'}
-        onClose={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
+        onClose={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}
         title="Ask for a Google review?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
+          {/* Full message preview — tap to edit */}
+          {editingReview ? (
+            <textarea
+              value={reviewMessage}
+              onChange={(e) => setReviewMessage(e.target.value)}
+              onBlur={() => setEditingReview(false)}
+              autoFocus
+              className="w-full min-h-[120px] p-3 bg-brand-surface border border-brand-border rounded-lg text-sm text-brand-dark font-normal leading-relaxed outline-none focus:border-brand-black"
+            />
+          ) : (
+            <div
+              onClick={() => setEditingReview(true)}
+              className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
+            >
+              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text">
+                {reviewMessage}
+              </p>
+              <p className="text-label text-brand-dark mt-1 italic">
+                Tap to edit
+              </p>
+            </div>
+          )}
           <Button
             variant="primary"
             onClick={async () => {
-              if (!customer || !profile?.google_business_url || !job) return;
+              if (!customer || !job) return;
               const phone = customer.phone.replace(/\D/g, '');
-              const msg = encodeURIComponent(
-                `Hi ${customer}.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
-              );
-              window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+              const msg = encodeURIComponent(reviewMessage);
               const now = new Date().toISOString();
               db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
               addToSyncQueue('jobs', job.id, { review_requested_at: now });
-              // Store the review request message in work_log
-              const reviewMsg = `Hi ${customer.name.split(' ')[0]}, glad the ${job.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks!`;
               const logId = crypto.randomUUID();
               await db.work_log.add({
                 id: logId,
                 job_id: job.id,
                 type: 'customer_notified',
-                description: `[Review request sent via WhatsApp] ${reviewMsg}`,
+                description: `[Review request sent via WhatsApp] ${reviewMessage}`,
                 created_at: now,
                 _sync_status: 'pending',
               });
-              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMsg}`, created_at: now });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via WhatsApp] ${reviewMessage}`, created_at: now });
               captureReviewRequestSent({ jobId: job.id });
               setSheet(null);
+              setReviewMessage('');
+              setEditingReview(false);
+              window.location.href = `https://wa.me/${phone}?text=${msg}`;
             }}
             fullWidth
           >
             <MessageCircle size={18} className="mr-2" />
             Send via WhatsApp
           </Button>
-          <Button variant="ghost" onClick={() => { setSheet(null); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (!customer || !job) return;
+              const phone = customer.phone.replace(/\D/g, '');
+              const msg = encodeURIComponent(reviewMessage);
+              const now = new Date().toISOString();
+              db.jobs.update(job.id, { review_requested_at: now, _sync_status: 'pending' });
+              addToSyncQueue('jobs', job.id, { review_requested_at: now });
+              const logId = crypto.randomUUID();
+              await db.work_log.add({
+                id: logId,
+                job_id: job.id,
+                type: 'customer_notified',
+                description: `[Review request sent via SMS] ${reviewMessage}`,
+                created_at: now,
+                _sync_status: 'pending',
+              });
+              addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'customer_notified', description: `[Review request sent via SMS] ${reviewMessage}`, created_at: now });
+              captureReviewRequestSent({ jobId: job.id });
+              setSheet(null);
+              setReviewMessage('');
+              setEditingReview(false);
+              window.location.href = `sms:${phone}?body=${msg}`;
+            }}
+            fullWidth
+          >
+            <MessageSquare size={18} className="mr-2" />
+            Send via text
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              navigator.clipboard.writeText(reviewMessage);
+              showToast('Copied to clipboard', 'success', 2000);
+            }}
+            fullWidth
+          >
+            <Copy size={18} className="mr-2" />
+            Copy message
+          </Button>
+          <Button variant="ghost" onClick={() => { setSheet(null); setReviewMessage(''); setEditingReview(false); captureReviewRequestSkipped({ jobId: job?.id || '' }); }}>
             Skip
           </Button>
         </div>
       </BottomSheet>
 
-      {pdfBlob && (
-        <PDFPreview
-          blob={pdfBlob}
-          fileName={`invoice-${job?.invoice_number || job?.job_number || jobId}.pdf`}
-          onBack={() => setPdfBlob(null)}
-          onShared={(method: 'whatsapp' | 'download' | 'share') => capturePDFShared({ jobId: jobId || '', type: 'invoice', method })}
-        />
-      )}
     </div>
   );
 }

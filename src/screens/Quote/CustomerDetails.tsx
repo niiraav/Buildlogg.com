@@ -64,6 +64,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const [nameFocused, setNameFocused] = useState(false);
   const [autocompleteResults, setAutocompleteResults] = useState<Customer[]>([]);
   const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(undefined);
   const userId = useAppStore((s) => s.userId);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [addressFocused, setAddressFocused] = useState(false);
@@ -102,6 +103,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   }, [name, nameFocused, userId]);
 
   const selectCustomer = (c: Customer) => {
+    setSelectedCustomerId(c.id);
     setName(c.name === 'Unknown' ? '' : c.name);
     setPhone(c.phone || '');
     setAddress(c.address || '');
@@ -115,16 +117,17 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       return;
     }
     // Skip if editing existing customer
-    if (customerId) { setDuplicateWarning(null); return; }
+    if (customerId || selectedCustomerId) { setDuplicateWarning(null); return; }
     const timer = setTimeout(async () => {
       const duplicate = await findDuplicateByPhone(userId, phone);
       setDuplicateWarning(duplicate);
     }, 500);
     return () => clearTimeout(timer);
-  }, [phone, userId, customerId]);
+  }, [phone, userId, customerId, selectedCustomerId]);
 
 
   const selectDuplicate = (c: Customer) => {
+    setSelectedCustomerId(c.id);
     setName(c.name === 'Unknown' ? '' : c.name);
     setPhone(c.phone || '');
     setAddress(c.address || '');
@@ -143,7 +146,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     }
     setPhoneError(false);
     onComplete({
-      id: customerId || crypto.randomUUID(),
+      id: customerId || selectedCustomerId || crypto.randomUUID(),
       name: name.trim(),
       phone: normalisePhone(phone),
       address: address.trim() || undefined,

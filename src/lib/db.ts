@@ -197,7 +197,7 @@ export interface GeneratedDocument {
 }
 
 /* ─── P2-02: Message Templates ─── */
-export type TemplateCategory = 'booking' | 'reminder' | 'invoice' | 'follow_up' | 'review' | 'custom';
+export type TemplateCategory = 'booking' | 'reminder' | 'invoice' | 'follow_up' | 'review' | 'receipt' | 'update' | 'custom';
 
 export interface MessageTemplate {
   id: string;

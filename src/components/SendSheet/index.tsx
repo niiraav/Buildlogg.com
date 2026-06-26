@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, FileText, Share2, X } from 'lucide-react';
+import { MessageCircle, FileText, Share2, X, Clipboard } from 'lucide-react';
 import { BottomSheet } from '../BottomSheet';
 import { Button } from '../Button';
 import { haptic } from '../../lib/haptics';
@@ -114,23 +114,22 @@ export function SendSheet({
     haptic('light');
     const phone = customerPhone.replace(/\D/g, '');
     const encoded = encodeURIComponent(messageText);
-    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
-
+    // Use window.location.href so iOS PWA doesn't leave a blank Safari tab.
+    // The OS intercepts the wa.me universal link and opens WhatsApp directly.
+    // Call onSend before navigation so work_log is recorded.
     if (attachPDF && pdfBlob) {
       if (canShareFiles) {
-        // Two-step: show toast with "Share PDF" button
         setShowSharePdfToast(true);
-        // Auto-hide toast after 15 seconds
         toastTimerRef.current = setTimeout(() => setShowSharePdfToast(false), 15000);
-        onSend('whatsapp_pdf', false); // PDF not yet shared
+        onSend('whatsapp_pdf', false);
       } else {
-        // Desktop fallback: open PDFPreview
         setShowPdfPreview(true);
         onSend('whatsapp_pdf', false);
       }
     } else {
       onSend('whatsapp', false);
     }
+    window.location.href = `https://wa.me/${phone}?text=${encoded}`;
   };
 
   const handleSharePdfFromToast = async () => {
@@ -178,8 +177,18 @@ export function SendSheet({
       }
     } else {
       // Text only — direct sms: link
-      window.open(`sms:${customerPhone}?body=${encodeURIComponent(messageText)}`, '_self');
+      window.location.href = `sms:${customerPhone}?body=${encodeURIComponent(messageText)}`;
       onSend('sms', false);
+    }
+  };
+
+  const handleCopyMessage = async () => {
+    haptic('light');
+    try {
+      await navigator.clipboard.writeText(messageText);
+      showToast('Message copied');
+    } catch {
+      showToast('Could not copy — try selecting the text manually');
     }
   };
 
@@ -224,7 +233,7 @@ export function SendSheet({
 
         {/* PDF toggle — only when pdfOptions provided */}
         {pdfOptions && (
-          <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center justify-between mb-6 px-1">
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-brand-mid" />
               <span className="text-sm font-medium text-brand-dark">
@@ -243,6 +252,11 @@ export function SendSheet({
               }`} />
             </button>
           </div>
+        )}
+
+        {/* Thin divider between toggle and send actions */}
+        {pdfOptions && (
+          <div className="h-px bg-brand-border mb-4 -mt-2" />
         )}
 
         {/* Send buttons */}
@@ -264,6 +278,13 @@ export function SendSheet({
           >
             {attachPDF ? 'Send via text' : 'Send via SMS'}
           </Button>
+          <button
+            onClick={handleCopyMessage}
+            className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-mid cursor-pointer"
+          >
+            <Clipboard size={16} />
+            Copy message
+          </button>
           {onSaveDraft && (
             <button
               onClick={handleSaveDraft}

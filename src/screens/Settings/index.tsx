@@ -422,6 +422,7 @@ export default function Settings() {
               <span className="text-sm font-medium text-brand-dark">Google reviews</span>
               <ChevronRight size={14} className="text-brand-muted" />
             </div>
+
           </div>
         </div>
 
