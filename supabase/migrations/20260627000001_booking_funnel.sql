@@ -1,4 +1,6 @@
--- Wave 2: Booking Funnel — profile fields, custom_items columns, booking_requests, checkout_sessions
+-- Wave 2: Booking Funnel — FIXED migration
+-- Run 20260627000002_create_missing_tables.sql FIRST, then this one.
+-- This version removes the ALTER TABLE custom_items (columns are now in the CREATE TABLE).
 
 -- === Profile additions ===
 ALTER TABLE profiles
@@ -9,14 +11,8 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS stripe_account_id text,
   ADD COLUMN IF NOT EXISTS stripe_connected boolean DEFAULT false;
 
--- Unique constraint on booking_slug (only where set)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_booking_slug
   ON profiles(booking_slug) WHERE booking_slug IS NOT NULL;
-
--- === CustomItem additions ===
-ALTER TABLE custom_items
-  ADD COLUMN IF NOT EXISTS is_public boolean DEFAULT false,
-  ADD COLUMN IF NOT EXISTS duration_minutes int DEFAULT 60;
 
 -- === booking_requests table ===
 CREATE TABLE IF NOT EXISTS booking_requests (
@@ -45,15 +41,12 @@ CREATE INDEX IF NOT EXISTS idx_booking_requests_status ON booking_requests(statu
 CREATE INDEX IF NOT EXISTS idx_booking_requests_phone ON booking_requests(client_phone, merchant_id, created_at);
 
 ALTER TABLE booking_requests ENABLE ROW LEVEL SECURITY;
--- Merchant can read their own requests
 CREATE POLICY booking_requests_owner_select ON booking_requests
   FOR SELECT USING (merchant_id = auth.uid());
--- Merchant can update (accept/reject) their own requests
 CREATE POLICY booking_requests_owner_update ON booking_requests
   FOR UPDATE USING (merchant_id = auth.uid());
--- NO INSERT policy — only the server-side Function inserts using service role key
 
--- === checkout_sessions table (Stripe) ===
+-- === checkout_sessions table ===
 CREATE TABLE IF NOT EXISTS checkout_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -75,7 +68,6 @@ CREATE INDEX IF NOT EXISTS idx_checkout_sessions_stripe ON checkout_sessions(str
 ALTER TABLE checkout_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY checkout_sessions_owner ON checkout_sessions
   FOR SELECT USING (merchant_id = auth.uid());
--- NO INSERT/UPDATE policy — server-side Functions handle these with service role key
 
 -- === Job additions for referral tracking ===
 ALTER TABLE jobs
