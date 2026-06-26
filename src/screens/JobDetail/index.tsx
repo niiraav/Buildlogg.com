@@ -1141,7 +1141,7 @@ export default function JobDetail() {
   const renderPaidFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        <Button variant="primary" onClick={async () => {
+        <Button variant="primary" disabled={!!job?.is_sample} onClick={async () => {
           if (!job || !customer || !userId) return;
           const business = profile?.business_name || 'Your tradesperson';
           const fallback = `Hi ${customer.name}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business! — ${business}`;
@@ -1199,7 +1199,7 @@ export default function JobDetail() {
             <h1 className="text-title font-bold text-brand-black truncate leading-tight">{customer?.name}</h1>
             {job && job.status !== 'quoted' && <StatusBadge status={job.status} />}
           </div>
-          <p className="text-sm font-medium text-brand-mid truncate">{job?.title}</p>
+          <div className="flex items-center gap-2"><p className="text-sm font-medium text-brand-mid truncate">{job?.title}</p>{job?.is_sample && <span className="text-xs font-bold text-brand-mid bg-brand-surface px-2 py-0.5 rounded-full shrink-0">Sample</span>}</div>
           <p className="text-xs font-medium text-brand-muted mt-0.5">{job?.job_number}</p>
         </div>
         {hasContactButtons && (

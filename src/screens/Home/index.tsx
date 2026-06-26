@@ -15,11 +15,13 @@ import { ensureJobNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { paymentSummary, paymentMethodLabel } from '../../lib/paymentHelpers';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { showToast } from '../../components/Toast/store';
+import { archiveSampleJobs } from '../../lib/seedSampleJob';
 
 /* --- helpers --- */
 import { requestNotificationPermission } from '../../lib/notifications';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
+import { capture } from '../../lib/analytics';
 import {
   captureStaleJobNudgeShown,
   captureStaleJobNudgeTapped,
@@ -180,6 +182,13 @@ export default function Home() {
   const [lateMsg, setLateMsg] = useState('');
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
   const [staleJobs, setStaleJobs] = useState<StaleJob[]>([]);
+  const [sampleExplored, setSampleExplored] = useState(() => localStorage.getItem('buildlogg_sample_explored') === 'true');
+  // Update sampleExplored when component regains focus (e.g., returning from JobDetail)
+  useEffect(() => {
+    const update = () => setSampleExplored(localStorage.getItem('buildlogg_sample_explored') === 'true');
+    window.addEventListener('focus', update);
+    return () => window.removeEventListener('focus', update);
+  }, []);
   const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
   const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
 
@@ -294,6 +303,19 @@ export default function Home() {
 
   const nextUpJob = bookedToday[0] || null;
   const remainingTodayJobs = bookedToday.slice(1);
+
+  const sampleJob = useMemo(() => jobs.find((j) => j.is_sample === true), [jobs]);
+  const hasRealJobs = useMemo(() => jobs.some((j) => !j.is_sample && j.status !== 'cancelled' && j.status !== 'written_off'), [jobs]);
+  const showSampleBanner = !!sampleJob && !hasRealJobs;
+
+  const handleRemoveSample = async () => {
+    if (!userId) return;
+    const count = await archiveSampleJobs(userId);
+    if (count > 0) {
+      capture('sample_job_dismissed', { method: 'manual' });
+      showToast('Sample removed');
+    }
+  };
 
   const todayState = useMemo(() => {
     if (activeJob) return activeJob.is_multi_day ? 'multi_day' : 'in_progress';
@@ -1129,6 +1151,34 @@ export default function Home() {
       {activeTab === 'today' && (
         <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
           {/* Active bar */}
+
+          {/* Sample job banner — shows when user has no real jobs yet */}
+          {showSampleBanner && (
+            <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4">
+              {!sampleExplored ? (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-status-blue">
+                      👋 This is a sample job so you can see how Buildlogg works. Tap it to explore the flow.
+                    </p>
+                  </div>
+                  <button onClick={handleRemoveSample} className="text-xs font-medium text-status-blue underline underline-offset-2 cursor-pointer shrink-0">
+                    Remove sample →
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-status-blue">Ready to try it yourself?</p>
+                  <button onClick={() => navigate('/quote')} className="w-full h-10 bg-status-blue text-white text-sm font-semibold rounded-lg cursor-pointer active:opacity-80">
+                    Create your first real quote
+                  </button>
+                  <button onClick={handleRemoveSample} className="text-xs font-medium text-status-blue underline underline-offset-2 cursor-pointer">
+                    Remove sample
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Stale job banner — anti-forgetting nudge */}
           {renderStaleJobBanner()}

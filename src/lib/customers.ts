@@ -32,6 +32,7 @@ export async function searchCustomers(userId: string, query: string): Promise<Cu
     .filter((c) => {
       if (c.is_archived) return false;
       if (c.merged_into) return false;
+      if (c.is_sample) return false;
       return (
         c.name.toLowerCase().includes(q) ||
         (c.phone || '').toLowerCase().includes(q) ||
@@ -55,6 +56,7 @@ export async function findDuplicateByPhone(userId: string, phone: string): Promi
   return all.find((c) => {
     if (c.is_archived) return false;
     if (c.merged_into) return false;
+    if (c.is_sample) return false;
     return normalizePhone(c.phone) === normalized;
   }) || null;
 }

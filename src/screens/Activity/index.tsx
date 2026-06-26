@@ -34,7 +34,7 @@ export default function Activity() {
     }
 
     // Fetch all jobs for this user and backfill missing job numbers
-    const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
+    const allJobs = await db.jobs.where('user_id').equals(userId).toArray().then(jobs => jobs.filter(j => !j.is_sample));
     const jobsWithNumbers: typeof allJobs = [];
     for (const j of allJobs) {
       jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));

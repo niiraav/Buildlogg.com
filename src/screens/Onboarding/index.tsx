@@ -18,6 +18,7 @@ import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates
 import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
 import { captureVerticalSelected } from '../../lib/analytics';
 import { seedMessageTemplates, seedMissingTemplates } from '../../lib/seedMessageTemplates';
+import { seedSampleJob } from '../../lib/seedSampleJob';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -220,6 +221,10 @@ export default function Onboarding() {
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
     seedMissingTemplates(resolvedUserId).catch(() => {});
+    // Seed a sample job so the user lands on a populated home screen
+    const profileData = await db.profiles.get(resolvedUserId);
+    seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
+    capture('sample_job_seeded', { trade: trade || 'other', businessType });
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
     captureUserSignedUp(trade, window.location.search);

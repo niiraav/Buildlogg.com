@@ -25,7 +25,7 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
   const ref = month || new Date();
   const lastMonth = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
 
-  const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
+  const allJobs = (await db.jobs.where('user_id').equals(userId).toArray()).filter(j => !j.is_sample);
   const allJobIds = allJobs.map((j) => j.id);
   const allPayments = allJobIds.length > 0
     ? await db.payments.where('job_id').anyOf(allJobIds).toArray()

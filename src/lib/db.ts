@@ -45,6 +45,7 @@ export interface Customer {
   notes?: string;
   is_archived?: boolean;
   merged_into?: string;
+  is_sample?: boolean;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -87,6 +88,7 @@ export interface Job {
   cancellation_policy_hours?: number;
   // P2-08: Google reviews
   review_requested_at?: string;
+  is_sample?: boolean;
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -100,6 +102,7 @@ export interface LineItem {
   amount: number;
   sort_order: number;
   added_on_site: boolean;
+  is_sample?: boolean;
   created_at: string;
   _sync_status: SyncStatus;
 }
@@ -113,6 +116,7 @@ export interface WorkLogEntry {
   description: string;
   amount?: number;
   line_item_id?: string;
+  is_sample?: boolean;
   created_at: string;
   _sync_status: SyncStatus;
 }

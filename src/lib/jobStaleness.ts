@@ -81,7 +81,7 @@ export async function getStaleInProgressJobs(userId: string): Promise<StaleJob[]
   const inProgressJobs = await db.jobs
     .where('status')
     .equals('in_progress')
-    .filter((j) => j.user_id === userId)
+    .filter((j) => j.user_id === userId && !j.is_sample)
     .toArray();
 
   const stale: StaleJob[] = [];
@@ -139,6 +139,7 @@ export async function getOvernightAutoCompletableJobs(userId: string): Promise<J
     .equals('in_progress')
     .filter((j) => {
       if (j.user_id !== userId) return false;
+      if (j.is_sample) return false;
       if (j.is_multi_day) return false;
       if (!j.actual_start) return false;
       // Must be same calendar day — crossed midnight jobs are excluded

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
-import { captureJobCreated, captureQuoteSent } from '../../lib/analytics';
+import { captureJobCreated, captureQuoteSent, capture } from '../../lib/analytics';
+import { archiveSampleJobs } from '../../lib/seedSampleJob';
+import { showToast } from '../../components/Toast/store';
 import { showSuccess } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
 import { nextJobNumber } from '../../lib/jobNumbers';
@@ -243,6 +245,13 @@ export default function Quote() {
         });
         setJobId(newJobId);
         captureJobCreated('new_quote');
+        // Auto-archive sample job when first real job is created
+        archiveSampleJobs(userId).then((count) => {
+          if (count > 0) {
+            showToast('Sample job removed — your real jobs are here now', 'info', 3000);
+            capture('sample_job_dismissed', { method: 'auto' });
+          }
+        }).catch(() => {});
       }
     }
 
