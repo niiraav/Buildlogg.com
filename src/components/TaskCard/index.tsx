@@ -1,9 +1,9 @@
 import React from 'react';
 import type { Job, Customer } from '../../lib/db';
-import { Phone, AlertTriangle, FileText, Banknote, Clock, ArrowRight, Calendar } from 'lucide-react';
+import { Phone, FileText, Banknote, Clock, ArrowRight, Calendar } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 
-export type TaskType = 'overdue' | 'chase' | 'missed_call' | 'no_show' | 'stale_quote' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
+export type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'recurring_reminder' | 'payment_chase';
 
 export interface TaskCardProps {
   type: TaskType;
@@ -21,9 +21,6 @@ export interface TaskCardProps {
 
 const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgency: 'high' | 'medium' | 'low' }> = {
   missed_call: { icon: <Phone size={16} />, label: 'Missed call', urgency: 'high' },
-  overdue: { icon: <AlertTriangle size={16} />, label: 'Payment overdue', urgency: 'high' },
-  stale_quote: { icon: <FileText size={16} />, label: 'Quote pending', urgency: 'medium' },
-  chase: { icon: <Banknote size={16} />, label: 'Chase payment', urgency: 'medium' },
   no_show: { icon: <Clock size={16} />, label: 'No-show', urgency: 'medium' },
   urgent_new: { icon: <Phone size={16} />, label: 'New enquiry', urgency: 'medium' },
   draft_quote: { icon: <FileText size={16} />, label: 'Draft quote', urgency: 'low' },
