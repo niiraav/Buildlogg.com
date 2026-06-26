@@ -4,6 +4,7 @@
  */
 import type { Job, Customer, Profile, MessageTemplate, TemplateCategory } from './db';
 import { db } from './db';
+import { addToSyncQueue } from './syncQueue';
 
 type PlaceholderFn = (job: Job, customer: Customer, profile: Profile, total: number) => string;
 
@@ -80,4 +81,53 @@ export async function getFilledTemplateMessage(
   const template = await getDefaultTemplate(userId, category);
   if (!template) return fallbackText;
   return fillTemplate(template.body, job, customer, profile, total);
+}
+
+/**
+ * Set one template as the default for its category.
+ * Unsets is_default on all other templates in the same category.
+ * Updates Dexie + sync queue for each changed template.
+ */
+export async function setDefaultForCategory(
+  userId: string,
+  templateId: string,
+  category: TemplateCategory,
+): Promise<void> {
+  const all = await db.message_templates
+    .where('user_id')
+    .equals(userId)
+    .filter((t) => t.category === category)
+    .toArray();
+
+  const now = new Date().toISOString();
+  for (const tmpl of all) {
+    const shouldBeDefault = tmpl.id === templateId;
+    if (tmpl.is_default === shouldBeDefault) continue; // No change needed
+    await db.message_templates.update(tmpl.id, {
+      is_default: shouldBeDefault,
+      updated_at: now,
+      _sync_status: 'pending',
+    });
+    await addToSyncQueue(
+      'message_templates',
+      tmpl.id,
+      { is_default: shouldBeDefault, updated_at: now },
+      'update',
+    );
+  }
+}
+
+/**
+ * Check if any template in a category is marked as default.
+ */
+export async function hasDefaultForCategory(
+  userId: string,
+  category: TemplateCategory,
+): Promise<boolean> {
+  const count = await db.message_templates
+    .where('user_id')
+    .equals(userId)
+    .filter((t) => t.category === category && t.is_default)
+    .count();
+  return count > 0;
 }
