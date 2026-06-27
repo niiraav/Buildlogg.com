@@ -36,6 +36,10 @@ export interface Profile {
   booking_enabled?: boolean;
   booking_buffer_hours?: number;
   booking_show_phone?: boolean;
+  booking_working_days?: number[];    // [1,2,3,4,5] = Mon–Fri (0=Sun, 6=Sat)
+  booking_hours_start?: string;       // "09:00"
+  booking_hours_end?: string;         // "17:00"
+  booking_blocked_dates?: string[];   // ["2026-07-15"] for holidays
   // W2-2: Stripe
   stripe_account_id?: string;
   stripe_connected?: boolean;

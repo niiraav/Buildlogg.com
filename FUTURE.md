@@ -288,3 +288,15 @@ The custom items library (`custom_items` table) already stores Dave's regular ch
 
 *Last updated: 2026-06-26*
 *Author: Codex*
+
+## Booking Page — Lunch Breaks (Future)
+
+Currently slots are continuous through working hours with no lunch break.
+Future: add `booking_break_start` and `booking_break_end` to Profile (e.g., 12:00–13:00).
+The booking page Function would skip slots that overlap the break period.
+Sophie (beauty) needs this — she takes a lunch break midday. Dave (trades) less so.
+
+Also consider: per-day hours (e.g., Saturday 10am–2pm instead of full 9–5).
+Currently all working days use the same hours. Per-day hours would need a
+JSON field like `booking_hours_per_day: {"0": "10:00-14:00", "1": "09:00-17:00", ...}`.
+Added: 2026-06-28
