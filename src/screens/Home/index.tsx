@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -2134,7 +2134,7 @@ export default function Home() {
         isOpen={sheet === 'booking_request'}
         onClose={() => { setSheet(null); setSelectedBooking(null); }}
         title="Booking request"
-        subtitle={selectedBooking ? `${selectedBooking.client_name} · ${selectedBooking.service_description}` : undefined}
+        subtitle={selectedBooking ? `${selectedBooking.requested_date} at ${selectedBooking.requested_time}` : undefined}
       >
         {selectedBooking && (() => {
           const conflictTime = bookingConflict?.scheduledStart
@@ -2142,29 +2142,35 @@ export default function Home() {
             : '';
           return (
             <div className="flex flex-col gap-2">
+              {/* Client name — primary heading */}
+              <h3 className="text-xl font-extrabold text-brand-black px-1">{selectedBooking.client_name}</h3>
+
+              {/* Availability/conflict badge — directly below name */}
               {bookingConflict ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-2 flex items-start gap-2">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
                   <AlertTriangle size={18} className="text-status-red shrink-0 mt-0.5" />
                   <p className="text-sm text-status-red">
                     Conflicts with: {bookingConflict.jobNumber || 'no job #'} · {bookingConflict.customerName} · {bookingConflict.title} · {conflictTime}
                   </p>
                 </div>
               ) : (
-                <div className="bg-status-greenBg border border-green-200 rounded-lg p-3 mb-2 flex items-center gap-2">
+                <div className="bg-status-greenBg border border-green-200 rounded-lg p-3 flex items-center gap-2">
                   <CheckCircle size={18} className="text-status-green" />
-                  <p className="text-sm text-status-green">Available</p>
+                  <p className="text-sm text-status-green">Available — no conflicts</p>
                 </div>
               )}
-              <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
-                <p className="text-sm text-brand-dark">
-                  <span className="font-semibold">{selectedBooking.service_description}</span>
-                  {selectedBooking.service_amount > 0 && <span className="text-brand-muted"> · £{selectedBooking.service_amount.toFixed(0)}</span>}
-                </p>
-                <p className="text-xs text-brand-muted mt-1">
-                  {selectedBooking.requested_date} at {selectedBooking.requested_time}
-                </p>
-                <p className="text-xs text-brand-muted mt-1">📞 {selectedBooking.client_phone}</p>
-                {selectedBooking.notes && <p className="text-xs text-brand-mid mt-1.5 italic">"{selectedBooking.notes}"</p>}
+
+              {/* Service + amount — secondary context */}
+              <div className="bg-brand-surface border border-brand-border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-brand-dark">{selectedBooking.service_description}</p>
+                  {selectedBooking.service_amount > 0 && <span className="text-sm font-bold text-brand-black">£{selectedBooking.service_amount.toFixed(0)}</span>}
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <Phone size={14} className="text-brand-muted" />
+                  <p className="text-sm text-brand-muted">{selectedBooking.client_phone}</p>
+                </div>
+                {selectedBooking.notes && <p className="text-xs text-brand-mid mt-2 italic">"{selectedBooking.notes}"</p>}
                 {selectedBooking.referral_source && <p className="text-xs text-brand-muted mt-1">How they found you: {selectedBooking.referral_source}{selectedBooking.referral_detail ? ` (${selectedBooking.referral_detail})` : ''}</p>}
               </div>
               <Button variant="primary" fullWidth onClick={async () => {
@@ -2216,9 +2222,6 @@ export default function Home() {
                 window.open(`tel:${selectedBooking.client_phone}`, '_self');
               }}>
                 Call client
-              </Button>
-              <Button variant="ghost" fullWidth onClick={() => { setSheet(null); setSelectedBooking(null); }}>
-                Close
               </Button>
             </div>
           );
