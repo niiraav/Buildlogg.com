@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { db, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../../components/Button';
@@ -7,12 +7,15 @@ import { haptic } from '../../lib/haptics';
 import { captureCustomItemAdded } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
 
+const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
+
 export default function CustomItems() {
   const userId = useAppStore((s) => s.userId);
   const [items, setItems] = useState<CustomItem[]>([]);
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -38,6 +41,8 @@ export default function CustomItems() {
       description: trimmed,
       amount: val,
       sort_order: items.length,
+      is_public: false,
+      duration_minutes: 60,
       created_at: n,
       updated_at: n,
       _sync_status: 'pending',
@@ -72,6 +77,21 @@ export default function CustomItems() {
       retry_count: 0,
     });
     setItems((prev) => prev.filter((i) => i.id !== id));
+    setExpandedId(null);
+  }, []);
+
+  const updateItem = useCallback(async (id: string, patch: Partial<CustomItem>) => {
+    const n = new Date().toISOString();
+    await db.custom_items.update(id, { ...patch, updated_at: n, _sync_status: 'pending' });
+    await db.sync_queue.add({
+      operation: 'update',
+      table_name: 'custom_items',
+      record_id: id,
+      payload: { ...patch, updated_at: n },
+      created_at: n,
+      retry_count: 0,
+    });
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }, []);
 
   if (loading) {
@@ -113,27 +133,89 @@ export default function CustomItems() {
           </div>
         ) : (
           <div className="space-y-1">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border border-brand-border rounded-lg px-3.5 py-3 bg-[var(--app-shell-bg)]"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-brand-dark truncate">
-                    {item.description}
-                  </div>
-                  <div className="text-xs text-brand-muted mt-0.5">
-                    £{item.amount.toFixed(2)}
-                  </div>
-                </div>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="ml-3 p-1.5 text-status-red cursor-pointer active:opacity-60 transition-opacity"
+            {items.map((item) => {
+              const isExpanded = expandedId === item.id;
+              const currentDuration = item.duration_minutes ?? 60;
+              return (
+                <div
+                  key={item.id}
+                  className="border border-brand-border rounded-lg bg-[var(--app-shell-bg)] overflow-hidden"
                 >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+                  {/* Collapsed row */}
+                  <div
+                    className="flex items-center justify-between px-3.5 py-3 cursor-pointer"
+                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-brand-dark truncate">
+                        {item.description}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-brand-muted">
+                          £{item.amount.toFixed(2)}
+                        </span>
+                        {item.is_public && (
+                          <span className="text-xs font-medium text-status-green">On booking page</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                      {isExpanded ? (
+                        <ChevronUp size={16} className="text-brand-muted" />
+                      ) : (
+                        <ChevronDown size={16} className="text-brand-muted" />
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
+                        className="p-1.5 text-status-red cursor-pointer active:opacity-60 transition-opacity"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded config */}
+                  {isExpanded && (
+                    <div className="px-3.5 pt-3 pb-3 border-t border-brand-borderLight space-y-4">
+                      {/* Show on booking page toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <p className="text-sm font-semibold text-brand-black">Show on booking page</p>
+                          <p className="text-xs text-brand-muted mt-0.5">Appears on your /book/&hellip; page for clients to select</p>
+                        </div>
+                        <button
+                          onClick={() => updateItem(item.id, { is_public: !item.is_public })}
+                          className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
+                            item.is_public ? 'bg-brand-black' : 'bg-brand-border'
+                          }`}
+                        >
+                          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                            item.is_public ? 'left-[22px]' : 'left-0.5'
+                          }`} />
+                        </button>
+                      </div>
+
+                      {/* Duration control */}
+                      <div>
+                        <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
+                          Duration
+                        </label>
+                        <p className="text-xs text-brand-muted mb-2">Used to size time slots on your booking page</p>
+                        <select
+                          value={currentDuration}
+                          onChange={(e) => updateItem(item.id, { duration_minutes: parseInt(e.target.value) })}
+                          className="w-full h-12 px-3.5 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                        >
+                          {DURATION_PRESETS.map((d) => (
+                            <option key={d} value={d}>{d} min</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
