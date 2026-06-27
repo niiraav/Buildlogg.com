@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
-import { captureJobCreated, captureQuoteSent, capture, captureReferralSourceTracked } from '../../lib/analytics';
+import { captureJobCreated, captureQuoteSent, capture } from '../../lib/analytics';
 import { createQuoteFollowUp } from '../../lib/quoteFollowUp';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import { setContextualFlag } from '../../lib/notificationManager';
@@ -26,7 +26,7 @@ type EntryPoint = 'missed_call' | 'new_quote' | 'task' | 'revise';
 
 type QuoteStep = 'missed_call' | 'customer_details' | 'builder' | 'preview' | 'sent';
 
-type SendMethod = 'whatsapp' | 'sms';
+type SendMethod = 'whatsapp' | 'sms' | 'copy';
 
 interface LocationState {
   entryPoint?: EntryPoint;
@@ -268,7 +268,7 @@ export default function Quote() {
     setStep('builder');
   };
 
-  const handlePreviewSend = async (method: SendMethod, messageContent?: string, referral?: { source: string; detail?: string }) => {
+  const handlePreviewSend = async (method: SendMethod, messageContent?: string) => {
     if (!jobId || !userId) return;
     const n = now();
 
@@ -284,10 +284,6 @@ export default function Quote() {
       updated_at: n,
       _sync_status: 'pending',
     };
-    if (referral?.source) {
-      jobUpdate.referral_source = referral.source;
-      jobUpdate.referral_detail = referral.detail || null;
-    }
     await db.jobs.update(jobId, jobUpdate);
 
     
@@ -297,7 +293,7 @@ export default function Quote() {
         id: workLogId,
         job_id: jobId,
         type: 'quote_sent',
-        description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${messageContent || ''}`,
+        description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : method === 'copy' ? 'Copy to clipboard' : 'SMS'}] ${messageContent || ''}`,
         created_at: n,
         _sync_status: 'pending',
       });
@@ -305,7 +301,7 @@ export default function Quote() {
         operation: 'insert',
         table_name: 'work_log',
         record_id: workLogId,
-        payload: { id: workLogId, job_id: jobId, type: 'quote_sent', description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : 'SMS'}] ${messageContent || ''}`, created_at: n },
+        payload: { id: workLogId, job_id: jobId, type: 'quote_sent', description: `[Quote sent via ${method === 'whatsapp' ? 'WhatsApp' : method === 'copy' ? 'Copy to clipboard' : 'SMS'}] ${messageContent || ''}`, created_at: n },
         created_at: n,
         retry_count: 0,
       });
@@ -314,10 +310,6 @@ export default function Quote() {
       status: 'quoted', quote_sent_at: n, quote_expires_at: expiresAt,
       quote_send_method: method, updated_at: n,
     };
-    if (referral?.source) {
-      syncPayload.referral_source = referral.source;
-      syncPayload.referral_detail = referral.detail || null;
-    }
     await db.sync_queue.add({
       operation: 'update',
       table_name: 'jobs',
@@ -330,9 +322,6 @@ export default function Quote() {
     hapticSuccess();
     showSuccess('Quote sent!');
     captureQuoteSent(method);
-    if (referral?.source) {
-      captureReferralSourceTracked({ source: referral.source, context: 'in_app' });
-    }
     setContextualFlag();
     createQuoteFollowUp(jobId, userId!).catch(() => {});
     setSendMethod(method);

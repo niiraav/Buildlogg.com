@@ -28,6 +28,7 @@ export interface SendSheetProps {
   onMessageChange: (text: string) => void;
   onSend: (method: SendMethod, pdfShared: boolean) => void;
   onSaveDraft?: () => void;
+  onCopySend?: () => void;
   pdfOptions?: SendSheetPdfOptions;
   fullMessage?: string;
   compactMessage?: string;
@@ -42,6 +43,7 @@ export function SendSheet({
   onMessageChange,
   onSend,
   onSaveDraft,
+  onCopySend,
   pdfOptions,
   fullMessage,
   compactMessage,
@@ -194,6 +196,7 @@ export function SendSheet({
     } catch {
       showToast('Could not copy — try selecting the text manually');
     }
+    onCopySend?.();
     onClose();
   };
 

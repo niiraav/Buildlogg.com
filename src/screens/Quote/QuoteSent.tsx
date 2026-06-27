@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
-import { db, type Job, type Customer } from '../../lib/db';
+import { Check, CreditCard, Star, FileText, X } from 'lucide-react';
+import { db, type Job, type Customer, type Profile } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
@@ -28,6 +28,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +39,10 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
         setJob(j);
         const c = await db.customers.get(j.customer_id);
         setCustomer(c || null);
+        if (j.user_id) {
+          const p = await db.profiles.get(j.user_id);
+          setProfile(p || null);
+        }
         const items = await db.line_items.where('job_id').equals(jobId).toArray();
         setTotal(items.reduce((sum, i) => sum + i.amount, 0));
       }
@@ -63,6 +68,14 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
       </div>
     );
   }
+
+  // Feature discovery tips — show first applicable, non-dismissed tip
+  const tips = [
+    { id: 'card_payments', icon: CreditCard, title: 'Get paid by card', desc: 'Enable card payments in Settings to accept deposits', show: !profile?.stripe_connected },
+    { id: 'google_reviews', icon: Star, title: 'Get more Google reviews', desc: 'Add your review link in Settings to ask happy customers', show: !profile?.google_business_url },
+    { id: 'pdf_branding', icon: FileText, title: 'Send branded PDF quotes', desc: 'Upload your logo in Settings to send professional PDFs', show: !profile?.logo_data_url },
+  ];
+  const activeTip = tips.find(t => t.show && !localStorage.getItem(`buildlogg_tip_dismissed_${t.id}`));
 
   const methodLabel =
     sendMethod === 'whatsapp' ? 'Via WhatsApp'
@@ -115,6 +128,32 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
           </div>
         </div>
 
+        {/* Feature discovery tip */}
+        {activeTip && (
+          <div className="w-full bg-brand-surface border border-brand-border rounded-lg p-4 mb-4 text-left">
+            <div className="flex items-start gap-2">
+              <activeTip.icon size={18} className="text-brand-mid shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-brand-black mb-1">{activeTip.title}</p>
+                <p className="text-xs text-brand-mid leading-relaxed">{activeTip.desc}</p>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="text-xs font-semibold text-brand-dark underline underline-offset-2 cursor-pointer mt-2"
+                >
+                  Go to Settings
+                </button>
+              </div>
+              <button
+                onClick={() => { localStorage.setItem(`buildlogg_tip_dismissed_${activeTip.id}`, '1'); setProfile(prev => prev); /* trigger re-render */ }}
+                className="text-brand-muted cursor-pointer shrink-0"
+                aria-label="Dismiss tip"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Add to Home Screen — peak moment: user just sent a quote */}
         <div className="w-full mb-6">
           <AddToHomeScreen variant="minimal" />
@@ -130,7 +169,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
           Back to home
         </Button>
         <button
-          onClick={() => navigate('/quote', { state: { jobId, entryPoint: 'revise' } })}
+          onClick={() => navigate('/quote', { state: { jobId, customerId: job.customer_id, entryPoint: 'revise' } })}
           className="w-full text-sm font-medium text-brand-mid underline underline-offset-2 cursor-pointer min-h-11 mt-1"
         >
           Resend quote

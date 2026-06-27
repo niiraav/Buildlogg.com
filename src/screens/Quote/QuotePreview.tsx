@@ -12,7 +12,6 @@ import { QuotePreviewCard } from '../../components/QuotePreviewCard';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import BrandedLoader from '../../components/BrandedLoader';
-import { REFERRAL_SOURCES, referralOption } from '../../lib/referral';
 
 /* ─── helpers ─── */
 
@@ -20,7 +19,7 @@ import { REFERRAL_SOURCES, referralOption } from '../../lib/referral';
 
 interface QuotePreviewProps {
   jobId: string;
-  onSend: (method: 'whatsapp' | 'sms', messageContent?: string, referral?: { source: string; detail?: string }) => void;
+  onSend: (method: 'whatsapp' | 'sms' | 'copy', messageContent?: string) => void;
   onSaveDraft: () => void;
   onBack: () => void;
 }
@@ -34,8 +33,6 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [items, setItems] = useState<LineItem[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [referralSource, setReferralSource] = useState('');
-  const [referralDetail, setReferralDetail] = useState('');
   const [loading, setLoading] = useState(true);
   const [showSendSheet, setShowSendSheet] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -63,8 +60,6 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         setJob(j);
       }
 
-      setReferralSource(j.referral_source || '');
-      setReferralDetail(j.referral_detail || '');
       setLoading(false);
     };
     load();
@@ -159,11 +154,13 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   };
   const handleSend = (method: SendMethod, _pdfShared: boolean) => {
     setShowSendSheet(false);
-    const parentMethod = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms';
-    const referral = referralSource.trim()
-      ? { source: referralSource.trim(), detail: referralDetail.trim() || undefined }
-      : undefined;
-    onSend(parentMethod, messageText, referral);
+    const parentMethod: 'whatsapp' | 'sms' | 'copy' = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms';
+    onSend(parentMethod, messageText);
+  };
+
+  const handleCopySend = () => {
+    setShowSendSheet(false);
+    onSend('copy', messageText);
   };
 
   const { can } = useEntitlements();
@@ -263,31 +260,6 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
           />
         </div>
 
-        {/* Referral source capture */}
-        <div className="mb-4">
-          <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
-            How did they find you? <span className="text-label text-brand-dark font-normal normal-case tracking-0 ml-1">(optional)</span>
-          </label>
-          <select
-            value={referralSource}
-            onChange={(e) => { setReferralSource(e.target.value); setReferralDetail(''); }}
-            className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
-          >
-            <option value="">— Optional —</option>
-            {REFERRAL_SOURCES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          {referralOption(referralSource)?.hasDetail && (
-            <input
-              type="text"
-              value={referralDetail}
-              onChange={(e) => setReferralDetail(e.target.value)}
-              placeholder={referralOption(referralSource)?.detailPlaceholder || ''}
-              className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black mt-2"
-            />
-          )}
-        </div>
       </div>
 
       {/* Footer */}
@@ -316,6 +288,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
         messageText={messageText}
         onMessageChange={(text) => { setEditingMessage(true); setMessageText(text); }}
         onSend={handleSend}
+        onCopySend={handleCopySend}
         onSaveDraft={handleSaveDraft}
         pdfOptions={pdfOptions}
         fullMessage={defaultMessage}
