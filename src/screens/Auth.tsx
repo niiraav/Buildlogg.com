@@ -557,6 +557,12 @@ export default function Auth() {
                       placeholder="you@example.com"
                       value={emailInput}
                       onChange={(e) => { setEmailInput(e.target.value); setError(''); }}
+                      onBlur={() => {
+                        const trimmed = emailInput.trim().toLowerCase();
+                        if (trimmed && validateEmail(trimmed)) {
+                          setError('Enter a valid email address');
+                        }
+                      }}
                       className={`w-full h-11 px-3.5 text-base text-brand-black bg-transparent border rounded-md outline-none transition-all focus:border-brand-black focus:ring-4 focus:ring-brand-black/5 ${
                         error && !emailInput.trim() ? 'border-red-500' : 'border-brand-border'
                       }`}
