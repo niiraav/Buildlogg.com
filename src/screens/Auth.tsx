@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/db';
-import { useAppStore } from '../store/useAppStore';
 import { identifyUser, captureUserSignedIn, captureUserSignedUp, capture } from '../lib/analytics';
 import { showSuccess, showError, showToast } from '../components/Toast/store';
-import { haptic, hapticError, hapticSuccess } from '../lib/haptics';
+import { hapticError, hapticSuccess } from '../lib/haptics';
 import { Button } from '../components/Button';
 import AuthDesktopLayout from '../components/AuthDesktopLayout';
 import { Eye, EyeOff } from 'lucide-react';
@@ -284,94 +283,7 @@ export default function Auth() {
     }
   };
 
-  const handleMockSignIn = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    console.log('[Auth] Mock sign-in started');
-    try {
-      try {
-        await db.open();
-        console.log('[Auth] Dexie DB opened, tables:', db.tables.map(t => t.name).join(', '));
-      } catch (dbErr) {
-        console.warn('[Auth] Dexie open failed:', dbErr);
-      }
 
-      const existingMock = localStorage.getItem('buildlogg_mock_user');
-      let mockUserId: string;
-      let mockEmail: string;
-
-      if (existingMock) {
-        try {
-          const mock = JSON.parse(existingMock);
-          mockUserId = mock.id;
-          mockEmail = mock.email || 'test@example.com';
-          console.log('[Auth] Reusing existing mock user:', mockUserId);
-        } catch {
-          mockUserId = 'mock_' + Date.now();
-          mockEmail = 'test@example.com';
-          localStorage.setItem('buildlogg_mock_user', JSON.stringify({
-            id: mockUserId,
-            email: mockEmail,
-            created_at: new Date().toISOString(),
-          }));
-          console.log('[Auth] Created new mock user (old was corrupted):', mockUserId);
-        }
-      } else {
-        mockUserId = 'mock_' + Date.now();
-        mockEmail = 'test@example.com';
-        localStorage.setItem('buildlogg_mock_user', JSON.stringify({
-          id: mockUserId,
-          email: mockEmail,
-          created_at: new Date().toISOString(),
-        }));
-        console.log('[Auth] Created new mock user:', mockUserId);
-      }
-
-      useAppStore.getState().setUserId(mockUserId);
-      console.log('[Auth] Set userId in store:', mockUserId);
-
-      let profile = null;
-      try {
-        profile = await Promise.race([
-          db.profiles.get(mockUserId),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
-        ]);
-        console.log('[Auth] Profile found:', !!profile);
-      } catch (profileErr) {
-        console.warn('[Auth] Profile read failed:', profileErr);
-      }
-
-      hapticSuccess();
-      showToast('Signed in as test user', 'info', 2000);
-
-      if (profile && profile.full_name) {
-        console.log('[Auth] Navigating to Home (profile exists)');
-        navigate('/', { replace: true });
-      } else {
-        console.log('[Auth] Navigating to Onboarding (no profile)');
-        navigate('/onboarding', { replace: true });
-      }
-    } catch (err) {
-      console.error('[Auth] Mock sign-in error:', err);
-      hapticError();
-      showError('Mock sign-in failed');
-      setError('Mock sign-in failed: ' + ((err as Error)?.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  const handleResetDevData = () => {
-    haptic('light');
-    localStorage.removeItem('buildlogg_mock_user');
-    db.delete().then(() => {
-      navigate('/auth', { replace: true });
-      window.location.reload();
-    }).catch(() => {
-      navigate('/auth', { replace: true });
-      window.location.reload();
-    });
-  };
 
   const switchMode = () => {
     setMode(mode === 'signin' ? 'signup' : 'signin');
@@ -662,33 +574,6 @@ export default function Auth() {
                     </button>
                   </div>
 
-                  {import.meta.env.DEV && (
-                    <div className="flex flex-col gap-2 mt-6 pt-6 border-t border-brand-border">
-                      <p className="text-label font-bold tracking-[0.4px] text-brand-dark text-center">Dev Testing</p>
-                      <Button
-                        variant="secondary"
-                        onClick={handleMockSignIn}
-                        disabled={loading}
-                        fullWidth
-                      >
-                        Mock Sign In (Test Mode)
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => { haptic('light'); setEmailInput('test@example.com'); setPassword('password123'); }}
-                        className="h-11 w-full rounded-lg text-sm font-medium text-brand-mid cursor-pointer bg-transparent active:opacity-70 transition-opacity duration-100"
-                      >
-                        Fill Test Credentials
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleResetDevData}
-                        className="h-11 w-full rounded-lg text-sm font-medium text-status-red cursor-pointer active:opacity-70 transition-opacity duration-100"
-                      >
-                        Reset All Local Data
-                      </button>
-                    </div>
-                  )}
                 </>
               )}
             </form>

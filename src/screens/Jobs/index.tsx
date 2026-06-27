@@ -373,7 +373,7 @@ export default function Jobs() {
   const renderBody = () => {
     if (!hasAnyJobs) {
       return (
-        <div className="min-h-[50dvh] flex flex-col items-center justify-center px-6 py-8 text-center">
+        <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
           <ClipboardList size={40} className="mb-4 opacity-40 text-brand-muted" />
           <p className="text-lg font-bold text-brand-black mb-2">No jobs yet</p>
           <p className="text-sm text-brand-dark leading-relaxed mb-7">
@@ -397,7 +397,7 @@ export default function Jobs() {
     // Empty state for filter/search returning zero results
     if (visibleStatuses.length === 0) {
       return (
-        <div className="min-h-[40dvh] flex flex-col items-center justify-center px-6 py-8 text-center">
+        <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
           <ClipboardList size={32} className="mb-3 opacity-40 text-brand-muted" />
           <p className="text-sm font-medium text-brand-dark mb-1">
             {dateFilter
@@ -535,15 +535,7 @@ export default function Jobs() {
       {/* Body */}
       {renderBody()}
 
-      {/* Footer — only when there are jobs */}
-      {hasAnyJobs && (
-        <div className="mt-auto sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight cta-above-tabbar">
-          <div className="flex gap-2 px-4 py-2.5 pb-3">
-            <div className="flex-1"><Button variant="primary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
-            <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>Log Missed Call</Button></div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
