@@ -164,6 +164,7 @@ type SheetState =
   | 'chase_actions'
   | 'recurring_actions'
   | 'booking_request'
+  | 'booking_list'
   | 'eod_review'
   | 'week_view'
 
@@ -1205,7 +1206,7 @@ export default function Home() {
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
                     } else if (task.type === 'booking_request') {
                       if (task.id === 'booking_summary') {
-                        console.log('Navigate to booking requests list');
+                        setSheet('booking_list');
                         return;
                       }
                       const bookingId = task.id.replace('booking_', '');
@@ -1263,7 +1264,7 @@ export default function Home() {
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
                     } else if (task.type === 'booking_request') {
                       if (task.id === 'booking_summary') {
-                        console.log('Navigate to booking requests list');
+                        setSheet('booking_list');
                         return;
                       }
                       const bookingId = task.id.replace('booking_', '');
@@ -2101,6 +2102,31 @@ export default function Home() {
             </div>
           );
         })()}
+      </BottomSheet>
+
+      {/* Booking requests list sheet (shown when 5+ pending) */}
+      <BottomSheet
+        isOpen={sheet === 'booking_list'}
+        onClose={() => setSheet(null)}
+        title="Booking requests"
+        subtitle={`${pendingBookings.length} pending`}
+      >
+        <div className="flex flex-col gap-2">
+          {pendingBookings.map((b) => (
+            <div
+              key={b.id}
+              onClick={() => { setSelectedBooking(b); setSheet('booking_request'); }}
+              className="bg-white border border-brand-border rounded-lg p-3 cursor-pointer active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-semibold text-brand-black">{b.client_name}</span>
+                {b.service_amount > 0 && <span className="text-sm font-bold text-brand-black">£{b.service_amount.toFixed(0)}</span>}
+              </div>
+              <p className="text-xs text-brand-muted">{b.service_description}</p>
+              <p className="text-xs text-brand-mid mt-1">{b.requested_date} at {b.requested_time}</p>
+            </div>
+          ))}
+        </div>
       </BottomSheet>
 
       {/* W2-1: Booking request sheet */}
