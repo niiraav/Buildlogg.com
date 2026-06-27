@@ -248,14 +248,14 @@ export default function Booking() {
       {/* Body */}
       <div className="flex-1 px-4 md:px-6 pb-8 space-y-6">
 
-        {/* Status section */}
+        {/* Status section — just the toggle, clean */}
         <div>
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Status</div>
           <div className="bg-white border border-brand-border rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0 pr-3">
-                <p className="text-sm font-semibold text-brand-black">Booking page is live</p>
-                <p className="text-xs text-brand-muted mt-0.5">When off, your /book/&hellip; page shows &ldquo;not found&rdquo;</p>
+                <p className="text-sm font-semibold text-brand-black">Online booking</p>
+                <p className="text-xs text-brand-muted mt-0.5">Let clients book you online</p>
               </div>
               <button
                 onClick={handleToggleEnabled}
@@ -268,71 +268,119 @@ export default function Booking() {
                 }`} />
               </button>
             </div>
-            {isEnabled && hasSlug && (
-              <a
-                href={bookingPageUrl(profile!.booking_slug!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 flex items-center gap-1.5 text-sm font-medium text-status-green"
-              >
-                <ExternalLink size={14} />
-                Live at {bookingPageUrl(profile!.booking_slug!).replace(/^https?:\/\//, '')}
-              </a>
-            )}
             {isEnabled && !hasSlug && (
-              <p className="mt-3 text-sm text-status-amber">Pick a link below before going live</p>
+              <p className="mt-3 text-sm text-status-amber">Pick a link below to go live</p>
             )}
           </div>
         </div>
 
-        {/* Page address section */}
+        {/* Your link section — URL display + copy + edit all together */}
         <div>
-          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Page address</div>
-          <div className="bg-white border border-brand-border rounded-xl p-4">
-            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Your booking link</label>
-            <div className="flex items-stretch border-2 border-brand-border rounded-lg overflow-hidden focus-within:border-brand-black transition-colors">
-              <span className="flex items-center px-3 text-sm text-brand-muted bg-brand-surface whitespace-nowrap border-r border-brand-border">
-                {bookingPageUrl('').replace(/\/book\/$/, '')}/book/
-              </span>
-              <input
-                type="text"
-                value={slugInput}
-                onChange={(e) => setSlugInput(sanitizeSlug(e.target.value))}
-                placeholder="your-name"
-                className="flex-1 min-w-0 px-3 py-3 text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none"
-              />
-            </div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Your link</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4 space-y-4">
 
-            {/* Slug status feedback */}
-            <div className="mt-2 min-h-[20px]">
-              {slugStatus === 'checking' && (
-                <p className="text-xs text-brand-muted">Checking availability&hellip;</p>
-              )}
-              {slugStatus === 'available' && (
-                <p className="text-xs text-status-green font-medium">Available</p>
-              )}
-              {slugStatus === 'taken' && (
-                <p className="text-xs text-status-error font-medium">That link is taken</p>
-              )}
-              {slugStatus === 'invalid' && (
-                <p className="text-xs text-status-error font-medium">3-40 chars, letters/numbers/hyphens only</p>
-              )}
-              {slugStatus === 'idle' && !slugSaved && slugInputTrimmed === '' && (
-                <p className="text-xs text-status-amber">Link will be cleared</p>
-              )}
-            </div>
+            {/* Live URL display + action buttons */}
+            {hasSlug ? (
+              <>
+                <div className="flex items-center gap-2 bg-brand-surface rounded-lg p-3">
+                  <ExternalLink size={16} className="text-status-green shrink-0" />
+                  <a
+                    href={bookingPageUrl(profile!.booking_slug!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 text-sm font-medium text-status-green truncate block"
+                  >
+                    {bookingPageUrl(profile!.booking_slug!).replace(/^https?:\/\//, '')}
+                  </a>
+                  <button
+                    onClick={handleCopyLink}
+                    className="shrink-0 p-1.5 -mr-1 text-brand-muted hover:text-brand-black active:opacity-70 cursor-pointer"
+                    aria-label="Copy link"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 bg-brand-surface border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+                  <button
+                    onClick={handleOpenPage}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 bg-brand-surface border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                  >
+                    <ExternalLink size={14} />
+                    Open
+                  </button>
+                  <button
+                    onClick={handleShareLink}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 bg-brand-surface border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                  >
+                    <Share2 size={14} />
+                    Share
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-brand-muted text-center py-2">No link set yet — create one below</p>
+            )}
 
-            <button
-              onClick={handleSaveSlugClick}
-              disabled={!canSaveSlug}
-              className={`mt-3 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                canSaveSlug
-                  ? 'bg-brand-black text-white cursor-pointer active:opacity-70'
-                  : 'bg-brand-border text-brand-muted cursor-not-allowed'
-              }`}
-            >
-              {savingSlug ? 'Saving&hellip;' : slugInputTrimmed === '' && !slugSaved ? 'Remove link' : 'Save link'}
-            </button>
+            {/* Divider */}
+            <div className="border-t border-brand-border" />
+
+            {/* Edit section */}
+            <div>
+              <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Customise your link</label>
+              <div className="flex items-stretch border-2 border-brand-border rounded-lg overflow-hidden focus-within:border-brand-black transition-colors">
+                <input
+                  type="text"
+                  value={slugInput}
+                  onChange={(e) => setSlugInput(sanitizeSlug(e.target.value))}
+                  placeholder="your-name"
+                  className="flex-1 min-w-0 px-3 py-3 text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-brand-muted">
+                Your page will be at <span className="font-medium text-brand-dark">buildlogg.com/book/{slugInputTrimmed || 'your-name'}</span>
+              </p>
+
+              {/* Slug status feedback */}
+              <div className="mt-2 min-h-[20px]">
+                {slugStatus === 'checking' && (
+                  <p className="text-xs text-brand-muted">Checking availability&hellip;</p>
+                )}
+                {slugStatus === 'available' && (
+                  <p className="text-xs text-status-green font-medium">Available</p>
+                )}
+                {slugStatus === 'taken' && (
+                  <p className="text-xs text-status-error font-medium">That link is taken</p>
+                )}
+                {slugStatus === 'invalid' && (
+                  <p className="text-xs text-status-error font-medium">3-40 chars, letters/numbers/hyphens only</p>
+                )}
+                {slugStatus === 'idle' && !slugSaved && slugInputTrimmed === '' && (
+                  <p className="text-xs text-status-amber">Link will be cleared</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleSaveSlugClick}
+                disabled={!canSaveSlug}
+                className={`mt-3 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                  canSaveSlug
+                    ? 'bg-brand-black text-white cursor-pointer active:opacity-70'
+                    : 'bg-brand-border text-brand-muted cursor-not-allowed'
+                }`}
+              >
+                {savingSlug ? 'Saving&hellip;' : slugInputTrimmed === '' && !slugSaved ? 'Remove link' : 'Save link'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -390,46 +438,19 @@ export default function Booking() {
           </div>
         )}
 
-        {/* Share section — only when enabled + slug */}
+        {/* QR code section — only when enabled + slug */}
         {isEnabled && hasSlug && (
           <div>
-            <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Share</div>
+            <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">QR code</div>
             <div className="bg-white border border-brand-border rounded-xl p-4">
               <div className="flex flex-col items-center mb-4">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <QrCode size={14} className="text-brand-mid" />
-                  <span className="text-xs font-semibold text-brand-mid">Scan to book</span>
-                </div>
                 <canvas ref={qrCanvasRef} className="rounded-lg" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleCopyLink}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
-                >
-                  <Copy size={14} />
-                  Copy link
-                </button>
-                <button
-                  onClick={handleOpenPage}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
-                >
-                  <ExternalLink size={14} />
-                  Open page
-                </button>
                 <button
                   onClick={handleDownloadQR}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                  className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
                 >
                   <Download size={14} />
                   Download QR
-                </button>
-                <button
-                  onClick={handleShareLink}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
-                >
-                  <Share2 size={14} />
-                  Share link
                 </button>
               </div>
             </div>
