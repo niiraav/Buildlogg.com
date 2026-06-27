@@ -699,9 +699,9 @@ export default function Auth() {
         <footer className="hidden md:flex items-center justify-between px-6 py-5 lg:px-10 lg:py-6 text-sm text-brand-muted">
           <span>© 2026 Buildlogg Ltd.</span>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-black transition-colors">Terms</a>
-            <a href="#" className="hover:text-brand-black transition-colors">Privacy</a>
-            <a href="#" className="hover:text-brand-black transition-colors">Support</a>
+            <a href="https://buildlogg.com/terms" className="hover:text-brand-black transition-colors">Terms</a>
+            <a href="https://buildlogg.com/privacy" className="hover:text-brand-black transition-colors">Privacy</a>
+            <a href="mailto:hello@buildlogg.com" className="hover:text-brand-black transition-colors">Support</a>
           </div>
         </footer>
       </div>
