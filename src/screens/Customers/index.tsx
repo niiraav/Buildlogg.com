@@ -28,7 +28,7 @@ export default function Customers() {
   useEffect(() => {
     if (!userId) return;
     db.customers.where('user_id').equals(userId).toArray().then((all) => {
-      const visible = all.filter((c) => !c.merged_into && !c.is_sample);
+      const visible = all.filter((c) => !c.merged_into);
       visible.sort((a, b) => {
         if (a.is_archived && !b.is_archived) return 1;
         if (!a.is_archived && b.is_archived) return -1;
