@@ -83,11 +83,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           {summaryStats && (
             <p className="text-sm text-brand-mid mt-1 truncate">{summaryStats}</p>
           )}
-          <div className="flex justify-end mt-1">
-            <span className="text-sm font-semibold text-brand-mid flex items-center gap-1">
-              View all <ArrowRight size={14} />
-            </span>
-          </div>
         </div>
       </div>
     );
