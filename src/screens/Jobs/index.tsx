@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
@@ -125,28 +125,6 @@ export default function Jobs() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Sticky header height measurement + scroll shadow
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const [headerShadow, setHeaderShadow] = useState(false);
-
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
-      }
-    });
-    ro.observe(headerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => setHeaderShadow(window.scrollY > 4);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   /* load data */
   const refresh = useCallback(async () => {
@@ -350,8 +328,7 @@ export default function Jobs() {
   const renderGroupHeader = (status: JobStatus, count: number) => (
     <div
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 py-3 px-4 cursor-pointer active:opacity-60 transition-opacity bg-[var(--app-shell-bg)] border-b border-brand-borderLight"
-      style={{ position: 'sticky', top: `${headerHeight}px`, zIndex: 20 }}
+      className="flex items-center gap-2 py-3 px-4 mb-1 cursor-pointer active:opacity-60 transition-opacity bg-[var(--app-shell-bg)] border-b border-brand-borderLight"
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-label font-bold tracking-[0.5px] text-brand-dark flex-1">
@@ -464,8 +441,7 @@ export default function Jobs() {
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Merged sticky header: title + date banner + filter chips + search */}
       <div
-        ref={headerRef}
-        className={`sticky top-0 z-40 bg-[var(--app-shell-bg)] border-b border-brand-borderLight transition-shadow duration-200 ${headerShadow ? 'shadow-sm' : ''}`}
+        className="sticky top-0 z-40 bg-[var(--app-shell-bg)] border-b border-brand-borderLight"
       >
         <div className="px-4 pt-5 pb-2">
           <div className="flex items-center justify-between">
