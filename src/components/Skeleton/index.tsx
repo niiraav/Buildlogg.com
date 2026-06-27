@@ -70,3 +70,113 @@ export function FadeIn({ children, delay = 0 }: { children: React.ReactNode; del
     </motion.div>
   );
 }
+
+/** Generic app skeleton — used for AuthGuard checking state (unknown destination) */
+export function SkeletonAppScreen() {
+  return (
+    <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+      <div className="px-4 pt-5 pb-3 border-b border-brand-borderLight">
+        <SkeletonBlock className="w-32 h-6" />
+      </div>
+      <div className="px-4 pt-4 space-y-3">
+        <SkeletonBlock className="w-full h-20 rounded-xl" />
+        <SkeletonBlock className="w-full h-20 rounded-xl" />
+        <SkeletonBlock className="w-full h-20 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for Home screen */
+export function SkeletonHomeScreen() {
+  return (
+    <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+      <div className="px-4 pt-5 pb-2">
+        <SkeletonBlock className="w-40 h-6" />
+        <SkeletonBlock className="w-24 h-4 mt-2" />
+      </div>
+      <div className="px-4 pt-4 space-y-3">
+        <SkeletonTaskCard />
+        <SkeletonTaskCard />
+      </div>
+      <div className="px-4 pt-4">
+        <SkeletonBlock className="w-full h-16 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for Settings screen */
+export function SkeletonSettingsScreen() {
+  return (
+    <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+      <div className="px-4 pt-5 pb-3 border-b border-brand-borderLight">
+        <SkeletonBlock className="w-28 h-6" />
+      </div>
+      <div className="px-4 pt-4 space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="bg-white border border-brand-border rounded-xl p-4 space-y-2">
+            <SkeletonBlock className="w-3/4 h-4" />
+            <SkeletonBlock className="w-1/2 h-3" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for Booking settings screen */
+export function SkeletonBookingScreen() {
+  return (
+    <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+      <div className="px-4 pt-2 pb-2 border-b border-brand-borderLight flex items-center gap-3">
+        <SkeletonBlock className="w-5 h-5 rounded" />
+        <SkeletonBlock className="w-32 h-5" />
+      </div>
+      <div className="px-4 pt-4 space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i}>
+            <SkeletonBlock className="w-20 h-3 mb-2" />
+            <div className="bg-white border border-brand-border rounded-xl p-4 space-y-2">
+              <SkeletonBlock className="w-3/4 h-4" />
+              <SkeletonBlock className="w-1/2 h-3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton for Customers list */
+export function SkeletonCustomerList() {
+  return (
+    <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+      <div className="px-4 pt-4 pb-3 border-b border-brand-borderLight">
+        <SkeletonBlock className="w-24 h-6" />
+      </div>
+      <div className="px-4 pt-4 space-y-2.5">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="bg-white border border-brand-border rounded-lg p-4 flex items-center gap-3">
+            <div className="flex-1 space-y-2">
+              <SkeletonBlock className="w-2/3 h-4" />
+              <SkeletonBlock className="w-1/3 h-3" />
+            </div>
+            <SkeletonBlock className="w-4 h-4 shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Generic inline skeleton — 3 centered blocks for brief loading states */
+export function SkeletonInline() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12">
+      <SkeletonBlock className="w-3/4 h-5 rounded-lg" />
+      <SkeletonBlock className="w-1/2 h-4 rounded-lg" />
+      <SkeletonBlock className="w-2/3 h-4 rounded-lg" />
+    </div>
+  );
+}
