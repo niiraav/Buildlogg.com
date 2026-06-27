@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Share, Plus, MoreVertical, Smartphone, X, Zap, Wifi, Clock, Check } from 'lucide-react';
 import { useAddToHomeScreen } from '../../hooks/useAddToHomeScreen';
 import { haptic } from '../../lib/haptics';
@@ -28,26 +27,17 @@ const InstallModal: React.FC<{
   if (!isOpen) return null;
 
   return createPortal(
-    <AnimatePresence>
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
         {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+        <div
           className="absolute inset-0 bg-black/55"
           style={{ backdropFilter: 'blur(2px)' }}
           onClick={() => { haptic('light'); onClose(); }}
         />
         {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 12 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        <div
           className="relative z-[61] w-full max-w-[380px] bg-[var(--app-shell-bg)] rounded-2xl p-6 text-center"
-          style={{ boxShadow: '0 8px 40px rgba(0,0,0,.18)' }}
+          style={{ boxShadow: '0 8px 40px rgba(0,0,0,.18)', transition: 'opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.2, 0, 0, 1)' }}
         >
           {/* Close */}
           <button
@@ -167,9 +157,9 @@ const InstallModal: React.FC<{
               </p>
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
-    </AnimatePresence>,
+        ,
     document.body,
   );
 };
