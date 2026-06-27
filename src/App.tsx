@@ -20,6 +20,8 @@ import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
 import BrandedLoader from './components/BrandedLoader';
 import { useTheme } from './hooks/useTheme';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { Loader2 } from 'lucide-react';
 import { ToastContainer } from './components/Toast';
 import { TabBar } from './components/TabBar';
 import Auth from './screens/Auth';
@@ -240,16 +242,41 @@ function AuthGuard() {
 /* ─── Screen analytics tracker ─── */
 function ScreenTracker() {
   const location = useLocation();
-  // Apply theme at the Router level so dark mode persists on login.
-  // useTheme re-evaluates on route change (from /auth to in-app pages).
   useTheme();
+
+  const { pullDistance, refreshing } = usePullToRefresh(async () => {
+    const uid = useAppStore.getState().userId;
+    if (uid && navigator.onLine) {
+      await Promise.all([
+        syncWorker().catch(() => {}),
+        initialSync(uid).catch(() => {}),
+      ]);
+    }
+  });
+
   useEffect(() => {
     capture('screen_viewed', { screen: location.pathname });
-    // Scroll the app-shell container to top on route change.
     const shell = document.getElementById('app-shell');
     if (shell) shell.scrollTop = 0;
   }, [location.pathname]);
-  return null;
+
+  const showIndicator = pullDistance > 0 || refreshing;
+  const rotation = Math.min(pullDistance / 80, 1) * 180;
+
+  if (!showIndicator) return null;
+
+  return (
+    <div
+      className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center"
+      style={{ height: refreshing ? 80 : pullDistance }}
+    >
+      <Loader2
+        size={24}
+        className={refreshing ? 'text-brand-mid animate-spin' : 'text-brand-mid'}
+        style={!refreshing ? { transform: `rotate(${rotation}deg)`, transition: 'transform 0.1s ease-out' } : undefined}
+      />
+    </div>
+  );
 }
 
 /* ─── Route-aware shell width helper ─── */
