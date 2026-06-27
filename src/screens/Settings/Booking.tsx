@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ExternalLink, Copy, Download, Share2, Clock, QrCode, AlertTriangle } from 'lucide-react';
-import QRCode from 'qrcode';
+import { createPrettyQR } from '../../lib/prettyQr';
+import type QRCodeStyling from 'qr-code-styling';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../lib/supabase';
@@ -51,7 +52,8 @@ export default function Booking() {
   const [savingSlug, setSavingSlug] = useState(false);
   const [publicItemCount, setPublicItemCount] = useState(0);
   const [showSlugChangeConfirm, setShowSlugChangeConfirm] = useState(false);
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+  const qrCodeRef = useRef<QRCodeStyling | null>(null);
 
   /* Load profile + public item count */
   useEffect(() => {
@@ -117,10 +119,25 @@ export default function Booking() {
 
   /* Render QR code when enabled + slug */
   useEffect(() => {
-    if (!qrCanvasRef.current || !profile?.booking_slug || !profile?.booking_enabled) return;
+    if (!profile?.booking_slug || !profile?.booking_enabled) return;
     const url = bookingPageUrl(profile.booking_slug);
-    QRCode.toCanvas(qrCanvasRef.current, url, { width: 200, margin: 2 }).catch(() => {});
-  }, [profile?.booking_slug, profile?.booking_enabled]);
+    const logo = profile?.logo_data_url;
+
+    // If we already have an instance, update it; otherwise create + append
+    if (qrCodeRef.current) {
+      qrCodeRef.current.update({ data: url, image: logo || '/brand/icon-transparent-square-v2.png' });
+    } else if (qrContainerRef.current) {
+      qrContainerRef.current.innerHTML = '';
+      const qr = createPrettyQR(url, logo);
+      qr.append(qrContainerRef.current);
+      qrCodeRef.current = qr;
+    }
+  }, [profile?.booking_slug, profile?.booking_enabled, profile?.logo_data_url]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { qrCodeRef.current = null; };
+  }, []);
 
   /* ─── actions ─── */
 
@@ -200,13 +217,14 @@ export default function Booking() {
     window.open(bookingPageUrl(profile.booking_slug), '_blank');
   }, [profile?.booking_slug]);
 
-  const handleDownloadQR = useCallback(() => {
-    if (!qrCanvasRef.current || !profile?.booking_slug) return;
-    const url = qrCanvasRef.current.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `booking-qr-${profile.booking_slug}.png`;
-    a.click();
+  const handleDownloadQR = useCallback(async () => {
+    if (!qrCodeRef.current || !profile?.booking_slug) return;
+    try {
+      await qrCodeRef.current.download({ name: `booking-qr-${profile.booking_slug}`, extension: 'png' });
+      showSuccess('QR downloaded');
+    } catch {
+      showToast('Could not download QR', 'error', 3000);
+    }
   }, [profile?.booking_slug]);
 
   const handleShareLink = useCallback(async () => {
@@ -442,9 +460,9 @@ export default function Booking() {
         {isEnabled && hasSlug && (
           <div>
             <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">QR code</div>
-            <div className="bg-white border border-brand-border rounded-xl p-4">
+            <div className="bg-white border border-brand-border rounded-2xl p-4">
               <div className="flex flex-col items-center mb-4">
-                <canvas ref={qrCanvasRef} className="rounded-lg" />
+                <div ref={qrContainerRef} className="flex items-center justify-center" />
                 <button
                   onClick={handleDownloadQR}
                   className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"

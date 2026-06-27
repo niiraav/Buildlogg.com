@@ -21,6 +21,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.400.0",
     "posthog-js": "^1.382.0",
+    "qr-code-styling": "^1.9.2",
     "qrcode": "^1.5.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",

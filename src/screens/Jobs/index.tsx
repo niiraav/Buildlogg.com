@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
@@ -83,6 +84,16 @@ const statusDotClasses: Record<JobStatus, string> = {
   written_off: 'bg-brand-border',
 };
 
+// Subtle background tint per status (CSS variables — already very pale)
+const statusBgTints: Partial<Record<JobStatus, string>> = {
+  in_progress: 'var(--color-blue-bg)',
+  booked: 'var(--color-blue-bg)',
+  awaiting_payment: 'var(--color-amber-bg)',
+  no_show: 'var(--color-amber-bg)',
+  paid: 'var(--color-green-bg)',
+  cancelled: 'var(--color-red-bg)',
+  written_off: 'var(--color-red-bg)',
+};
 
 const filters: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -115,6 +126,28 @@ export default function Jobs() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sticky header height measurement + scroll shadow
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [headerShadow, setHeaderShadow] = useState(false);
+
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setHeaderHeight(entry.contentRect.height);
+      }
+    });
+    ro.observe(headerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setHeaderShadow(window.scrollY > 4);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   /* load data */
   const refresh = useCallback(async () => {
@@ -195,6 +228,23 @@ export default function Jobs() {
   }, [dateFilteredJobs]);
 
   const hasAnyJobs = jobsWithData.length > 0;
+
+  // Filter chip counts
+  const filterCounts = useMemo(() => ({
+    all: searchFilteredJobs.length,
+    active: searchFilteredJobs.filter((j) => j.status === 'in_progress' || j.status === 'booked').length,
+    unpaid: searchFilteredJobs.filter((j) => j.status === 'awaiting_payment').length,
+  }), [searchFilteredJobs]);
+
+  // Summary strip: active count, unpaid count, awaiting total
+  const summary = useMemo(() => {
+    const active = filteredJobs.filter((j) => j.status === 'in_progress' || j.status === 'booked').length;
+    const unpaid = filteredJobs.filter((j) => j.status === 'awaiting_payment').length;
+    const awaitingTotal = filteredJobs
+      .filter((j) => j.status === 'awaiting_payment')
+      .reduce((s, j) => s + j.total, 0);
+    return { active, unpaid, awaitingTotal };
+  }, [filteredJobs]);
 
   const toggleGroup = (status: JobStatus) => {
     setExpanded((prev) => {
@@ -301,7 +351,8 @@ export default function Jobs() {
   const renderGroupHeader = (status: JobStatus, count: number) => (
     <div
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 py-2.5 px-1 mb-1 cursor-pointer active:opacity-60 transition-opacity"
+      className="flex items-center gap-2 py-2.5 px-3 mb-1 cursor-pointer active:opacity-60 transition-opacity bg-[var(--app-shell-bg)]"
+      style={{ position: 'sticky', top: `${headerHeight}px`, zIndex: 20 }}
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-label font-bold tracking-[0.5px] text-brand-dark flex-1">
@@ -331,14 +382,27 @@ export default function Jobs() {
     </div>
   );
 
-  const renderExpandedGroup = (status: JobStatus, jobs: JobWithTotal[]) => (
-    <div key={status} className="mb-5">
-      {renderGroupHeader(status, jobs.length)}
-      <div>
-        {jobs.map(renderJobRow)}
+  const renderExpandedGroup = (status: JobStatus, jobs: JobWithTotal[]) => {
+    const tint = statusBgTints[status];
+    return (
+      <div key={status} className="mb-5">
+        {renderGroupHeader(status, jobs.length)}
+        <AnimatePresence initial={false}>
+          <motion.div
+            initial={{ height: 'auto', opacity: 1 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={tint ? { backgroundColor: tint } : undefined} className="rounded-xl px-2 py-1">
+              {jobs.map(renderJobRow)}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderBody = () => {
     if (!hasAnyJobs) {
@@ -409,75 +473,99 @@ export default function Jobs() {
 
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
-      {/* Header */}
-      <div className="sticky top-0 z-40 px-4 pt-5 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
-        <div className="flex items-center justify-between">
-          <h1 className="screen-title text-brand-black">Jobs</h1>
-          <SyncIndicator />
-        </div>
-      </div>
-
-      {/* Date filter banner */}
-      {dateFilter && (
-        <div className="flex items-center justify-between bg-brand-surface border border-brand-border rounded-lg px-3 py-2 mb-3 mx-4 mt-3">
-          <span className="text-sm font-medium text-brand-dark">
-            {new Date(dateFilter).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
-          </span>
-          <button onClick={() => {
-            const params = new URLSearchParams(searchParams);
-            params.delete('date');
-            setSearchParams(params);
-          }} className="text-sm text-brand-mid underline cursor-pointer">Clear</button>
-        </div>
-      )}
-
-      {/* Filter chips */}
-      <div className="px-4 pt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {filters.map((f) => {
-          const isActive = filter === f.key;
-          return (
-            <button
-              key={f.key}
-              onClick={() => {
-                setFilter(f.key);
-                const params = new URLSearchParams(searchParams);
-                if (f.key === 'all') params.delete('filter'); else params.set('filter', f.key);
-                setSearchParams(params);
-              }}
-              className={`
-                h-11 px-3.5 rounded-2xl flex items-center text-sm font-semibold whitespace-nowrap cursor-pointer shrink-0 border-2
-                transition-colors
-                ${isActive
-                  ? 'bg-brand-black text-brand-surface border-brand-black'
-                  : 'bg-white text-brand-mid border-brand-border'
-                }
-              `}
-            >
-              {f.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Search bar */}
-      {hasAnyJobs && (
-        <div className="px-4 pt-2 shrink-0">
-          <div className="relative flex items-center">
-            <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>
-            <input id="jobs-search-input"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name or job…"
-              className="w-full h-11 pl-10 pr-9 text-base font-medium text-brand-black bg-brand-borderLight border border-transparent rounded-xl outline-none focus:border-brand-black focus:bg-white transition-colors"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3 p-1 cursor-pointer">
-                <X size={14} className="text-brand-muted" />              </button>
-            )}
+      {/* Merged sticky header: title + date banner + filter chips + search */}
+      <div
+        ref={headerRef}
+        className={`sticky top-0 z-40 bg-[var(--app-shell-bg)] border-b border-brand-borderLight transition-shadow duration-200 ${headerShadow ? 'shadow-sm' : ''}`}
+      >
+        <div className="px-4 pt-5 pb-2">
+          <div className="flex items-center justify-between">
+            <h1 className="screen-title text-brand-black">Jobs</h1>
+            <SyncIndicator />
           </div>
         </div>
-      )}
+
+        {/* Date filter banner */}
+        {dateFilter && (
+          <div className="flex items-center justify-between bg-brand-surface border border-brand-border rounded-lg px-3 py-2 mx-4 mb-2">
+            <span className="text-sm font-medium text-brand-dark">
+              {new Date(dateFilter).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+            </span>
+            <button onClick={() => {
+              const params = new URLSearchParams(searchParams);
+              params.delete('date');
+              setSearchParams(params);
+            }} className="text-sm text-brand-mid underline cursor-pointer">Clear</button>
+          </div>
+        )}
+
+        {/* Filter chips with counts */}
+        <div className="px-4 pb-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {filters.map((f) => {
+            const isActive = filter === f.key;
+            const count = filterCounts[f.key];
+            return (
+              <button
+                key={f.key}
+                onClick={() => {
+                  setFilter(f.key);
+                  const params = new URLSearchParams(searchParams);
+                  if (f.key === 'all') params.delete('filter'); else params.set('filter', f.key);
+                  setSearchParams(params);
+                }}
+                className={`
+                  h-11 px-3.5 rounded-2xl flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer shrink-0 border-2
+                  transition-colors
+                  ${isActive
+                    ? 'bg-brand-black text-brand-surface border-brand-black'
+                    : 'bg-white text-brand-mid border-brand-border'
+                  }
+                `}
+              >
+                {f.label}
+                {count > 0 && (
+                  <span className={`text-xs font-medium ${isActive ? 'text-brand-surface/70' : 'text-brand-muted'}`}>
+                    ({count})
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search bar */}
+        {hasAnyJobs && (
+          <div className="px-4 pb-2 shrink-0">
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>
+              <input id="jobs-search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or job…"
+                className="w-full h-11 pl-10 pr-9 text-base font-medium text-brand-black bg-brand-borderLight border border-transparent rounded-xl outline-none focus:border-brand-black focus:bg-white transition-colors"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 p-1 cursor-pointer">
+                  <X size={14} className="text-brand-muted" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Summary strip */}
+        {hasAnyJobs && (summary.active > 0 || summary.unpaid > 0) && (
+          <div className="px-4 pb-2">
+            <p className="text-xs text-brand-muted">
+              {summary.active > 0 && <span>{summary.active} active</span>}
+              {summary.active > 0 && summary.unpaid > 0 && <span> · </span>}
+              {summary.unpaid > 0 && <span>{summary.unpaid} unpaid</span>}
+              {summary.awaitingTotal > 0 && <span> · £{summary.awaitingTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} awaiting</span>}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Body */}
       {renderBody()}
