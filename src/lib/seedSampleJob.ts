@@ -126,7 +126,12 @@ export async function seedSampleJob(
   if (!data) return;
 
   const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+  // Use a realistic 8:30 AM start time instead of Date.now() (which could be any time)
+  const today830 = new Date(now);
+  today830.setHours(8, 30, 0, 0);
+  // If 8:30 AM has already passed today, use it; otherwise use yesterday's 8:30 AM
+  if (today830 > now) today830.setDate(today830.getDate() - 1);
+  const twoHoursAgo = today830.toISOString();
   const firstName = data.customerName.split(' ')[0] || 'there';
   const businessName = profile?.business_name || profile?.full_name || 'Your business';
   const defaultLabour = profile?.default_labour_charge || 75;

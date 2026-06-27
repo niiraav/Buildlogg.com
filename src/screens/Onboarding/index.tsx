@@ -222,7 +222,7 @@ export default function Onboarding() {
     seedMessageTemplates(resolvedUserId).catch(() => {});
     // Seed a sample job so the user lands on a populated home screen
     const profileData = await db.profiles.get(resolvedUserId);
-    seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
+    await seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
     capture('sample_job_seeded', { trade: trade || 'other', businessType });
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
