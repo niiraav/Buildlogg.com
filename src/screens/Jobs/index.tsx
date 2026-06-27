@@ -364,6 +364,36 @@ export default function Jobs() {
     const expandedGroups = visibleStatuses.filter((s) => expanded.has(s));
     const collapsedGroups = visibleStatuses.filter((s) => !expanded.has(s));
 
+    // Empty state for filter/search returning zero results
+    if (visibleStatuses.length === 0) {
+      return (
+        <div className="min-h-[40dvh] flex flex-col items-center justify-center px-6 py-8 text-center">
+          <ClipboardList size={32} className="mb-3 opacity-40 text-brand-muted" />
+          <p className="text-sm font-medium text-brand-dark mb-1">
+            {dateFilter
+              ? 'No jobs on this date'
+              : filter === 'unpaid'
+              ? 'No unpaid jobs — all caught up'
+              : searchQuery.trim()
+              ? `No jobs match "${searchQuery.trim()}"`
+              : 'No jobs found'}
+          </p>
+          {dateFilter && (
+            <button
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.delete('date');
+                setSearchParams(params);
+              }}
+              className="mt-3 text-sm text-brand-mid underline cursor-pointer"
+            >
+              Show all jobs
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}

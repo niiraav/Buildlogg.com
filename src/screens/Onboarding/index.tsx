@@ -314,7 +314,7 @@ export default function Onboarding() {
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden bg-brand-surface border-brand-border">
                     <input
                       type="email"
-                      value={email || 'Not provided'}
+                      value={email || 'Not required in test mode'}
                       readOnly
                       className="flex-1 text-base text-brand-mid min-h-13 px-4 bg-transparent outline-none cursor-not-allowed"
                     />

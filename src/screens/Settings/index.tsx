@@ -340,7 +340,7 @@ export default function Settings() {
             <div className="px-4">
               <InlineEditRow
                 label="Phone"
-                value={phone}
+                value={phone || ''}
                 onSave={(v) => saveField('phone', normalizeUKPhone(v))}
                 isEditing={editingField === 'phone'}
                 onEditStart={() => setEditingField('phone')}

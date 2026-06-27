@@ -357,7 +357,7 @@ export default function App() {
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">
-        <Router basename="/app">
+        <Router basename="/app" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ScreenTracker />
           <DesktopSplitShell />
           <AppRoutes />
