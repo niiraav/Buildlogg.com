@@ -7,9 +7,110 @@
 import { db, type BookingRequest, type Customer, type Job } from './db';
 import { findDuplicateByPhone } from './customers';
 import { nextJobNumber } from './jobNumbers';
+import { supabase } from './supabase';
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function getServiceDurationMinutes(booking: BookingRequest): Promise<number> {
+  if (!booking.service_amount || booking.service_amount <= 0) return Promise.resolve(60);
+  const description = booking.service_description.toLowerCase().trim();
+  return db.custom_items
+    .where('user_id')
+    .equals(booking.merchant_id)
+    .filter((i) => {
+      const itemDesc = i.description.toLowerCase().trim();
+      return itemDesc === description || i.amount === booking.service_amount;
+    })
+    .first()
+    .then((item) => item?.duration_minutes || 60)
+    .catch(() => 60);
+}
+
+function bookingScheduledStart(booking: BookingRequest): string {
+  return new Date(`${booking.requested_date}T${booking.requested_time}:00`).toISOString();
+}
+
+function bookingScheduledEnd(booking: BookingRequest, durationMinutes: number): string {
+  return new Date(new Date(bookingScheduledStart(booking)).getTime() + durationMinutes * 60 * 1000).toISOString();
+}
+
+export interface ConflictJobInfo {
+  jobNumber?: string;
+  customerName: string;
+  title: string;
+  scheduledStart: string;
+}
+
+export interface BookingConflictResult {
+  hasConflict: boolean;
+  conflictJob?: ConflictJobInfo;
+}
+
+/**
+ * Check whether a booking request overlaps with an existing booked/in_progress job.
+ * Local Dexie check first; if no conflicts, falls back to Supabase for new-device cases.
+ */
+export async function checkBookingConflict(userId: string, bookingId: string): Promise<BookingConflictResult> {
+  const booking = await db.booking_requests.get(bookingId);
+  if (!booking) return { hasConflict: false };
+
+  const start = new Date(bookingScheduledStart(booking));
+  const end = new Date(bookingScheduledEnd(booking, await getServiceDurationMinutes(booking)));
+
+  const conflicts = await db.jobs
+    .where('user_id')
+    .equals(userId)
+    .filter((job) => {
+      if (!['booked', 'in_progress'].includes(job.status)) return false;
+      if (!job.scheduled_start || !job.scheduled_end) return false;
+      const jobStart = new Date(job.scheduled_start);
+      const jobEnd = new Date(job.scheduled_end);
+      // Overlap: new start is before existing end AND new end is after existing start
+      return start < jobEnd && end > jobStart;
+    })
+    .toArray();
+
+  if (conflicts.length > 0) {
+    const job = conflicts[0];
+    const customer = await db.customers.get(job.customer_id);
+    return {
+      hasConflict: true,
+      conflictJob: {
+        jobNumber: job.job_number,
+        customerName: customer?.name || 'Unknown',
+        title: job.title,
+        scheduledStart: job.scheduled_start as string,
+      },
+    };
+  }
+
+  // Supabase fallback for new-device scenarios where the local DB may be incomplete
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('id, job_number, customer_id, title, scheduled_start, scheduled_end, customers(name)')
+      .eq('user_id', userId)
+      .in('status', ['booked', 'in_progress'])
+      .lt('scheduled_start', end.toISOString())
+      .gt('scheduled_end', start.toISOString());
+
+    if (error || !data || data.length === 0) return { hasConflict: false };
+
+    const remote = data[0];
+    return {
+      hasConflict: true,
+      conflictJob: {
+        jobNumber: remote.job_number || undefined,
+        customerName: (remote.customers as unknown as { name: string } | null)?.name || 'Unknown',
+        title: remote.title,
+        scheduledStart: remote.scheduled_start as string,
+      },
+    };
+  } catch {
+    return { hasConflict: false };
+  }
 }
 
 /**
@@ -45,6 +146,7 @@ export async function acceptBookingRequest(
   customerId: string;
   confirmationMessage: string;
   customer: { name: string; phone: string };
+  conflict?: ConflictJobInfo;
 }> {
   const booking = await db.booking_requests.get(bookingId);
   if (!booking) throw new Error('Booking request not found');
@@ -93,15 +195,15 @@ export async function acceptBookingRequest(
     });
   }
 
-  // ─── 2. Create the job ───
+  // ─── 2. Conflict check (warning only, does not block accept) ───
+  const durationMinutes = await getServiceDurationMinutes(booking);
+  const scheduledStart = bookingScheduledStart(booking);
+  const scheduledEnd = bookingScheduledEnd(booking, durationMinutes);
+  const conflictCheck = await checkBookingConflict(userId, bookingId);
+
+  // ─── 3. Create the job ───
   const jobId = crypto.randomUUID();
   const jobNumber = await nextJobNumber(userId);
-
-  // Convert the requested date+time to ISO for scheduled_start.
-  // The app runs on the user's phone (UK timezone), so new Date("YYYY-MM-DDTHH:MM:SS")
-  // without a Z suffix is interpreted as UK local time → correct.
-  const scheduledStart = new Date(`${booking.requested_date}T${booking.requested_time}:00`).toISOString();
-  const scheduledEnd = new Date(new Date(scheduledStart).getTime() + 60 * 60 * 1000).toISOString();
 
   const newJob: Job = {
     id: jobId,
@@ -170,6 +272,7 @@ export async function acceptBookingRequest(
       name: customerName,
       phone: booking.client_phone,
     },
+    conflict: conflictCheck.conflictJob,
   };
 }
 

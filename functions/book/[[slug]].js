@@ -120,6 +120,14 @@ export async function onRequest(context) {
       const now = new Date().toISOString();
       const bookedJobs = await supabaseQuery(SU, SK, 'jobs', `?user_id=eq.${merchant.id}&status=in.(booked,in_progress)&scheduled_start=gte.${now}&select=scheduled_start,scheduled_end`);
       const bookedSlots = (bookedJobs||[]).filter(j=>j.scheduled_start).map(j=>({start:j.scheduled_start,end:j.scheduled_end||j.scheduled_start}));
+      const fourHoursAgo = new Date(Date.now()-4*60*60*1000).toISOString();
+      const pendingRequests = await supabaseQuery(SU, SK, 'booking_requests', `?merchant_id=eq.${merchant.id}&status=eq.pending&created_at=gte.${fourHoursAgo}&select=requested_date,requested_time,service_amount`);
+      for (const r of pendingRequests||[]) {
+        if (!r.requested_date || !r.requested_time) continue;
+        const start = londonToUtc(r.requested_date, r.requested_time).toISOString();
+        const end = new Date(new Date(start).getTime()+60*60*1000).toISOString();
+        bookedSlots.push({start,end});
+      }
       const exp = new Date(Date.now()-72*60*60*1000).toISOString();
       await supabaseQuery(SU, SK, 'booking_requests', `?merchant_id=eq.${merchant.id}&status=eq.pending&created_at=lt.${exp}`, 'PATCH', { status: 'expired' });
       const bh = merchant.booking_buffer_hours||24;
@@ -150,10 +158,24 @@ export async function onRequest(context) {
       const oneHrAgo = new Date(Date.now()-60*60*1000).toISOString();
       const recent = await supabaseQuery(SU, SK, 'booking_requests', `?merchant_id=eq.${merchant.id}&client_phone=eq.${encodeURIComponent(phone)}&status=eq.pending&created_at=gte.${oneHrAgo}&select=id`);
       if (recent&&recent.length>=3) return json({error:"You've already sent a request. They'll be in touch soon."},429);
-      const sS = londonToUtc(body.requestedDate, body.requestedTime);
-      const bJobs = await supabaseQuery(SU, SK, 'jobs', `?user_id=eq.${merchant.id}&status=in.(booked,in_progress)&scheduled_start=gte.${new Date().toISOString()}&select=scheduled_start,scheduled_end`);
-      const sE = new Date(sS.getTime()+(body.serviceDuration||60)*60*1000);
-      const isBooked = (bJobs||[]).some(j=>{if(!j.scheduled_start)return false;const bS=new Date(j.scheduled_start),bE=new Date(j.scheduled_end||j.scheduled_start);return sS<bE&&sE>bS});
+      const requestedDate = body.requestedDate;
+      const requestedTime = body.requestedTime;
+      const slotStart = londonToUtc(requestedDate, requestedTime);
+      const now = new Date();
+      const maxDate = new Date(now.getTime()+14*24*60*60*1000);
+      const requestedDateObj = new Date(requestedDate+'T00:00:00.000Z');
+      if (requestedDateObj > maxDate) return json({error:'Requested date must be within the next 14 days'},400);
+      if (slotStart <= now) return json({error:'Requested time must be in the future'},400);
+      const bJobs = await supabaseQuery(SU, SK, 'jobs', `?user_id=eq.${merchant.id}&status=in.(booked,in_progress)&scheduled_start=gte.${now.toISOString()}&select=scheduled_start,scheduled_end`);
+      const sE = new Date(slotStart.getTime()+(body.serviceDuration||60)*60*1000);
+      const fourHoursAgo = new Date(Date.now()-4*60*60*1000).toISOString();
+      const pendingRequests = await supabaseQuery(SU, SK, 'booking_requests', `?merchant_id=eq.${merchant.id}&status=eq.pending&created_at=gte.${fourHoursAgo}&select=requested_date,requested_time`);
+      const isBooked = (bJobs||[]).some(j=>{if(!j.scheduled_start)return false;const bS=new Date(j.scheduled_start),bE=new Date(j.scheduled_end||j.scheduled_start);return slotStart<bE&&sE>bS}) || (pendingRequests||[]).some(r=>{
+        if (!r.requested_date || !r.requested_time) return false;
+        const pS = londonToUtc(r.requested_date, r.requested_time);
+        const pE = new Date(pS.getTime()+60*60*1000);
+        return slotStart<pE && sE>pS;
+      });
       if (isBooked) return json({error:'That time was just booked. Please pick another time.'},409);
       const result = await supabaseQuery(SU, SK, 'booking_requests', '', 'POST', {
         merchant_id: merchant.id, service_description: body.serviceDescription, service_amount: body.serviceAmount||0,

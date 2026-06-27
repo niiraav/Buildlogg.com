@@ -27,7 +27,7 @@ import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollow
 import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
 import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
-import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests } from '../../lib/booking';
+import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
 import type { BookingRequest } from '../../lib/db';
 import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
@@ -96,6 +96,15 @@ function daysSince(dateStr: string): number {
   const d = new Date(dateStr);
   const now = new Date();
   return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getDaysUntil(dateStr: string): number | null {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const target = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function getGreeting(): string {
@@ -176,6 +185,9 @@ interface TaskItem {
   flagDays?: number;
   timeAgo: string;
   contextLine: string;
+  duration?: string;
+  requestedDate?: string;
+  conflictText?: string;
 }
 
 /* --- component --- */
@@ -213,6 +225,8 @@ export default function Home() {
   const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
   const [pendingBookings, setPendingBookings] = useState<BookingRequest[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
+  const [bookingConflict, setBookingConflict] = useState<ConflictJobInfo | null>(null);
+  const summaryBookingStats = useRef<{ count: number; urgent: number }>({ count: 0, urgent: 0 });
   const [sendSheetConfig, setSendSheetConfig] = useState<{
     title: string;
     customerPhone: string;
@@ -342,6 +356,21 @@ export default function Home() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  /* Check for booking conflicts when the booking request sheet opens */
+  useEffect(() => {
+    if (sheet !== 'booking_request' || !selectedBooking || !userId) {
+      setBookingConflict(null);
+      return;
+    }
+    checkBookingConflict(userId, selectedBooking.id)
+      .then((result) => {
+        setBookingConflict(result.conflictJob || null);
+      })
+      .catch(() => {
+        setBookingConflict(null);
+      });
+  }, [sheet, selectedBooking, userId]);
 
   /* --- derived --- */
   const activeJob = useMemo(
@@ -613,23 +642,46 @@ export default function Home() {
       });
     });
 
-    // Add booking request tasks
-    pendingBookings.forEach((b) => {
+    // Add booking request tasks (use summary card if volume is high)
+    if (pendingBookings.length >= 5) {
+      const urgentCount = pendingBookings.filter((b) => {
+        const days = getDaysUntil(b.requested_date);
+        return days !== null && days <= 1;
+      }).length;
       items.push({
-        id: `booking_${b.id}`,
-        jobId: b.accepted_job_id || b.id,
-        customerName: b.client_name,
-        jobTitle: b.service_description,
-        jobNumber: undefined,
-        tag: 'Booking request',
-        amount: b.service_amount > 0 ? `£${b.service_amount.toFixed(0)}` : '',
+        id: 'booking_summary',
+        jobId: 'booking_summary',
+        customerName: '',
+        jobTitle: '',
+        tag: 'Booking requests',
+        amount: '',
         isL2: true,
         type: 'booking_request',
-        phone: b.client_phone,
-        timeAgo: new Date(b.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-        contextLine: `${b.requested_date} at ${b.requested_time}`,
+        timeAgo: '',
+        contextLine: '',
+        requestedDate: '',
       });
-    });
+      summaryBookingStats.current = { count: pendingBookings.length, urgent: urgentCount };
+    } else {
+      pendingBookings.forEach((b) => {
+        items.push({
+          id: `booking_${b.id}`,
+          jobId: b.accepted_job_id || b.id,
+          customerName: b.client_name,
+          jobTitle: b.service_description,
+          jobNumber: undefined,
+          tag: 'Booking request',
+          amount: b.service_amount > 0 ? `£${b.service_amount.toFixed(0)}` : '',
+          duration: '1hr',
+          isL2: true,
+          type: 'booking_request',
+          phone: b.client_phone,
+          timeAgo: new Date(b.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+          contextLine: `${b.requested_date} at ${b.requested_time}`,
+          requestedDate: b.requested_date,
+        });
+      });
+    }
 
     return items;
   }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring, pendingBookings]);
@@ -1134,7 +1186,13 @@ export default function Home() {
                     timeAgo={task.timeAgo}
                     jobNumber={task.jobNumber}
                     amount={task.amount}
+                    duration={task.duration}
+                    requestedDate={task.requestedDate}
+                    conflictText={task.conflictText}
                     contextLine={task.contextLine}
+                    isSummary={task.id === 'booking_summary'}
+                    summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
+                    summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
                     onTap={() => {
                     if (task.type === 'quote_follow_up') {
                       const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
@@ -1146,9 +1204,13 @@ export default function Home() {
                       const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
                     } else if (task.type === 'booking_request') {
+                      if (task.id === 'booking_summary') {
+                        console.log('Navigate to booking requests list');
+                        return;
+                      }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -1182,7 +1244,13 @@ export default function Home() {
                     timeAgo={task.timeAgo}
                     jobNumber={task.jobNumber}
                     amount={task.amount}
+                    duration={task.duration}
+                    requestedDate={task.requestedDate}
+                    conflictText={task.conflictText}
                     contextLine={task.contextLine}
+                    isSummary={task.id === 'booking_summary'}
+                    summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
+                    summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
                     onTap={() => {
                     if (task.type === 'quote_follow_up') {
                       const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
@@ -1194,9 +1262,13 @@ export default function Home() {
                       const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
                     } else if (task.type === 'booking_request') {
+                      if (task.id === 'booking_summary') {
+                        console.log('Navigate to booking requests list');
+                        return;
+                      }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -2039,8 +2111,24 @@ export default function Home() {
         subtitle={selectedBooking ? `${selectedBooking.client_name} · ${selectedBooking.service_description}` : undefined}
       >
         {selectedBooking && (() => {
+          const conflictTime = bookingConflict?.scheduledStart
+            ? new Date(bookingConflict.scheduledStart).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+            : '';
           return (
             <div className="flex flex-col gap-2">
+              {bookingConflict ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-2 flex items-start gap-2">
+                  <AlertTriangle size={18} className="text-status-red shrink-0 mt-0.5" />
+                  <p className="text-sm text-status-red">
+                    Conflicts with: {bookingConflict.jobNumber || 'no job #'} · {bookingConflict.customerName} · {bookingConflict.title} · {conflictTime}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-status-greenBg border border-green-200 rounded-lg p-3 mb-2 flex items-center gap-2">
+                  <CheckCircle size={18} className="text-status-green" />
+                  <p className="text-sm text-status-green">Available</p>
+                </div>
+              )}
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
                 <p className="text-sm text-brand-dark">
                   <span className="font-semibold">{selectedBooking.service_description}</span>
