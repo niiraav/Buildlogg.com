@@ -186,13 +186,21 @@ export default function Settings() {
     localStorage.removeItem('buildlogg_mock_user');
     useAppStore.getState().setUserId(null);
 
-    // Tear down session + DB (fire-and-forget to prevent hang blocking reload)
-    supabase.auth.signOut().catch(() => {});
-    db.delete().catch(() => {});
+    // In mock/dev mode there's no real Supabase session — skip signOut()
+    // entirely as it can hang waiting for a network response that never comes.
+    // In production, fire-and-forget signOut before navigating away.
+    const isMockMode = !localStorage.getItem('buildlogg_supabase_session') && import.meta.env.DEV;
+    if (!isMockMode) {
+      supabase.auth.signOut().catch(() => {});
+    }
 
-    // Navigate to the in-app login page and reload — prevents blank-screen race
-    navigate('/auth', { replace: true });
-    window.location.reload();
+    // db.delete() is fire-and-forget — don't await it.
+    // Use window.location.replace() for immediate hard navigation away,
+    // abandoning all pending JS (promises, IndexedDB transactions, etc).
+    // This prevents the hang where db.delete() holds an IDB lock that
+    // blocks window.location.reload().
+    db.delete().catch(() => {});
+    window.location.replace('/app/auth');
   };
 
   const fullName = profile?.full_name || '';
