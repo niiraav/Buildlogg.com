@@ -607,6 +607,38 @@ export default function JobDetail() {
 
   const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'other') => {
     if (!job || !userId || paymentProcessing) return;
+
+    // £0.00 jobs: skip payment, mark as paid directly
+    if (total === 0) {
+      const n = now();
+      try {
+        const logId = crypto.randomUUID();
+        await db.jobs.update(job.id, {
+          status: 'paid',
+          updated_at: n,
+          _sync_status: 'pending',
+        });
+        await db.work_log.add({
+          id: logId,
+          job_id: job.id,
+          type: 'status_change',
+          description: 'Job completed — no charge',
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        await addToSyncQueue('jobs', job.id, { status: 'paid', updated_at: n }, 'update');
+        await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — no charge', created_at: n }, 'insert');
+        hapticSuccess();
+        showSuccess('Job completed — no charge');
+        setContextualFlag();
+        captureJobMarkedPaid();
+        setSheet(null);
+      } finally {
+        refresh();
+      }
+      return;
+    }
+
     const summary = paymentSummary(job, payments, total);
     if (summary.isFullyPaid || job.status === 'paid') {
       showToast('This job is already paid', 'info', 2000);
@@ -2258,7 +2290,7 @@ export default function JobDetail() {
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
       <div className="flex gap-2">
         <div className="flex-1">
-          <Button variant="primary" onClick={() => setSheet('mark_paid')}>
+          <Button variant="primary" onClick={() => total === 0 ? handleMarkAsPaid('cash') : setSheet('mark_paid')}>
             Mark as Paid
           </Button>
         </div>
