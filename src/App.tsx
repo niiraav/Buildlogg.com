@@ -35,6 +35,7 @@ import MessageTemplates from './screens/Settings/MessageTemplates';
 import Dashboard from './screens/Dashboard';
 import Customers from './screens/Customers';
 import CustomerDetail from './screens/Customers/CustomerDetail';
+import AddCustomer from './screens/Customers/AddCustomer';
 import Activity from './screens/Activity';
 import AppDesktopContext from './components/AppDesktopContext';
 
@@ -298,6 +299,7 @@ function AppRoutes() {
         <Route path="/settings/booking" element={<Booking />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
+        <Route path="/customers/new" element={<AddCustomer />} />
         <Route path="/customers/:customerId" element={<CustomerDetail />} />
         <Route path="/settings/message-templates" element={<MessageTemplates />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, ChevronLeft, Phone, Archive } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Phone, Archive, UserPlus } from 'lucide-react';
 import { db, type Customer } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { searchCustomers, getCustomerStats, findDuplicateCustomers, mergeCustomers, type CustomerStats, type DuplicatePair } from '../../lib/customers';
@@ -81,19 +81,30 @@ export default function Customers() {
               {showArchived ? 'Archived customers' : "Everyone you've quoted, booked, or worked for"}
             </p>
           </div>
-          {!query.trim() && (
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 shrink-0 ${
-                showArchived
-                  ? 'bg-brand-black text-brand-surface'
-                  : 'bg-brand-surface text-brand-dark border border-brand-border'
-              }`}
-            >
-              <Archive size={12} />
-              {showArchived ? 'Active' : 'Archived'}
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {!query.trim() && (
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  showArchived
+                    ? 'bg-brand-black text-brand-surface'
+                    : 'bg-brand-surface text-brand-dark border border-brand-border'
+                }`}
+              >
+                <Archive size={12} />
+                {showArchived ? 'Active' : 'Archived'}
+              </button>
+            )}
+            {!showArchived && (
+              <button
+                onClick={() => navigate('/customers/new')}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 bg-brand-black text-brand-surface"
+              >
+                <UserPlus size={12} />
+                Add
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -121,6 +132,15 @@ export default function Customers() {
                 ? 'No archived customers'
                 : 'No customers yet'}
             </p>
+            {!query.trim() && !showArchived && (
+              <button
+                onClick={() => navigate('/customers/new')}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-black bg-brand-surface border border-brand-border px-4 py-2.5 rounded-lg cursor-pointer active:opacity-70 transition-opacity"
+              >
+                <UserPlus size={14} />
+                Add your first customer
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
