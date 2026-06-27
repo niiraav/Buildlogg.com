@@ -7,13 +7,17 @@
 4. iOS opens the date/time picker instead of the expected action
 
 ## Root cause
-`<label>` HTML elements were used for text labels ("Days you work", "Working hours", "Blocked dates (holidays)") without `htmlFor` attributes. On iOS Safari, a `<label>` without `for` associates with the nearest input in the same container. Tapping the label (or anything iOS considers part of the label's touch area) opens that input's picker. The `<input type="date">` in the blocked dates section was being triggered by taps on the "Days you work" label above it.
+globals.css has a `::-webkit-calendar-picker-indicator` rule that makes the native picker indicator invisible but covers the entire input with `position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%`. Without `position:relative` on the input itself, the absolute positioning is relative to the nearest positioned ancestor (the container div), not the input. On iOS Safari, this caused the invisible overlay to cover the entire "Working days & hours" container — any tap in the container hit the overlay and opened the date/time picker.
 
 ## Fix
-Changed `<label>` to `<span>` for the three text labels in the working days & hours section. `<span>` has no form association behavior — taps go to the actual element being tapped.
+Added `position: relative` to `input[type="date"]` and `input[type="time"]` in globals.css. Now the indicator overlay is contained within the input's bounds, not the parent container.
+
+Also changed `<label>` to `<span>` for text labels in the working days section (previous fix, still valid — prevents form association on iOS).
 
 ## Files
-- `src/screens/Settings/Booking.tsx` — 3 `<label>` → `<span>` replacements
+- `src/styles/globals.css` — added `position: relative` to date/time input CSS rule
+- `src/screens/Settings/Booking.tsx` — `<label>` → `<span>` for 3 text labels
 
-## Commit
-`fix(booking): root-cause <label> tags triggering iOS date picker on tap`
+## Commits
+- `5be1aab` — fix(booking): <label> → <span> (partial fix)
+- `2d0713e` — fix(booking): position:relative on date/time inputs (root cause fix)
