@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -22,6 +22,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
 }) => {
   const dragControls = useDragControls();
+
+  // Lock body scroll when sheet is open — iOS-safe position:fixed pattern
+  useEffect(() => {
+    if (!isOpen) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
 
   return createPortal(
     <AnimatePresence>
@@ -86,7 +101,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             )}
 
             {/* Scrollable content — separated from draggable outer */}
-            <div className="overflow-y-auto max-h-[calc(85dvh-140px)] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
+            <div className="overflow-y-auto overscroll-contain max-h-[calc(85dvh-140px)] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
               {children}
             </div>
           </motion.div>
