@@ -499,7 +499,7 @@ export default function Booking() {
                     className="text-brand-muted cursor-pointer"
                     aria-label="Remove"
                   >
-                    <span className="text-lg">\u00d7</span>
+                    <span className="text-lg">×</span>
                   </button>
                 </div>
               ))}
