@@ -42,7 +42,14 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').catch(function(err) {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            // Check for SW updates every 60 seconds
+            setInterval(function() { reg.update(); }, 60000);
+            // When a new SW takes over, reload the page to get new assets
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+              window.location.reload();
+            });
+          }).catch(function(err) {
             console.error('SW registration failed:', err);
           });
         });
