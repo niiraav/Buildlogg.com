@@ -470,14 +470,14 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_hours_start || '09:00'}
-                onChange={(e) => updateProfileFields(userId, { booking_hours_start: e.target.value })}
+                onChange={(e) => { if (userId) updateProfileFields(userId, { booking_hours_start: e.target.value }); }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
               <span className="text-sm text-brand-muted">to</span>
               <input
                 type="time"
                 value={profile?.booking_hours_end || '17:00'}
-                onChange={(e) => updateProfileFields(userId, { booking_hours_end: e.target.value })}
+                onChange={(e) => { if (userId) updateProfileFields(userId, { booking_hours_end: e.target.value }); }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
             </div>

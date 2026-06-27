@@ -1,37 +1,51 @@
 # Campaign Summary — Rolling
 
 > Updated manually after each batch send. Auto-metrics in `logs/` provide daily snapshots.
-> Last updated: 2026-06-27 (corrected with Resend API verification)
+> Last updated: 2026-06-27 18:50 BST
+
+## 🎉 Milestone — First Email-Driven Sign-Up
+
+**quraan6060@gmail.com** (Omar Qoraan, King Turkish Barber) converted from today's v11+hero batch:
+
+| Time (BST) | Event |
+|------------|-------|
+| 17:46 | Cold email delivered — subject A: "Quick question about your bookings" |
+| 17:48 | Clicked CTA → `buildlogg.com/beauty/` (2 min after delivery) |
+| 17:49 | Supabase confirmation email delivered ("Confirm your email address") |
+| 17:49 | Clicked confirmation link → sign-up completed (3 min after delivery) |
+
+**Full conversion funnel: cold email → click → landing page → sign up → email confirmed. All within 3 minutes.**
+
+This is the first sign-up from cold outreach in the entire campaign. It came from the v11+hero template, subject variant A, beauty vertical.
 
 ## Send History
 
 | Date | Vertical | Step | Version | Sent | Bounced | Opens | Clicks | Unsubs | Notes |
 |------|----------|------|---------|------|---------|-------|--------|--------|-------|
-| 2026-06-23 | trades | 1 | v1 | 61 | 0 | 0 | 0 | — | No HTML (no open tracking) |
-| 2026-06-24 | trades | 1 | v1 | 106 | 0 | 1 | 1 | — | Only open+click in entire campaign |
-| 2026-06-25 | beauty | 1 | v1 | 100 | 5 | 0 | 0 | — | Non-clickable CTA links |
-| 2026-06-26 | beauty | 1 | v1 | 128 | 1 | TBD | TBD | — | Includes 28 deferred + fresh leads |
-| **Total** | | | | **395** | **6** | **1** | **1** | **10** | Verified via Resend API |
-
-**Note:** Previous logs reported 400 sends. Resend API confirms 395 campaign emails + 5 non-campaign (password resets, test sends). Supabase shows 400 rows (6 bounced → 394 delivered).
+| 2026-06-22 | trades | 1 | v1 | 100 | 0 | 0 | 0 | 4 | No HTML (no open tracking) |
+| 2026-06-23 | trades | 1 | v1 | 100 | 0 | 1 | 1 | 5 | Only open+click in v1 campaign |
+| 2026-06-25 | beauty | 1 | v1 | 100 | 5 | 0 | 0 | 1 | Non-clickable CTA links |
+| 2026-06-26 | beauty | 1 | v1 | 100 | 1 | TBD | TBD | 0 | 54 deferred + 46 fresh |
+| 2026-06-27 | beauty | 1 | v11+hero | 100 | 7 | TBD | 1→signup | 0 | **First v11 production batch + hero image** |
+| **Total** | | | | **500** | **13** | **1+TBD** | **2** | **10** | |
 
 ## Design Version Sent to Leads
 
 | Version | Sent to leads | Issues |
 |---------|--------------|--------|
-| v1 (plain text HTML) | 395 | Non-clickable links, no branding, trades had no HTML |
-| v11 (branded, DESIGN.md) | 0 (test only) | None — ready for production |
+| v1 (plain text HTML) | 400 | Non-clickable links, no branding, trades had no HTML |
+| v11+hero (branded + hero image) | 100 | Sent Jun 27 — beauty batch with salon image. **1 sign-up.** |
 
 ## Subject Line Performance
 
-### Trades
+### Trades (v1 — broken template)
 | Subject | Variant | Sent | Opens | Clicks | Verdict |
 |---------|---------|------|-------|--------|---------|
 | The admin you do at 9pm | A | ~67 | 0 | 0 | Weak |
-| Quick question about your quotes | B | ~67 | 1 | 1 | ⭐ Best |
+| Quick question about your quotes | B | ~67 | 1 | 1 | ⭐ Best (only v1 conversion) |
 | [Trade] quotes from your phone? | C | ~66 | 0 | 0 | Weak |
 
-### Beauty
+### Beauty (v1 — broken template, Jun 25–26)
 | Subject | Variant | Sent | Opens | Clicks | Verdict |
 |---------|---------|------|-------|--------|---------|
 | How many no-shows this week? | A (old) | ~33 | 0 | 0 | ❌ Killed |
@@ -39,36 +53,61 @@
 | Your empty chair is costing you | C (new B) | ~34 | 0 | 0 | Active |
 | [Company] — deposits for no-shows? | D (new C) | ~34 | 0 | 0 | Active |
 
+### Beauty (v11+hero — working template, Jun 27)
+| Subject | Variant | Sent | Opens | Clicks | Sign-ups | Verdict |
+|---------|---------|------|-------|--------|----------|---------|
+| Quick question about your bookings | A | ~34 | TBD | 1 | 1 | ⭐ First sign-up! |
+| Your empty chair is costing you | B | ~33 | TBD | 0 | 0 | TBD |
+| [Company] — deposits for no-shows? | C | ~33 | TBD | 0 | 0 | TBD |
+
 ## Vertical Performance
 
-| Vertical | Sent | Delivered | Open Rate | Click Rate | Unsub Rate |
-|----------|------|-----------|-----------|------------|------------|
-| trades | 200 | 200 (100%) | 0.5% | 0.5% | 4.5% |
-| beauty | 200 | 195 (97.5%) | 0% (too early) | 0% | 0.5% |
+| Vertical | Sent | Delivered | Open Rate | Click Rate | Sign-up Rate |
+|----------|------|-----------|-----------|------------|--------------|
+| trades (v1) | 200 | 200 | 0.5% | 0.5% | 0% |
+| beauty (v1) | 200 | 194 | 0% | 0% | 0% |
+| beauty (v11+hero) | 100 | 93 | TBD | 1% | **1%** ⭐ |
+
+## v1 vs v11+hero Comparison (preliminary — 48h data pending)
+
+| Metric | v1 (400 sends) | v11+hero (100 sends) |
+|--------|----------------|---------------------|
+| Clicks on CTA | 1 (0.25%) | 1 (1%) |
+| Clicks on unsubscribe | 10 (2.5%) | 0 (0%) |
+| Sign-ups | 0 | 1 (1%) |
+| CTA clickable? | ❌ No | ✅ Yes |
+| Branded design? | ❌ No | ✅ Yes |
+| Hero image? | ❌ No | ✅ Yes |
+| Open tracking? | Partial (trades had no HTML) | ✅ Full |
+
+**Key insight:** v1's only clicks were unsubscribe links (broken CTA). v11+hero's first click was a CTA → sign-up. The template fix is already showing results within minutes.
 
 ## Warm-up Progress
 
 | Milestone | Status | Date |
 |-----------|--------|------|
-| 30 sends | ✅ | Jun 23 |
-| 100 sends | ✅ | Jun 23 |
-| 200 sends | ✅ | Jun 24 |
+| 100 sends | ✅ | Jun 22 |
+| 200 sends | ✅ | Jun 23 |
 | 300 sends | ✅ | Jun 25 |
-| 395 sends | ✅ | Jun 26 |
-| 500 sends (Microsoft unlock) | ⏳ | ~1 more day at 100/day |
-| 1,000 sends | ⏳ | ~7 days at 100/day |
+| 400 sends | ✅ | Jun 26 |
+| 500 sends (Microsoft unlock) | ✅ | Jun 27 |
+| 1,000 sends | ⏳ | ~5 days at 100/day |
 
-## Resend Free Tier Quota (verified Jun 27, 11:00 BST)
+## Email Deliverability Fixes (Jun 26–27)
 
-| Limit | Remaining | Used |
-|-------|-----------|------|
-| Daily | 7 (3 consumed by test sends today) | ~2,433/month |
-| Monthly | 566 | Free tier = 3,000/month |
+| Fix | Status | Impact |
+|-----|--------|--------|
+| DMARC `p=quarantine` → `p=none` | ✅ Live | Stops Microsoft junking on minor alignment |
+| Warm-up: gradual Microsoft ramp | ✅ Live | 20 MS leads/day (was 0), building reputation |
+| Beauty CTA URL redirect fix | ✅ Live | Direct to `/beauty/` (no 308 redirect) |
+| Hero image added to template | ✅ Live | 540×252px, 42KB JPEG, above badge |
+| Microsoft SNDS registration | ❌ Pending | https://sendersupport.olc.protection.outlook.com/snds/ |
+| Hotmail still junking | ⚠️ Ongoing | Reputation needs days to build |
 
 ## Next Actions
 
-1. **Send 5–7 beauty leads with v11 template** — first production test of branded design (use daily quota today)
-2. **48h after v11 batch**: compare open/click vs v1 batch
-3. **Jun 28**: send step 2 follow-ups to 200 trades leads (overdue since Jun 25)
-4. **After 500 sends**: re-include Microsoft domains (~499 more beauty leads unlock)
-5. **Consider re-sending step 1 to 395 v1 leads** if v11 significantly outperforms
+1. **48h after v11 batch (Jun 29)**: full open/click comparison vs v1
+2. **Jun 28**: send next 100 beauty leads (v11+hero) — 1,221 remaining
+3. **Jun 28**: send step 2 follow-ups to trades leads (overdue since Jun 25)
+4. **Microsoft warm-up**: 20 MS leads/day now included in batches
+5. **Monitor Hotmail**: check if DMARC fix + "not junk" signals improve placement

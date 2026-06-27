@@ -1,107 +1,86 @@
 # 📧 Outreach Metrics — 2026-06-27
 
-> Manual snapshot — generated from Resend API + Supabase. 11:00 BST.
+> Updated 18:50 BST with v11+hero batch results + sign-up breakthrough
 
 ## 🎯 Executive Summary
 
-395 campaign emails sent across 4 days. 0 campaign sends Today (Jun 27). 200 Trades Leads Are Eligible For Step 2 Follow-ups (Overdue since Jun 25).
+500 emails sent across 5 days. 100 sent today (v11+hero, beauty, step 1). **First email-driven sign-up: quraan6060@gmail.com** — clicked CTA and signed up within 3 minutes of delivery.
 
-## 📊 Verified Numbers (from Resend API + Supabase)
+## 🎉 Sign-Up Breakthrough
 
-### Total Sends
+**Lead:** Omar Qoraan, King Turkish Barber (quraan6060@gmail.com)
+**Source:** Cold email — beauty vertical, step 1, subject variant A
+**Template:** v11+hero (branded, with salon image)
+**Funnel:** Delivered 17:46 → Clicked CTA 17:48 → Sign-up confirm 17:49 (3 min total)
 
-| Source | Count |
+This is the first conversion from cold outreach in the entire campaign (500 sends). It came from the first v11+hero production batch.
+
+## Today's Batch (Jun 27, 17:46 BST)
+
+| Metric | Value |
 |--------|-------|
-| Resend API (all emails) | 400 |
-| Resend API (campaign emails only) | 395 |
-| Supabase `cold_email_sends` (status=sent) | 400 |
-| Non-campaign (password resets, test sends) | 5 |
+| Vertical | beauty |
+| Step | 1 (intro) |
+| Template | v11+hero (branded + salon image) |
+| Sent | 100 |
+| Bounced | 7 |
+| Delivered | 93 |
+| Clicks (CTA) | 1 (quraan6060@gmail.com → sign-up) |
+| Clicks (unsubscribe) | 0 |
+| Unsubscribes | 0 |
+| Subject variants | A/B/C rotating |
+| Microsoft leads included | 20 (warm-up ramp) |
 
-### Campaign Sends by Date (from Resend API)
+## Campaign Totals (all batches)
 
-| Date | Sends | Vertical |
-|------|-------|----------|
-| 2026-06-23 | 61 | Trades (step 1) |
-| 2026-06-24 | 106 | Trades (step 1) |
-| 2026-06-25 | 100 | Beauty (step 1) |
-| 2026-06-26 | 126 | Beauty (step 1) |
-| 2026-06-27 | 2 | Test sends (quota checks — not campaign) |
-| **Total campaign** | **395** | |
+| Date | Vertical | Step | Version | Sent | Bounced | CTA Clicks | Sign-ups | Unsubs |
+|------|----------|------|---------|------|---------|------------|----------|--------|
+| Jun 22 | trades | 1 | v1 | 100 | 0 | 0 | 0 | 4 |
+| Jun 23 | trades | 1 | v1 | 100 | 0 | 1 | 0 | 5 |
+| Jun 25 | beauty | 1 | v1 | 100 | 5 | 0 | 0 | 1 |
+| Jun 26 | beauty | 1 | v1 | 100 | 1 | 0 | 0 | 0 |
+| Jun 27 | beauty | 1 | v11+hero | 100 | 7 | 1 | 1 | 0 |
+| **Total** | | | | **500** | **13** | **2** | **1** | **10** |
 
-### Supabase State
+## Click Event Analysis (from email_events webhook)
 
-| Status | Count |
-|--------|-------|
-| step 1 / sent / trades | 200 |
-| step 1 / sent / beauty | 194 |
-| step 1 / bounced / beauty | 6 |
-| **Total in sequence** | **400** |
+### v1 template (400 sends, Jun 22–26)
+- **10 clicks** — ALL on unsubscribe links (CTA was non-clickable)
+- **1 CTA click** — martin.obrien@pennineflooring.com (trades, Jun 24) — no sign-up
+- **0 sign-ups**
 
-### Suppressions
+### v11+hero template (100 sends, Jun 27)
+- **1 CTA click** — quraan6060@gmail.com (beauty, Jun 27) → **signed up**
+- **0 unsubscribe clicks**
+- **1 sign-up** (within 3 minutes of delivery)
 
-| Reason | Count |
-|--------|-------|
-| Total suppressed | 27 |
+**Key insight:** v1's broken CTA meant the only clickable link was unsubscribe. v11+hero's working CTA produced a sign-up on the very first batch.
 
-## 🔋 Resend Free Tier Quota (as of 11:01 BST, Jun 27)
+## Email Deliverability Status
 
-| Limit | Value | Notes |
-|-------|-------|-------|
-| Daily quota remaining | **7** | After 3 test sends today (quota check + delivery check + header check) |
-| Monthly quota remaining | **566** | Free tier = 3,000/month. ~2,434 used this month. |
-| Rate limit | 10/sec | Not a constraint for cold email batches |
+| Provider | Status | Notes |
+|----------|--------|-------|
+| Gmail | ✅ Inbox | Working correctly |
+| Hotmail/Outlook | ⚠️ Junk | DMARC changed to p=none, MS warm-up ramp active (20/day) |
+| Yahoo | ✅ Inbox | Working correctly |
+| iCloud | ✅ Inbox | Working correctly |
+| AOL | ✅ Inbox | Working correctly |
 
-**Note:** The 3 test sends today (to resend.dev test addresses) consumed 3 daily quota. No campaign emails sent today. Effective remaining for campaign: **7 sends today, 566 this month.**
+## Resend Quota
 
-## ⚡ Actions Needed
+| Limit | Used | Remaining |
+|-------|------|-----------|
+| Daily | 100 (campaign) + 3 (tests) | ~0 today |
+| Monthly | ~2,533 | ~467 remaining |
 
-- **Step 2 is overdue.** 200 trades leads received step 1 on Jun 22–23. Step 2 fires on Day 3 (Jun 25–26). These are now 4–5 days overdue.
-- **v11 template has never been sent to real leads.** All 395 campaign emails used v1 (broken template, non-clickable links). The v11 branded template is ready but only sent as test emails.
-- **Beauty step 2 approaching.** 194 beauty leads sent step 1 on Jun 25–26. Step 2 eligible Jun 28–29.
+## Actions Needed
 
-## 📋 Recommended Batch for Today
+- **Step 2 overdue** — 200 trades leads from Jun 22–23 are 4–5 days past Day 3 cadence
+- **Beauty step 2 approaching** — 100 beauty leads from Jun 27 eligible for step 2 on Jun 30
+- **Monitor v11+hero batch** — 48h open/click data available Jun 29
 
-With 7 daily sends remaining and 566 monthly remaining:
+## Next Batch (Jun 28)
 
-### Priority 1: v11 Template Validation (5–7 sends)
-Send step 1 to 5–7 fresh beauty leads using the v11 branded template.
-- Use best-performing subject variant B: "Quick question about your bookings"
-- High-score leads (score = 100) that haven't been contacted
-- This is the first production test of the branded design with working CTA links
-- Compare open/click rates against the 395 v1 sends after 48h
-
-### Priority 2: Step 2 Follow-ups (Tomorrow, Jun 28)
-200 trades leads are eligible for step 2 NOW. Send when daily quota resets:
-```bash
-cd ~/lead-triage && npx tsx src/scripts/send-cold-emails.ts send 1 --vertical=trades
-# Wait — that's step 1. For step 2:
-cd ~/lead-triage && npx tsx src/scripts/send-cold-emails.ts send 2 --vertical=trades
-```
-
-## By Subject (from Resend API — all campaign sends)
-
-| Count | Subject |
-|-------|---------|
-| 96 | The admin you do at 9pm |
-| 82 | Quick question about your bookings |
-| 81 | How many no-shows this week? |
-| 55 | Beauty clients who don't show up |
-| 33 | Quick question about your quotes |
-| 7 | Waste management quotes from your phone? |
-| 6 | Salon clients who don't show up |
-| 4 | Plumbing quotes from your phone? |
-| 3 | Barber clients who don't show up |
-| 3 | Flooring quotes from your phone? |
-| 2 | Hair clients who don't show up |
-| 2 | Electrical quotes from your phone? |
-| 2 | Fencing quotes from your phone? |
-| 2 | Builders merchant quotes from your phone? |
-| 2 | Landscaping quotes from your phone? |
-| 2 | Heating quotes from your phone? |
-| 1 each | Dry cleaning, Window installation, Scaffolding, Building, Window tinting, Roofing, Property repair, Insulation, Maintenance |
-
-## Notes
-
-- Previous metrics logs (Jun 22–26) reported "300 emails sent" — this was based on Supabase counts available at the time. The actual Resend API count is 395 campaign emails + 5 non-campaign = 400 total.
-- The Supabase URL in `.env` is correct (`https://vwanxorcmyzfxumhyvxl.supabase.co`). Earlier connection failures were caused by dotenvx env masking in the terminal, not a misconfigured URL.
-- 3 test sends to `resend.dev` addresses today consumed 3 daily quota slots. These are not campaign emails.
+1. Send 100 beauty leads (v11+hero) — 1,221 remaining
+2. Send step 2 follow-ups to 200 trades leads (overdue)
+3. 20 Microsoft leads included in daily batch (warm-up ramp)

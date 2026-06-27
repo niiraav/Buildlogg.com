@@ -48,7 +48,7 @@ outreach/
 
 ## Critical Note
 
-**400 leads received v1 (broken template).** Links were non-clickable, no open tracking on trades batch. The v11 branded template has only been sent as test emails. **Next batch = first production test of v11.**
+**v11+hero template is live in production.** First 100 beauty leads sent Jun 27 with branded design + hero image + working CTA. **First sign-up: quraan6060@gmail.com** — clicked CTA and signed up within 3 minutes of delivery. 400 prior leads received v1 (broken template, non-clickable links).
 
 ## Daily Metrics
 
