@@ -14,7 +14,7 @@ export interface DashboardStats {
   outstandingCount: number;
   avgJobValue: number;
   topJobType: { title: string; earnings: number; count: number } | null;
-  paymentMethodBreakdown: { cash: number; bank_transfer: number; terminal: number; other: number };
+  paymentMethodBreakdown: { cash: number; bank_transfer: number; terminal: number; card: number; other: number };
   lastMonthEarnings: number;
   reviewRequestsSent: number;
   monthExpenses: number;
@@ -168,6 +168,7 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
     cash: monthPayments.filter((p) => p.method === 'cash').reduce((s, p) => s + p.amount, 0),
     bank_transfer: monthPayments.filter((p) => p.method === 'bank_transfer').reduce((s, p) => s + p.amount, 0),
     terminal: monthPayments.filter((p) => p.method === 'terminal').reduce((s, p) => s + p.amount, 0),
+    card: monthPayments.filter((p) => p.method === 'card').reduce((s, p) => s + p.amount, 0),
     other: monthPayments.filter((p) => p.method === 'other').reduce((s, p) => s + p.amount, 0),
   };
 
