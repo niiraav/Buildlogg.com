@@ -5,7 +5,7 @@ import { db, type Job, type Customer, type Profile } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 
 /* ─── helpers ─── */
 
@@ -55,7 +55,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <BrandedLoader size={48} fullscreen={false} />
+          <SkeletonInline />
         </div>
       </div>
     );

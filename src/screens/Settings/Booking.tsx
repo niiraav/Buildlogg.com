@@ -14,7 +14,7 @@ import {
   captureBookingPageDisabled,
   captureBookingSlugChanged,
 } from '../../lib/analytics';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonBookingScreen } from '../../components/Skeleton';
 
 /* ─── helpers ─── */
 
@@ -240,7 +240,7 @@ export default function Booking() {
   /* ─── render ─── */
 
   if (loading) {
-    return <BrandedLoader fullscreen />;
+    return <SkeletonBookingScreen />;
   }
 
   const isEnabled = profile?.booking_enabled ?? false;

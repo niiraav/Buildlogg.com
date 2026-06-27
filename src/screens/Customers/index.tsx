@@ -8,7 +8,7 @@ import { captureCustomerSearched } from '../../lib/analytics';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { showToast } from '../../components/Toast/store';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonCustomerList } from '../../components/Skeleton';
 import { useEntitlements } from '../../hooks/useEntitlements';
 
 export default function Customers() {
@@ -230,7 +230,7 @@ export default function Customers() {
       >
         {dedupLoading ? (
           <div className="flex items-center justify-center py-8">
-            <BrandedLoader size={36} fullscreen={false} />
+            <SkeletonCustomerList />
           </div>
         ) : duplicatePairs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2">

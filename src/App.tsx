@@ -18,7 +18,7 @@ import { initialSync } from './lib/initialSync';
 import { subscribeRealtime } from './lib/realtime';
 import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
-import BrandedLoader from './components/BrandedLoader';
+import { SkeletonAppScreen } from './components/Skeleton';
 import { useTheme } from './hooks/useTheme';
 import { ToastContainer } from './components/Toast';
 import { TabBar } from './components/TabBar';
@@ -238,7 +238,7 @@ function AuthGuard() {
   }, [navigate, setUserId, setOnline]);
 
   if (checking) {
-    return <BrandedLoader fullscreen />;
+    return <SkeletonAppScreen />;
   }
 
   return <Outlet />;
