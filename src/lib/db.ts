@@ -372,6 +372,11 @@ class BuildloggDB extends Dexie {
     this.version(8).stores({
       booking_requests: 'id, merchant_id, status, created_at, _sync_status',
     });
+    this.version(9).stores({
+      // Fix: add _sync_status index to custom_items (was missing, caused
+      // SchemaError when safeBulkPut queried by _sync_status)
+      custom_items: 'id, user_id, sort_order, [user_id+sort_order], _sync_status',
+    });
   }
 }
 
