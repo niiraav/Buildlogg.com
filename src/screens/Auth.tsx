@@ -557,6 +557,12 @@ export default function Auth() {
                       placeholder="you@example.com"
                       value={emailInput}
                       onChange={(e) => { setEmailInput(e.target.value); setError(''); }}
+                      onBlur={() => {
+                        const trimmed = emailInput.trim().toLowerCase();
+                        if (trimmed && validateEmail(trimmed)) {
+                          setError('Enter a valid email address');
+                        }
+                      }}
                       className={`w-full h-11 px-3.5 text-base text-brand-black bg-transparent border rounded-md outline-none transition-all focus:border-brand-black focus:ring-4 focus:ring-brand-black/5 ${
                         error && !emailInput.trim() ? 'border-red-500' : 'border-brand-border'
                       }`}
@@ -693,9 +699,9 @@ export default function Auth() {
         <footer className="hidden md:flex items-center justify-between px-6 py-5 lg:px-10 lg:py-6 text-sm text-brand-muted">
           <span>© 2026 Buildlogg Ltd.</span>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-black transition-colors">Terms</a>
-            <a href="#" className="hover:text-brand-black transition-colors">Privacy</a>
-            <a href="#" className="hover:text-brand-black transition-colors">Support</a>
+            <a href="https://buildlogg.com/terms" className="hover:text-brand-black transition-colors">Terms</a>
+            <a href="https://buildlogg.com/privacy" className="hover:text-brand-black transition-colors">Privacy</a>
+            <a href="mailto:hello@buildlogg.com" className="hover:text-brand-black transition-colors">Support</a>
           </div>
         </footer>
       </div>

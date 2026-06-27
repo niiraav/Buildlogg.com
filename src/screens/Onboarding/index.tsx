@@ -17,7 +17,7 @@ import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
 import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
 import { captureVerticalSelected } from '../../lib/analytics';
-import { seedMessageTemplates, seedMissingTemplates } from '../../lib/seedMessageTemplates';
+import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { seedSampleJob } from '../../lib/seedSampleJob';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
@@ -220,10 +220,9 @@ export default function Onboarding() {
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
-    seedMissingTemplates(resolvedUserId).catch(() => {});
     // Seed a sample job so the user lands on a populated home screen
     const profileData = await db.profiles.get(resolvedUserId);
-    seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
+    await seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
     capture('sample_job_seeded', { trade: trade || 'other', businessType });
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
@@ -315,7 +314,7 @@ export default function Onboarding() {
                   <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden bg-brand-surface border-brand-border">
                     <input
                       type="email"
-                      value={email || 'Not provided'}
+                      value={email || 'Not required in test mode'}
                       readOnly
                       className="flex-1 text-base text-brand-mid min-h-13 px-4 bg-transparent outline-none cursor-not-allowed"
                     />

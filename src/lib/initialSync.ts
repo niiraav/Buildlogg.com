@@ -36,20 +36,27 @@ export async function initialSync(userId: string) {
     supabase.from('recurring_jobs').select('*').eq('user_id', userId),
   ]);
 
-  if (profile.error) console.error('[initialSync] profiles fetch failed:', profile.error);
-  if (customers.error) console.error('[initialSync] customers fetch failed:', customers.error);
-  if (jobs.error) console.error('[initialSync] jobs fetch failed:', jobs.error);
-  if (lineItems.error) console.error('[initialSync] line_items fetch failed:', lineItems.error);
-  if (workLog.error) console.error('[initialSync] work_log fetch failed:', workLog.error);
-  if (payments.error) console.error('[initialSync] payments fetch failed:', payments.error);
-  if (jobPhotos.error) console.error('[initialSync] job_photos fetch failed:', jobPhotos.error);
-  if (bookingRequests.error) console.error('[initialSync] booking_requests fetch failed:', bookingRequests.error);
-  if (customItems.error) console.error('[initialSync] custom_items fetch failed:', customItems.error);
-  if (materialItems.error) console.error('[initialSync] material_items fetch failed:', materialItems.error);
-  if (messageTemplates.error) console.error('[initialSync] message_templates fetch failed:', messageTemplates.error);
-  if (generatedDocuments.error) console.error('[initialSync] generated_documents fetch failed:', generatedDocuments.error);
-  if (quoteFollowUps.error) console.error('[initialSync] quote_follow_ups fetch failed:', quoteFollowUps.error);
-  if (recurringJobs.error) console.error('[initialSync] recurring_jobs fetch failed:', recurringJobs.error);
+  // Quiet error handling: suppress expected errors (missing tables, invalid UUID in mock mode)
+  const quietLog = (label: string, err: unknown) => {
+    const msg = (err as { message?: string })?.message || '';
+    if (msg.includes('PGRST205') || msg.includes('Could not find the table') || msg.includes('schema cache')) return;
+    if (msg.includes('invalid input syntax for type uuid')) return; // mock mode
+    console.warn(`[initialSync] ${label}:`, err);
+  };
+  if (profile.error) quietLog('profiles', profile.error);
+  if (customers.error) quietLog('customers', customers.error);
+  if (jobs.error) quietLog('jobs', jobs.error);
+  if (lineItems.error) quietLog('line_items', lineItems.error);
+  if (workLog.error) quietLog('work_log', workLog.error);
+  if (payments.error) quietLog('payments', payments.error);
+  if (jobPhotos.error) quietLog('job_photos', jobPhotos.error);
+  if (bookingRequests.error) quietLog('booking_requests', bookingRequests.error);
+  if (customItems.error) quietLog('custom_items', customItems.error);
+  if (materialItems.error) quietLog('material_items', materialItems.error);
+  if (messageTemplates.error) quietLog('message_templates', messageTemplates.error);
+  if (generatedDocuments.error) quietLog('generated_documents', generatedDocuments.error);
+  if (quoteFollowUps.error) quietLog('quote_follow_ups', quoteFollowUps.error);
+  if (recurringJobs.error) quietLog('recurring_jobs', recurringJobs.error);
 
   await db.transaction('rw', [
     db.profiles, db.customers, db.jobs, db.line_items, db.work_log,
