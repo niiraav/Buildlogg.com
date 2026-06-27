@@ -9,6 +9,7 @@
   --brand-surface:      #F9FAFB;   /* surface-soft: nav-pill bg, sections */
   --brand-surface-card: #F5F5F5;   /* surface-card: feature cards, testimonials */
   --brand-dark-bg:      #101010;   /* surface-dark: footer, deep inverse */
+  --brand-deep:         #0E1828;   /* deep navy — QR codes, app icon background */
 
   /* ── Cal-style aliases used by the adaptive left-column design system ───── */
   --canvas:             var(--app-shell-bg);

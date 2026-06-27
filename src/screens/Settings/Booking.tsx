@@ -568,7 +568,7 @@ export default function Booking() {
             <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">QR code</div>
             <div className="bg-white border border-brand-border rounded-2xl p-4">
               <div className="flex flex-col items-center mb-4">
-                <div ref={qrContainerRef} className="flex items-center justify-center" />
+                <div ref={qrContainerRef} style={{ width: '240px', height: '240px' }} className="qr-container flex items-center justify-center" />
                 <button
                   onClick={handleDownloadQR}
                   className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"

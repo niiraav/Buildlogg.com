@@ -13,6 +13,14 @@
   bottom: calc(56px + env(safe-area-inset-bottom)) !important;
 }
 
+/* QR code container — scale 600px canvas to 240px display */
+.qr-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 240px;
+  max-height: 240px;
+}
+
 /* Screen title — responsive font sizing for headers */
 .screen-title {
   font-size: 20px;

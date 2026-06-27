@@ -10,6 +10,7 @@ export default {
       colors: {
         brand: {
           black:       'var(--brand-black)',
+          deep:        'var(--brand-deep)',
           dark:        'var(--brand-dark)',
           mid:         'var(--brand-mid)',
           muted:       'var(--brand-muted)',

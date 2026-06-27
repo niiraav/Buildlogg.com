@@ -9,8 +9,8 @@ import QRCodeStyling from 'qr-code-styling';
 
 export function createPrettyQR(url: string, logoDataUrl?: string): QRCodeStyling {
   return new QRCodeStyling({
-    width: 240,
-    height: 240,
+    width: 600,
+    height: 600,
     type: 'canvas',
     data: url,
     margin: 8, // Quiet zone: on
@@ -19,11 +19,11 @@ export function createPrettyQR(url: string, logoDataUrl?: string): QRCodeStyling
     },
     dotsOptions: {
       type: 'rounded', // Style: smooth
-      color: '#111827', // Brush: colour (brand-black)
+      color: '#0E1828', // brand-deep
     },
     cornersSquareOptions: {
       type: 'extra-rounded', // Rounded corner squares
-      color: '#111827',
+      color: '#0E1828',
     },
     cornersDotOptions: {
       type: 'dot', // Rounded corner dots
