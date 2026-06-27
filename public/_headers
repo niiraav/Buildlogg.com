@@ -1,9 +1,12 @@
 # Cloudflare Pages — Cache headers for PWA
-# Service worker and manifest must never be cached by the browser
+# Service worker, manifest, and PWA shell must never be cached by the browser
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
 
 /manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/pwa/index.html
   Cache-Control: no-cache, no-store, must-revalidate
 
 # Long-term cache for hashed assets (Vite build output)
