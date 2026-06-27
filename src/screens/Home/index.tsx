@@ -275,6 +275,10 @@ export default function Home() {
     setLineItems(itemsMap);
     setWorkLog(logMap);
     setProfile(prof || null);
+
+    // Fetch pending booking requests from local Dexie (synced from Supabase)
+    getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
+
     setLoading(false);
   }, [userId]);
 

@@ -159,7 +159,12 @@ function AuthGuard() {
       setOnline(false);
     };
     const handleFocus = () => {
-      if (navigator.onLine) syncWorker().catch(() => {});
+      if (navigator.onLine) {
+        syncWorker().catch(() => {});
+        // Pull new data (including booking requests) from Supabase
+        const uid = useAppStore.getState().userId;
+        if (uid) initialSync(uid).catch(() => {});
+      }
     };
 
     window.addEventListener('online', handleOnline);
