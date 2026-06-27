@@ -52,7 +52,7 @@ import {
   captureReviewRequestSkipped,
 } from '../../lib/analytics';
 import RecentActivity from '../../components/RecentActivity';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonHomeScreen } from '../../components/Skeleton';
 
 const now = () => new Date().toISOString();
 
@@ -1387,7 +1387,7 @@ export default function Home() {
 
   /* --- main render --- */
   if (loading) {
-    return <BrandedLoader fullscreen />;
+    return <SkeletonHomeScreen />;
   }
 
   return (
@@ -1396,15 +1396,12 @@ export default function Home() {
       <div className="sticky top-0 z-40 px-4 pt-5 pb-2 bg-[var(--app-shell-bg)]">
         <div className="flex items-start justify-between">
           <div>
-            <span className="text-xl font-extrabold text-brand-black block">
+            <span className="text-title font-extrabold text-brand-black block">
               {getGreeting()}, {firstName}
             </span>
-            <span className="text-sm text-brand-muted block mt-0.5">
-              {todayLabel} · {subLabel}
-            </span>
             <button onClick={() => { setSheet('week_view'); capture('week_view_opened', {}); }}
-              className="text-xs font-medium text-brand-mid underline underline-offset-2 cursor-pointer mt-1 block">
-              View week →
+              className="text-sm text-brand-muted block mt-0.5 cursor-pointer hover:text-brand-dark transition-colors text-left">
+              {todayLabel} · {subLabel}
             </button>
           </div>
           {totalOwed > 0 && (
@@ -1415,7 +1412,7 @@ export default function Home() {
               <span className="text-xl font-extrabold text-brand-black block">
                 £{Number(totalOwed).toFixed(2)}
               </span>
-              <span className="text-label text-brand-dark block mt-0.5">
+              <span className="text-xs text-brand-dark block mt-0.5">
                 owed to you →
               </span>
             </div>
