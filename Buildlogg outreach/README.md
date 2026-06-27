@@ -26,14 +26,14 @@ outreach/
     └── campaign-summary.md            ← rolling campaign summary (updated manually)
 ```
 
-## Quick Stats (updated 2026-06-26)
+## Quick Stats (updated 2026-06-27 — Resend API verified)
 
 | Metric | Value |
 |--------|-------|
-| **Total sent** | 400 (200 trades + 200 beauty) |
-| **Bounced** | 0 |
+| **Total sent** | 395 campaign (200 trades + 195 beauty) |
+| **Bounced** | 6 |
 | **Suppressed** | 27 |
-| **Warm-up** | 400/500 (80%) |
+| **Warm-up** | 395/500 (79%) |
 | **Opens** | 1 (0.3% — trades had no HTML tracking) |
 | **Clicks** | 1 (0.3%) |
 | **Sign-ups from email** | 0 |
@@ -43,6 +43,8 @@ outreach/
 | **Design version ready** | v11 (branded, DESIGN.md compliant, WCAG AA) |
 | **Best subject line** | "Quick question about your quotes" (only open+click) |
 | **Best vertical** | beauty_salon (2.6% open rate vs 0% trades) |
+| **Resend daily quota** | 7 remaining today |
+| **Resend monthly quota** | 566 remaining (of 3,000 free tier) |
 
 ## Critical Note
 

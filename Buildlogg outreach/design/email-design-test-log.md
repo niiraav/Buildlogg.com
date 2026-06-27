@@ -5,33 +5,36 @@
 
 ---
 
-## Campaign Status (as of 2026-06-26)
+## Campaign Status (as of 2026-06-27 — Resend API verified)
 
 | Metric | Value |
 |--------|-------|
-| Total emails sent | 400 (200 trades + 200 beauty) |
-| Bounced | 0 |
-| Suppressed | 27 (unsubscribes + bounces) |
-| Warm-up progress | 400/500 (80%) — Microsoft domains still skipped |
+| Total emails sent (Resend) | 400 (395 campaign + 5 non-campaign) |
+| Campaign sends | 395 (200 trades + 195 beauty) |
+| Bounced | 6 (beauty) |
+| Suppressed | 27 |
+| Warm-up progress | 395/500 (79%) — Microsoft domains gradual ramp (5/day cap) |
 | Beauty leads remaining | 1,301 |
-| Open rate (trades, 3-4 days old) | 0.3% (1 open on 300 — unreliable, trades had no HTML) |
+| Open rate (trades, 4-5 days old) | 0.3% (1 open on 167 — unreliable, trades had no HTML) |
 | Open rate (beauty, 24-48h old) | 2.6% (beauty_salon segment) |
 | Click rate | 0.3% (1 click — trades variant B) |
 | Sign-ups from email | 0 |
-| Unsubscribes | 9 (trades) + 1 (beauty) |
+| Unsubscribes | 10 |
 | Best subject line | "Quick question about your quotes" (trades B — only open+click) |
 | Best vertical | beauty_salon (2.6% open vs 0% trades) |
 | Email design version in production | v11 (light footer, force light mode) |
-| Email design version sent to leads | v1 (plain text — 400 leads got the broken template) |
+| Email design version sent to leads | v1 (plain text — 395 leads got the broken template) |
+| Resend daily quota remaining | 7 (3 consumed by test sends today) |
+| Resend monthly quota remaining | 566 (of 3,000 free tier) |
 
 ### Critical gap
-**400 leads received v1 (broken template with non-clickable links).** The design fixes (v2-v11) were only sent as test emails to the user's own addresses. The next batch of 100 beauty leads will be the first to receive the v11 branded template with working CTA links + click tracking.
+**395 leads received v1 (broken template with non-clickable links).** The design fixes (v2-v11) were only sent as test emails to the user's own addresses. The next batch will be the first to receive the v11 branded template with working CTA links + click tracking.
 
 ### Next actions
-1. Send next 100 beauty leads with v11 template — first production test of the branded design
-2. After 48h, compare open/click rates vs the v1 batch (400 leads)
-3. If v11 outperforms v1, re-send step 1 to the 400 v1 leads (they had non-clickable CTAs)
-4. Send step 2 follow-ups to the 200 beauty leads from Jun 25 (Day 3 = Jun 28)
+1. Send 5–7 beauty leads with v11 template — first production test of the branded design
+2. After 48h, compare open/click rates vs the v1 batch (395 leads)
+3. If v11 outperforms v1, re-send step 1 to the 395 v1 leads (they had non-clickable CTAs)
+4. Send step 2 follow-ups to 200 trades leads (overdue since Jun 25)
 
 ---
 

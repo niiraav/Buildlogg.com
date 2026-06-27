@@ -44,8 +44,9 @@ export function wrapBrandedHtml(opts: {
   senderName: string;
   companyName: string;
   unsubscribeUrl: string;
+  heroImage?: { url: string; alt: string; width?: number };
 }): string {
-  const { recipientName, bodyParagraphs, ctaText, ctaUrl, badgeText, senderName, companyName, unsubscribeUrl } = opts;
+  const { recipientName, bodyParagraphs, ctaText, ctaUrl, badgeText, senderName, companyName, unsubscribeUrl, heroImage } = opts;
 
   // Consistent 15px body type — DESIGN.md body-md
   const paragraphs = bodyParagraphs.map((p) => {
@@ -101,7 +102,22 @@ export function wrapBrandedHtml(opts: {
                   <td>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="${C.canvas}" style="background-color:${C.canvas};border-radius:12px;">
                       <tr>
-                        <td style="padding:32px 30px 32px 30px;">
+                        <td style="padding:0;">
+
+                          ${heroImage ? `<!-- Hero image — product preview, full card width -->
+                          <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0 0 0 0;width:100%;">
+                            <tr>
+                              <td align="center" style="padding:0;">
+                                <img src="${heroImage.url}" alt="${heroImage.alt}" width="${heroImage.width || 540}" style="display:block;width:100%;max-width:${heroImage.width || 540}px;height:auto;border-radius:12px 12px 0 0;border:0;" />
+                              </td>
+                            </tr>
+                          </table>
+` : ''}
+
+                          <!-- Inner padding wrapper — badge + greeting + body + CTA + signature -->
+                          <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
+                            <tr>
+                              <td style="padding:32px 30px 32px 30px;">
 
                           <!-- Category pill badge — surface-card, pill radius -->
                           <table cellpadding="0" cellspacing="0" border="0" role="presentation">
@@ -134,6 +150,9 @@ ${paragraphs}
                           <p style="margin:0;font-size:14px;line-height:1.5;color:${C.muted};font-family:${UI};">${companyName}</p>
 
                         </td>
+                      </tr>
+                    </table>
+                          </td>
                       </tr>
                     </table>
                   </td>
@@ -175,6 +194,7 @@ export interface EmailContent {
   ctaText: string;
   ctaUrl: string;
   badgeText: string;
+  heroImage?: { url: string; alt: string; width?: number };
 }
 
 export function buildBeautyEmail1(lead: Lead): EmailContent {
@@ -182,12 +202,17 @@ export function buildBeautyEmail1(lead: Lead): EmailContent {
   const company = lead.company || 'your salon';
   return {
     badgeText: 'For beauty salons',
+    heroImage: {
+      url: 'https://buildlogg.com/assets/beauty-app-preview.jpg?v=2',
+      alt: 'A beauty salon owner managing bookings and deposits on Buildlogg',
+      width: 540,
+    },
     paragraphs: [
       { body: `<strong style="color:${C.ink};">${company}</strong> &mdash; every ${label} business we talk to loses money to no-shows. A client books a slot, doesn't turn up, and that chair sits empty for an hour.` },
       { body: `Buildlogg fixes that. Take deposits at booking, send automatic reminders, and auto-charge for late cancellations &mdash; all from your phone. No more chasing, no more lost revenue.` },
     ],
     ctaText: 'See how it works',
-    ctaUrl: 'https://buildlogg.com/beauty',
+    ctaUrl: 'https://buildlogg.com/beauty/',
   };
 }
 
@@ -201,7 +226,7 @@ export function buildBeautyEmail2(lead: Lead): EmailContent {
       { body: `Buildlogg lets you take a deposit at booking. Client pays in advance, gets a reminder 24 hours before, and if they cancel late &mdash; the deposit stays with you.` },
     ],
     ctaText: 'See how it works',
-    ctaUrl: 'https://buildlogg.com/beauty',
+    ctaUrl: 'https://buildlogg.com/beauty/',
   };
 }
 
@@ -214,7 +239,7 @@ export function buildBeautyEmail3(lead: Lead): EmailContent {
       { body: `Buildlogg puts it all in one place on your phone. Bookings, deposits, reminders, cancellations &mdash; even offline if you're in a basement room with no signal.` },
     ],
     ctaText: 'See how it works',
-    ctaUrl: 'https://buildlogg.com/beauty',
+    ctaUrl: 'https://buildlogg.com/beauty/',
   };
 }
 
@@ -226,7 +251,7 @@ export function buildBeautyEmail4(lead: Lead): EmailContent {
       { body: `If the no-show thing is a real problem for you, the app's live and ready to use. If not, no worries.` },
     ],
     ctaText: 'Check it out',
-    ctaUrl: 'https://buildlogg.com/beauty',
+    ctaUrl: 'https://buildlogg.com/beauty/',
   };
 }
 

@@ -35,7 +35,7 @@ async function syncTable<T extends { id: string; _sync_status: string }>(
     if (error) {
       const msg = (error as { message?: string })?.message || '';
       // Suppress expected errors (missing tables, mock mode)
-      if (msg.includes('PGRST205') || msg.includes('Could not find the table') || msg.includes('schema cache')) return;
+      if (msg.includes('PGRST205') || msg.includes('Could not find the table') || msg.includes('schema cache') || msg.includes('404') || msg.includes('Not Found')) return;
       if (msg.includes('invalid input syntax for type uuid')) return;
       console.warn(`[initialSync] ${label} query error:`, error);
       return;
