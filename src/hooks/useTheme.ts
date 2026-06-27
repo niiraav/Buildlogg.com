@@ -1,18 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const STORAGE_KEY = 'buildlogg_dark_mode';
 
-function isAuthPage(): boolean {
+function isAuthPage(path?: string): boolean {
   if (typeof window === 'undefined') return false;
-  const path = window.location.pathname;
-  return path === '/app/auth' || path.startsWith('/app/auth');
+  const p = path || window.location.pathname;
+  return p === '/app/auth' || p.startsWith('/app/auth');
 }
 
-function getInitialTheme(): boolean {
+function getStoredTheme(): boolean {
   try {
-    // Auth pages are always light mode, regardless of stored preference.
-    // In-app pages use the stored preference, defaulting to light.
-    if (isAuthPage()) return false;
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored !== null ? stored === 'true' : false;
   } catch {
@@ -20,8 +18,27 @@ function getInitialTheme(): boolean {
   }
 }
 
+function getInitialTheme(): boolean {
+  // Auth pages are always light mode, regardless of stored preference.
+  if (isAuthPage()) return false;
+  return getStoredTheme();
+}
+
 export function useTheme() {
+  const location = useLocation();
   const [isDark, setIsDark] = useState<boolean>(() => getInitialTheme());
+
+  // Re-evaluate theme when route changes (e.g., navigating from /auth to /)
+  // This fixes: user logs in on /auth (light mode forced), navigates to Home,
+  // but dark mode wasn't applied because the initial state was locked to false.
+  useEffect(() => {
+    if (!isAuthPage(location.pathname)) {
+      const stored = getStoredTheme();
+      setIsDark(stored);
+    } else {
+      setIsDark(false);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;

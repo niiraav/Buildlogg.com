@@ -19,7 +19,7 @@ import { subscribeRealtime } from './lib/realtime';
 import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
 import BrandedLoader from './components/BrandedLoader';
-import { isDarkModeEnabled } from './hooks/useTheme';
+import { useTheme } from './hooks/useTheme';
 import { ToastContainer } from './components/Toast';
 import { TabBar } from './components/TabBar';
 import Auth from './screens/Auth';
@@ -38,9 +38,6 @@ import CustomerDetail from './screens/Customers/CustomerDetail';
 import AddCustomer from './screens/Customers/AddCustomer';
 import Activity from './screens/Activity';
 import AppDesktopContext from './components/AppDesktopContext';
-
-// Initialise theme before first paint
-if (isDarkModeEnabled()) document.documentElement.classList.add('dark');
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -243,8 +240,14 @@ function AuthGuard() {
 /* ─── Screen analytics tracker ─── */
 function ScreenTracker() {
   const location = useLocation();
+  // Apply theme at the Router level so dark mode persists on login.
+  // useTheme re-evaluates on route change (from /auth to in-app pages).
+  useTheme();
   useEffect(() => {
     capture('screen_viewed', { screen: location.pathname });
+    // Scroll the app-shell container to top on route change.
+    const shell = document.getElementById('app-shell');
+    if (shell) shell.scrollTop = 0;
   }, [location.pathname]);
   return null;
 }
