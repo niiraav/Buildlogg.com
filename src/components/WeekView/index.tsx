@@ -27,7 +27,6 @@ function formatTime(date: Date): string {
 /** Check if a job falls on a given day (handles multi-day spanning). */
 function jobOnDay(job: Job, date: Date): boolean {
   if (!job.scheduled_start) return false;
-  if (job.is_sample) return false;
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(date);
