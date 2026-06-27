@@ -300,7 +300,7 @@ export default function Home() {
     if (userId) {
       (async () => {
         // 1. Overnight auto-complete (same-day only)
-        const overnightJobs = await getOvernightAutoCompletableJobs(userId);
+        const overnightJobs = await getOvernightAutoCompletableJobs(userId!);
         if (overnightJobs.length > 0) {
           for (const j of overnightJobs) {
             await autoCompleteJob(j);
@@ -313,7 +313,7 @@ export default function Home() {
         }
 
         // 2. Fetch stale jobs for the banner
-        const stale = await getStaleInProgressJobs(userId);
+        const stale = await getStaleInProgressJobs(userId!);
         setStaleJobs(stale);
         if (stale.length > 0 && stale[0].actual_start) {
           const elapsedH = Math.floor((Date.now() - new Date(stale[0].actual_start).getTime()) / (1000 * 60 * 60));
@@ -1145,6 +1145,10 @@ export default function Home() {
                     } else if (task.type === 'recurring_reminder') {
                       const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
+                    } else if (task.type === 'booking_request') {
+                      const bookingId = task.id.replace('booking_', '');
+                      const bk = pendingBookings.find(b => b.id === bookingId);
+                      if (bk) { setSelectedBooking(bk); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -1189,6 +1193,10 @@ export default function Home() {
                     } else if (task.type === 'recurring_reminder') {
                       const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
                       if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
+                    } else if (task.type === 'booking_request') {
+                      const bookingId = task.id.replace('booking_', '');
+                      const bk = pendingBookings.find(b => b.id === bookingId);
+                      if (bk) { setSelectedBooking(bk); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
