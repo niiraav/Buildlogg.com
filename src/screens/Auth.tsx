@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { db } from '../lib/db';
 import { identifyUser, captureUserSignedIn, captureUserSignedUp, capture } from '../lib/analytics';
 import { showSuccess, showError, showToast } from '../components/Toast/store';
 import { hapticError, hapticSuccess } from '../lib/haptics';
@@ -193,8 +192,10 @@ export default function Auth() {
         captureUserSignedIn();
         if (source !== 'organic') capture('user_signed_in_from_email', { source });
 
-        const profile = await db.profiles.get(data.session.user.id);
-        navigate(profile ? '/' : '/onboarding', { replace: true });
+        // Navigate immediately — AuthGuard's checkSession will handle
+        // profile lookup (from Dexie or Supabase). This avoids a hang
+        // on iPhone Safari where IndexedDB can be slow on first access.
+        navigate('/', { replace: true });
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,

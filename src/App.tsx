@@ -69,6 +69,7 @@ function AuthGuard() {
     let syncInterval: ReturnType<typeof setInterval> | null = null;
 
     async function checkSession() {
+     try {
       let session = null;
       try {
         const { data } = await withTimeout(supabase.auth.getSession(), 5000);
@@ -159,6 +160,13 @@ function AuthGuard() {
       if (resolvedUserId) seedMissingTemplates(resolvedUserId).catch(() => {});
       initialCheckDone.current = true;
       setChecking(false);
+     } catch (err) {
+      console.error('[AuthGuard] checkSession error:', err);
+      setChecking(false);
+     } finally {
+      // Guarantee: checking is always false after checkSession, no matter what
+      setChecking(false);
+     }
     }
 
     checkSession();
