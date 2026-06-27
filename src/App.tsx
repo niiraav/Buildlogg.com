@@ -176,12 +176,18 @@ function AuthGuard() {
     const handleOffline = () => {
       setOnline(false);
     };
+    let lastFullSync = 0;
     const handleFocus = () => {
       if (navigator.onLine) {
         syncWorker().catch(() => {});
-        // Pull new data (including booking requests) from Supabase
-        const uid = useAppStore.getState().userId;
-        if (uid) initialSync(uid).catch(() => {});
+        // Only pull all data on genuine focus (returned from background),
+        // not on every click within the page. Throttle to once per 30s.
+        const now = Date.now();
+        if (now - lastFullSync > 30000) {
+          lastFullSync = now;
+          const uid = useAppStore.getState().userId;
+          if (uid) initialSync(uid).catch(() => {});
+        }
       }
     };
 
