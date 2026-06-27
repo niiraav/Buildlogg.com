@@ -29,6 +29,7 @@ import JobDetail from './screens/JobDetail';
 import Quote from './screens/Quote';
 import Settings from './screens/Settings';
 import CustomItems from './screens/Settings/CustomItems';
+import Booking from './screens/Settings/Booking';
 import MessageTemplates from './screens/Settings/MessageTemplates';
 import Dashboard from './screens/Dashboard';
 import Customers from './screens/Customers';
@@ -273,6 +274,7 @@ function AppRoutes() {
         <Route path="/quote" element={<Quote />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/custom-items" element={<CustomItems />} />
+        <Route path="/settings/booking" element={<Booking />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:customerId" element={<CustomerDetail />} />

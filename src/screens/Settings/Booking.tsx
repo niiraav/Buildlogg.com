@@ -1,0 +1,482 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ExternalLink, Copy, Download, Share2, Clock, QrCode, AlertTriangle } from 'lucide-react';
+import QRCode from 'qrcode';
+import { db, type Profile } from '../../lib/db';
+import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../lib/supabase';
+import { updateProfileFields, updateProfileSlug } from '../../lib/profile';
+import { bookingPageUrl } from '../../lib/referral';
+import { showSuccess, showToast } from '../../components/Toast/store';
+import { haptic } from '../../lib/haptics';
+import {
+  captureBookingPageEnabled,
+  captureBookingPageDisabled,
+  captureBookingSlugChanged,
+} from '../../lib/analytics';
+import BrandedLoader from '../../components/BrandedLoader';
+
+/* ─── helpers ─── */
+
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
+
+function sanitizeSlug(raw: string): string {
+  return raw.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function isValidSlug(slug: string): boolean {
+  if (slug.length < 3 || slug.length > 40) return false;
+  return SLUG_RE.test(slug);
+}
+
+const BUFFER_OPTIONS = [
+  { label: 'Same day', value: 0 },
+  { label: '2 hours', value: 2 },
+  { label: '4 hours', value: 4 },
+  { label: '12 hours', value: 12 },
+  { label: '1 day', value: 24 },
+  { label: '2 days', value: 48 },
+  { label: '3 days', value: 72 },
+  { label: '1 week', value: 168 },
+];
+
+/* ─── component ─── */
+
+export default function Booking() {
+  const userId = useAppStore((s) => s.userId);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [slugInput, setSlugInput] = useState('');
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const [slugSaved, setSlugSaved] = useState(true);
+  const [savingSlug, setSavingSlug] = useState(false);
+  const [publicItemCount, setPublicItemCount] = useState(0);
+  const [showSlugChangeConfirm, setShowSlugChangeConfirm] = useState(false);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  /* Load profile + public item count */
+  useEffect(() => {
+    if (!userId) return;
+    db.profiles.get(userId).then((p) => {
+      setProfile(p || null);
+      setSlugInput(p?.booking_slug || '');
+      setLoading(false);
+    });
+    db.custom_items
+      .where('user_id')
+      .equals(userId)
+      .filter((i) => i.is_public === true)
+      .count()
+      .then(setPublicItemCount)
+      .catch(() => setPublicItemCount(0));
+  }, [userId]);
+
+  /* Debounced slug availability check */
+  useEffect(() => {
+    const savedSlug = profile?.booking_slug || '';
+    const trimmed = slugInput.trim();
+
+    // No change from saved → idle
+    if (trimmed === savedSlug) {
+      setSlugStatus('idle');
+      setSlugSaved(true);
+      return;
+    }
+
+    setSlugSaved(false);
+
+    // Empty input (clearing) → valid (it's a clear action)
+    if (trimmed === '') {
+      setSlugStatus('idle');
+      return;
+    }
+
+    // Invalid format
+    if (!isValidSlug(trimmed)) {
+      setSlugStatus('invalid');
+      return;
+    }
+
+    // Debounced availability check
+    setSlugStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_booking_slug_taken', { p_slug: trimmed });
+        if (error) {
+          // RPC not available (migration not run) — can't check, allow optimistic save
+          setSlugStatus('idle');
+          return;
+        }
+        setSlugStatus(data ? 'taken' : 'available');
+      } catch {
+        // Network/RPC error — allow optimistic save (server will reject if taken)
+        setSlugStatus('idle');
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [slugInput, profile?.booking_slug]);
+
+  /* Render QR code when enabled + slug */
+  useEffect(() => {
+    if (!qrCanvasRef.current || !profile?.booking_slug || !profile?.booking_enabled) return;
+    const url = bookingPageUrl(profile.booking_slug);
+    QRCode.toCanvas(qrCanvasRef.current, url, { width: 200, margin: 2 }).catch(() => {});
+  }, [profile?.booking_slug, profile?.booking_enabled]);
+
+  /* ─── actions ─── */
+
+  const handleSaveSlug = useCallback(async () => {
+    if (!userId || savingSlug) return;
+    const trimmed = slugInput.trim();
+    setSavingSlug(true);
+    try {
+      const result = await updateProfileSlug(userId, trimmed || null);
+      if (result.ok) {
+        setProfile(result.profile || null);
+        setSlugSaved(true);
+        setSlugStatus('idle');
+        captureBookingSlugChanged({ hadSlug: !!profile?.booking_slug, hasSlug: !!trimmed });
+        showSuccess(trimmed ? 'Link saved' : 'Link removed');
+      } else if (result.error === 'taken') {
+        setSlugStatus('taken');
+        showToast('That link is taken', 'error', 3000);
+      } else {
+        showToast('Could not save — check connection', 'error', 3000);
+      }
+    } catch {
+      showToast('Something went wrong', 'error', 3000);
+    } finally {
+      setSavingSlug(false);
+    }
+  }, [userId, savingSlug, slugInput, profile?.booking_slug]);
+
+  const handleSaveSlugClick = useCallback(() => {
+    // If changing a live slug, confirm first
+    if (profile?.booking_enabled && profile?.booking_slug && slugInput.trim() !== profile.booking_slug && slugInput.trim() !== '') {
+      setShowSlugChangeConfirm(true);
+    } else {
+      handleSaveSlug();
+    }
+  }, [profile?.booking_enabled, profile?.booking_slug, slugInput, handleSaveSlug]);
+
+  const handleToggleEnabled = useCallback(async () => {
+    if (!userId || !profile) return;
+    const current = profile.booking_enabled ?? false;
+    // Block enabling without a slug
+    if (!current && !(profile.booking_slug && profile.booking_slug.trim())) {
+      showToast('Pick a link before going live', 'error', 3000);
+      return;
+    }
+    haptic('light');
+    const updated = await updateProfileFields(userId, { booking_enabled: !current });
+    setProfile(updated);
+    if (!current) captureBookingPageEnabled();
+    else captureBookingPageDisabled();
+  }, [userId, profile]);
+
+  const handleBufferChange = useCallback(async (value: number) => {
+    if (!userId) return;
+    const updated = await updateProfileFields(userId, { booking_buffer_hours: value });
+    setProfile(updated);
+  }, [userId]);
+
+  const handleTogglePhone = useCallback(async () => {
+    if (!userId || !profile) return;
+    const current = profile.booking_show_phone ?? true;
+    const updated = await updateProfileFields(userId, { booking_show_phone: !current });
+    setProfile(updated);
+  }, [userId, profile]);
+
+  const handleCopyLink = useCallback(() => {
+    if (!profile?.booking_slug) return;
+    navigator.clipboard.writeText(bookingPageUrl(profile.booking_slug)).then(() => {
+      showSuccess('Link copied');
+    }).catch(() => {
+      showToast('Could not copy', 'error', 2000);
+    });
+  }, [profile?.booking_slug]);
+
+  const handleOpenPage = useCallback(() => {
+    if (!profile?.booking_slug) return;
+    window.open(bookingPageUrl(profile.booking_slug), '_blank');
+  }, [profile?.booking_slug]);
+
+  const handleDownloadQR = useCallback(() => {
+    if (!qrCanvasRef.current || !profile?.booking_slug) return;
+    const url = qrCanvasRef.current.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `booking-qr-${profile.booking_slug}.png`;
+    a.click();
+  }, [profile?.booking_slug]);
+
+  const handleShareLink = useCallback(async () => {
+    if (!profile?.booking_slug) return;
+    const url = bookingPageUrl(profile.booking_slug);
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Book me online', url }); } catch { /* user cancelled */ }
+    } else {
+      navigator.clipboard.writeText(url).then(() => showSuccess('Link copied'));
+    }
+  }, [profile?.booking_slug]);
+
+  /* ─── render ─── */
+
+  if (loading) {
+    return <BrandedLoader fullscreen />;
+  }
+
+  const isEnabled = profile?.booking_enabled ?? false;
+  const bufferHours = profile?.booking_buffer_hours ?? 24;
+  const showPhone = profile?.booking_show_phone ?? true;
+  const hasSlug = !!(profile?.booking_slug && profile.booking_slug.trim());
+  const slugInputTrimmed = slugInput.trim();
+  const canSaveSlug = !slugSaved && slugStatus !== 'taken' && slugStatus !== 'invalid' && slugStatus !== 'checking' && !savingSlug;
+  const deadEndWarning = !showPhone && publicItemCount === 0 && (isEnabled || hasSlug);
+
+  return (
+    <div className="flex flex-col min-h-[100dvh] bg-[var(--app-shell-bg)]">
+      {/* Header */}
+      <div className="sticky top-0 z-40 px-4 pt-2 pb-2 bg-[var(--app-shell-bg)] flex items-center gap-3 flex-shrink-0">
+        <button onClick={() => window.history.back()} className="p-1 -ml-1 text-brand-dark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h1 className="text-lg font-extrabold text-brand-black">Online booking</h1>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 px-4 md:px-6 pb-8 space-y-6">
+
+        {/* Status section */}
+        <div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Status</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0 pr-3">
+                <p className="text-sm font-semibold text-brand-black">Booking page is live</p>
+                <p className="text-xs text-brand-muted mt-0.5">When off, your /book/&hellip; page shows &ldquo;not found&rdquo;</p>
+              </div>
+              <button
+                onClick={handleToggleEnabled}
+                className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
+                  isEnabled ? 'bg-brand-black' : 'bg-brand-border'
+                }`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  isEnabled ? 'left-[22px]' : 'left-0.5'
+                }`} />
+              </button>
+            </div>
+            {isEnabled && hasSlug && (
+              <a
+                href={bookingPageUrl(profile!.booking_slug!)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex items-center gap-1.5 text-sm font-medium text-status-green"
+              >
+                <ExternalLink size={14} />
+                Live at {bookingPageUrl(profile!.booking_slug!).replace(/^https?:\/\//, '')}
+              </a>
+            )}
+            {isEnabled && !hasSlug && (
+              <p className="mt-3 text-sm text-status-amber">Pick a link below before going live</p>
+            )}
+          </div>
+        </div>
+
+        {/* Page address section */}
+        <div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Page address</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Your booking link</label>
+            <div className="flex items-stretch border-2 border-brand-border rounded-lg overflow-hidden focus-within:border-brand-black transition-colors">
+              <span className="flex items-center px-3 text-sm text-brand-muted bg-brand-surface whitespace-nowrap border-r border-brand-border">
+                {bookingPageUrl('').replace(/\/book\/$/, '')}/book/
+              </span>
+              <input
+                type="text"
+                value={slugInput}
+                onChange={(e) => setSlugInput(sanitizeSlug(e.target.value))}
+                placeholder="your-name"
+                className="flex-1 min-w-0 px-3 py-3 text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none"
+              />
+            </div>
+
+            {/* Slug status feedback */}
+            <div className="mt-2 min-h-[20px]">
+              {slugStatus === 'checking' && (
+                <p className="text-xs text-brand-muted">Checking availability&hellip;</p>
+              )}
+              {slugStatus === 'available' && (
+                <p className="text-xs text-status-green font-medium">Available</p>
+              )}
+              {slugStatus === 'taken' && (
+                <p className="text-xs text-status-error font-medium">That link is taken</p>
+              )}
+              {slugStatus === 'invalid' && (
+                <p className="text-xs text-status-error font-medium">3-40 chars, letters/numbers/hyphens only</p>
+              )}
+              {slugStatus === 'idle' && !slugSaved && slugInputTrimmed === '' && (
+                <p className="text-xs text-status-amber">Link will be cleared</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleSaveSlugClick}
+              disabled={!canSaveSlug}
+              className={`mt-3 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                canSaveSlug
+                  ? 'bg-brand-black text-white cursor-pointer active:opacity-70'
+                  : 'bg-brand-border text-brand-muted cursor-not-allowed'
+              }`}
+            >
+              {savingSlug ? 'Saving&hellip;' : slugInputTrimmed === '' && !slugSaved ? 'Remove link' : 'Save link'}
+            </button>
+          </div>
+        </div>
+
+        {/* Availability section */}
+        <div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Availability</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4">
+            <label className="flex items-center gap-1.5 text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">
+              <Clock size={14} className="text-brand-mid" />
+              Minimum notice before bookings
+            </label>
+            <p className="text-xs text-brand-muted mb-3">Clients can&rsquo;t book a slot sooner than this</p>
+            <select
+              value={bufferHours}
+              onChange={(e) => handleBufferChange(parseInt(e.target.value))}
+              className="w-full h-12 px-3.5 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+            >
+              {BUFFER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Privacy section */}
+        <div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Privacy</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0 pr-3">
+                <p className="text-sm font-semibold text-brand-black">Show my phone number on the page</p>
+                <p className="text-xs text-brand-muted mt-0.5">Lets clients call you directly. Turn off to keep bookings online only</p>
+              </div>
+              <button
+                onClick={handleTogglePhone}
+                className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
+                  showPhone ? 'bg-brand-black' : 'bg-brand-border'
+                }`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  showPhone ? 'left-[22px]' : 'left-0.5'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Dead-end warning */}
+        {deadEndWarning && (
+          <div className="flex items-start gap-2 p-3 bg-status-amberBg border border-amber-200 rounded-lg">
+            <AlertTriangle size={16} className="text-status-amber shrink-0 mt-0.5" />
+            <p className="text-xs text-status-amber">
+              Your page has no way for clients to reach you &mdash; add public items in My Items or show your number.
+            </p>
+          </div>
+        )}
+
+        {/* Share section — only when enabled + slug */}
+        {isEnabled && hasSlug && (
+          <div>
+            <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Share</div>
+            <div className="bg-white border border-brand-border rounded-xl p-4">
+              <div className="flex flex-col items-center mb-4">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <QrCode size={14} className="text-brand-mid" />
+                  <span className="text-xs font-semibold text-brand-mid">Scan to book</span>
+                </div>
+                <canvas ref={qrCanvasRef} className="rounded-lg" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <Copy size={14} />
+                  Copy link
+                </button>
+                <button
+                  onClick={handleOpenPage}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <ExternalLink size={14} />
+                  Open page
+                </button>
+                <button
+                  onClick={handleDownloadQR}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <Download size={14} />
+                  Download QR
+                </button>
+                <button
+                  onClick={handleShareLink}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <Share2 size={14} />
+                  Share link
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Placeholder QR when not enabled */}
+        {!isEnabled && (
+          <div>
+            <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Share</div>
+            <div className="bg-white border border-brand-border rounded-xl p-4">
+              <div className="flex flex-col items-center py-6 text-center">
+                <div className="w-[200px] h-[200px] border-2 border-dashed border-brand-border rounded-lg flex items-center justify-center mb-3">
+                  <QrCode size={48} className="text-brand-border" />
+                </div>
+                <p className="text-sm text-brand-muted">Enable the page and choose a link to see your QR code</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Slug change confirm sheet */}
+      {showSlugChangeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowSlugChangeConfirm(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-brand-black mb-2">Change your link?</h3>
+            <p className="text-sm text-brand-muted mb-4">
+              Anyone with the old link or QR code will see &ldquo;not found&rdquo;. This can&rsquo;t be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSlugChangeConfirm(false)}
+                className="flex-1 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-semibold text-brand-dark cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setShowSlugChangeConfirm(false); handleSaveSlug(); }}
+                className="flex-1 py-2.5 bg-brand-black text-white rounded-lg text-sm font-semibold cursor-pointer"
+              >
+                Change link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
