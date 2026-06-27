@@ -307,3 +307,24 @@ export function capturePaymentChasePaused(data: { jobId: string; reason: string 
 export function capturePaymentChaseResumed(data: { jobId: string }) {
   capture('payment_chase_resumed', data);
 }
+
+/* ─── W2-1: Booking Page Analytics ─── */
+
+export function captureBookingPageEnabled() {
+  capture('booking_page_enabled');
+}
+export function captureBookingPageDisabled() {
+  capture('booking_page_disabled');
+}
+export function captureBookingSlugChanged(data: { hadSlug: boolean; hasSlug: boolean }) {
+  capture('booking_slug_changed', data);
+}
+
+/* ─── W2-3: Referral Analytics ─── */
+
+export function captureReferralSourceTracked(data: { source: string; context: 'in_app' | 'online' }) {
+  capture('referral_source_tracked', data);
+}
+export function captureReferralCardViewed() {
+  capture('referral_card_viewed');
+}
