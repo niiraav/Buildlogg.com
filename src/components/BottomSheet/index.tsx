@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { X } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 
 export interface BottomSheetProps {
@@ -20,6 +21,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   subtitle,
   children,
 }) => {
+  const dragControls = useDragControls();
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -33,25 +36,57 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             className="absolute inset-0 bg-black/25 dark:bg-black/60"
             onClick={() => { haptic('light'); onClose(); }}
           />
-          {/* Sheet */}
+          {/* Sheet — draggable outer, no overflow */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] overflow-y-auto md:max-w-md md:mx-auto md:w-full"
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                haptic('light');
+                onClose();
+              }
+            }}
+            className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] md:max-w-md md:mx-auto md:w-full"
           >
-            <div className="w-9 h-1 bg-brand-border rounded-sm mx-auto mt-3 mb-5" />
-            {title && (
-              <div className="flex items-center gap-2 px-4">
-                {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
-                <h2 className="text-lg font-bold text-brand-black tracking-tight">{title}</h2>
-              </div>
-            )}
+            {/* Drag handle — 32px touch target, starts drag */}
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+            >
+              <div className="w-9 h-1 bg-brand-border rounded-sm" />
+            </div>
+
+            {/* Title + X button */}
+            <div className={`flex items-center px-4 ${title ? 'justify-between' : 'justify-end'}`}>
+              {title && (
+                <div className="flex items-center gap-2">
+                  {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
+                  <h2 className="text-lg font-bold text-brand-black tracking-tight">{title}</h2>
+                </div>
+              )}
+              <button
+                onClick={() => { haptic('light'); onClose(); }}
+                className="w-7 h-7 flex items-center justify-center text-brand-muted cursor-pointer -mr-1 shrink-0"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Subtitle */}
             {subtitle && (
               <p className="text-sm text-brand-muted mt-1 px-4">{subtitle}</p>
             )}
-            <div className="px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
+
+            {/* Scrollable content — separated from draggable outer */}
+            <div className="overflow-y-auto max-h-[calc(85dvh-140px)] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
               {children}
             </div>
           </motion.div>
