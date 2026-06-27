@@ -15,6 +15,7 @@ import { useAppStore } from './store/useAppStore';
 import { syncWorker } from './lib/sync';
 import { identifyUser, capture, initAnalytics } from './lib/analytics';
 import { initialSync } from './lib/initialSync';
+import { subscribeRealtime } from './lib/realtime';
 import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
 import BrandedLoader from './components/BrandedLoader';
@@ -61,6 +62,7 @@ function AuthGuard() {
   const location = useLocation();
   const [checking, setChecking] = useState(true);
   const initialCheckDone = useRef(false);
+  const realtimeCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -143,6 +145,16 @@ function AuthGuard() {
         syncWorker().catch(() => {});
       }
 
+      // W3-2: Subscribe to realtime changes for multi-device sync
+      if (resolvedUserId) {
+        if (realtimeCleanupRef.current) realtimeCleanupRef.current();
+        realtimeCleanupRef.current = subscribeRealtime(resolvedUserId, () => {
+          // Trigger a refresh by toggling the sync status — screens re-read
+          // from Dexie on their own effects, so this is a lightweight nudge.
+          if (navigator.onLine) syncWorker().catch(() => {});
+        });
+      }
+
       // Ensure existing users get new default templates (receipt, update, etc.)
       if (resolvedUserId) seedMissingTemplates(resolvedUserId).catch(() => {});
       initialCheckDone.current = true;
@@ -188,6 +200,10 @@ function AuthGuard() {
           const devUserId = import.meta.env.DEV ? useAppStore.getState().userId : null;
           if (!devUserId) {
             setUserId(null);
+            if (realtimeCleanupRef.current) {
+              realtimeCleanupRef.current();
+              realtimeCleanupRef.current = null;
+            }
             navigate('/auth' + window.location.search, { replace: true });
           }
         }
