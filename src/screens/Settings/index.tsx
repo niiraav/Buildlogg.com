@@ -983,9 +983,7 @@ export default function Settings() {
             >
               Turn off card payments
             </Button>
-            <Button variant="ghost" fullWidth onClick={() => setShowCardPaymentsSheet(false)}>
-              Close
-            </Button>
+
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -1012,9 +1010,7 @@ export default function Settings() {
               <CreditCard size={18} className="mr-2" />
               Enable card payments
             </Button>
-            <Button variant="ghost" fullWidth onClick={() => setShowCardPaymentsSheet(false)}>
-              Maybe later
-            </Button>
+
           </div>
         )}
       </BottomSheet>
