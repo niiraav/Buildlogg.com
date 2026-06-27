@@ -603,6 +603,24 @@ export default function Home() {
       });
     });
 
+    // Add booking request tasks
+    pendingBookings.forEach((b) => {
+      items.push({
+        id: `booking_${b.id}`,
+        jobId: b.accepted_job_id || b.id,
+        customerName: b.client_name,
+        jobTitle: b.service_description,
+        jobNumber: undefined,
+        tag: 'Booking request',
+        amount: b.service_amount > 0 ? `£${b.service_amount.toFixed(0)}` : '',
+        isL2: true,
+        type: 'booking_request',
+        phone: b.client_phone,
+        timeAgo: new Date(b.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        contextLine: `${b.requested_date} at ${b.requested_time}`,
+      });
+    });
+
     return items;
   }, [jobs, customers, lineItems, userId, tick, dueFollowUps, dueChases, upcomingRecurring, pendingBookings]);
 
