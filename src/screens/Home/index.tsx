@@ -286,6 +286,16 @@ export default function Home() {
   useEffect(() => {
     refresh();
 
+    // Re-fetch booking requests after a delay to give initialSync time to complete
+    // initialSync runs asynchronously in App.tsx and may not have finished
+    // when refresh() runs above. This ensures booking request task cards appear
+    // without requiring a manual page reload.
+    const bookingRetryTimer = setTimeout(() => {
+      if (userId) getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
+    }, 3000);
+
+    return () => clearTimeout(bookingRetryTimer);
+
     // Anti-forgetting: fetch stale in-progress jobs + run overnight auto-complete
     if (userId) {
       (async () => {
