@@ -11,11 +11,6 @@ export async function initAnalytics() {
     return;
   }
 
-  // No pre-flight check — the /e/ endpoint returns 400 for any non-PostHog
-  // request (HEAD, POST, GET), which caused false positives in the pre-flight.
-  // Instead, we initialize PostHog unconditionally and suppress network errors
-  // silently in the loaded() callback. If an ad-blocker blocks requests,
-  // PostHog's events fail silently without console spam.
   try {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
@@ -25,29 +20,31 @@ export async function initAnalytics() {
       dead_clicks_autocapture: false,
       advanced_disable_decide: true,
       advanced_disable_feature_flags: true,
-      // Disable opt-out caching to avoid stale state
       disable_session_recording: true,
-      // Reduce retry attempts — if the first event fails, don't spam the console
       loaded: (ph: any) => {
-        // Override the internal retry mechanism to fail fast
-        // PostHog stores events in a queue and retries failed sends.
-        // We patch the send function to catch network errors silently.
+        // Patch _send_request to handle ad-blocker blocks gracefully.
+        // When blocked, the original function returns undefined (not a Promise),
+        // so we can't call .catch() on it. Wrap everything in try/catch.
         if (ph._send_request) {
           const originalSend = ph._send_request.bind(ph);
           ph._send_request = function(...args: any[]) {
-            return originalSend(...args).catch(() => {
-              // Network error (ad-blocker, offline, etc) — silently drop
+            try {
+              const result = originalSend(...args);
+              if (result && typeof result.then === 'function') {
+                return result.catch(() => Promise.resolve());
+              }
+              return result;
+            } catch {
               return Promise.resolve();
-            });
+            }
           };
         }
-        // Also patch the retriableRequest if it exists
         if (ph._retriableRequest) {
           const originalRetry = ph._retriableRequest.bind(ph);
           ph._retriableRequest = function(...args: any[]) {
             try {
               const result = originalRetry(...args);
-              if (result && typeof result.catch === 'function') {
+              if (result && typeof result.then === 'function') {
                 return result.catch(() => Promise.resolve());
               }
               return result;
@@ -310,19 +307,19 @@ export function capturePaymentChaseResumed(data: { jobId: string }) {
 
 /* ─── W2-1: Booking Page Analytics ─── */
 
-export function captureBookingPageEnabled() {
-  capture('booking_page_enabled');
+export function captureBookingPageEnabled(data?: { slug?: string }) {
+  capture('booking_page_enabled', data);
 }
 export function captureBookingPageDisabled() {
   capture('booking_page_disabled');
 }
-export function captureBookingSlugChanged(data: { hadSlug: boolean; hasSlug: boolean }) {
+export function captureBookingSlugChanged(data: { hadSlug?: boolean; hasSlug?: boolean; oldSlug?: string; newSlug?: string }) {
   capture('booking_slug_changed', data);
 }
 
 /* ─── W2-3: Referral Analytics ─── */
 
-export function captureReferralSourceTracked(data: { source: string; context: 'in_app' | 'online' }) {
+export function captureReferralSourceTracked(data: { source: string; detail?: string; context?: string }) {
   capture('referral_source_tracked', data);
 }
 export function captureReferralCardViewed() {
