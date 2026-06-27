@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
-import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported } from '../../lib/analytics';
+import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
 
 export default function Dashboard() {
@@ -20,6 +20,12 @@ export default function Dashboard() {
     });
     captureDashboardViewed();
   }, [userId]);
+
+  useEffect(() => {
+    if (stats?.referral && stats.referral.total > 0) {
+      captureReferralCardViewed();
+    }
+  }, [stats?.referral?.total]);
 
   const handleExport = async () => {
     if (!userId) return;
@@ -140,6 +146,68 @@ export default function Dashboard() {
               <span className="text-sm font-bold text-brand-black">£{stats.topJobType.earnings.toFixed(0)}</span>
             </div>
             <p className="text-xs text-brand-muted mt-1">{stats.topJobType.count} job{stats.topJobType.count !== 1 ? 's' : ''}</p>
+          </div>
+        )}
+
+        {/* Referral breakdown — where customers find you */}
+        {stats.referral && (stats.referral.total > 0 || stats.referral.unknown > 0) && (
+          <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Users size={14} className="text-brand-mid" />
+              <span className="text-xs font-semibold text-brand-mid">Where customers find you</span>
+            </div>
+
+            {stats.referral.total > 0 ? (
+              <div className="space-y-2">
+                {stats.referral.bySource.map((r) => {
+                  const pct = stats.referral.total > 0
+                    ? Math.round((r.count / stats.referral.total) * 100)
+                    : 0;
+                  return (
+                    <div key={r.source}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-brand-dark">{r.label}</span>
+                        <span className="text-sm font-medium text-brand-muted">
+                          {r.count} <span className="text-xs">({pct}%)</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-brand-surface rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-brand-black rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                {stats.referral.unknown > 0 && (
+                  <p className="text-xs text-brand-muted pt-1">
+                    {stats.referral.unknown} customer{stats.referral.unknown !== 1 ? 's' : ''} &middot; source not recorded
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-brand-muted">
+                {stats.referral.unknown} customer{stats.referral.unknown !== 1 ? 's' : ''} &middot; source not recorded.
+                Ask &ldquo;How did you find me?&rdquo; when you start a quote.
+              </p>
+            )}
+
+            <p className="text-xs text-brand-muted mt-3 pt-3 border-t border-brand-borderLight">
+              All time &middot; in-app quotes + online bookings
+            </p>
+          </div>
+        )}
+
+        {stats.referral && stats.referral.total === 0 && stats.referral.unknown === 0 && (
+          <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Users size={14} className="text-brand-mid" />
+              <span className="text-xs font-semibold text-brand-mid">Where customers find you</span>
+            </div>
+            <p className="text-sm text-brand-muted">
+              No referral data yet &mdash; ask &ldquo;How did you find me?&rdquo; when you start a quote.
+            </p>
           </div>
         )}
 

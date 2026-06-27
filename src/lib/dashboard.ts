@@ -2,7 +2,9 @@
  * Revenue dashboard — computes stats from existing Dexie data.
  * No new tables, pure computation.
  */
-import { db } from './db';
+import { db, type BookingRequest } from './db';
+import { supabase } from './supabase';
+import { referralLabel } from './referral';
 
 export interface DashboardStats {
   monthEarnings: number;
@@ -17,10 +19,79 @@ export interface DashboardStats {
   reviewRequestsSent: number;
   monthExpenses: number;
   monthProfit: number;
+  referral: ReferralBreakdown;
+}
+
+export interface ReferralBreakdown {
+  bySource: { source: string; label: string; count: number }[];
+  total: number;
+  unknown: number;
 }
 
 function isSameMonth(date: Date, ref: Date): boolean {
   return date.getMonth() === ref.getMonth() && date.getFullYear() === ref.getFullYear();
+}
+
+/**
+ * Fetch booking_requests from Supabase (online bookings arrive here, not via
+ * Dexie sync which is push-only). Falls back to Dexie when offline.
+ */
+async function fetchBookingRequestsFromSupabase(userId: string): Promise<BookingRequest[]> {
+  if (navigator.onLine) {
+    try {
+      const result = await Promise.race([
+        supabase.from('booking_requests').select('*').eq('merchant_id', userId),
+        new Promise<{ data: null; error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        ),
+      ]) as { data: BookingRequest[] | null; error: Error | null };
+      if (!result.error && result.data) return result.data;
+    } catch {
+      // fall through to Dexie
+    }
+  }
+  try {
+    return await db.booking_requests.where('merchant_id').equals(userId).toArray();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Referral breakdown — combines in-app (jobs) + online (booking_requests).
+ * Excludes booking_requests with accepted_job_id set (dedup once accept ships).
+ */
+export async function getReferralBreakdown(userId: string): Promise<ReferralBreakdown> {
+  const [jobs, bookings] = await Promise.all([
+    db.jobs.where('user_id').equals(userId).filter((j) => !j.is_sample).toArray(),
+    fetchBookingRequestsFromSupabase(userId),
+  ]);
+
+  const counts: Record<string, number> = {};
+  let unknown = 0;
+
+  const bump = (s?: string | null) => {
+    if (s) counts[s] = (counts[s] || 0) + 1;
+    else unknown++;
+  };
+
+  // In-app: jobs with referral_source
+  jobs.forEach((j) => bump(j.referral_source));
+
+  // Online: booking_requests with referral_source, EXCLUDING converted ones
+  bookings
+    .filter((b) => !b.accepted_job_id)
+    .forEach((b) => bump(b.referral_source));
+
+  const bySource = Object.entries(counts)
+    .map(([source, count]) => ({ source, label: referralLabel(source), count }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    bySource,
+    total: bySource.reduce((s, r) => s + r.count, 0),
+    unknown,
+  };
 }
 
 export async function getDashboardStats(userId: string, month?: Date): Promise<DashboardStats> {
@@ -100,6 +171,9 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
     other: monthPayments.filter((p) => p.method === 'other').reduce((s, p) => s + p.amount, 0),
   };
 
+  // Referral breakdown (all-time, in-app + online)
+  const referral = await getReferralBreakdown(userId);
+
   // Review requests sent this month
   const reviewRequestsSent = allJobs.filter(
     (j) => j.review_requested_at && isSameMonth(new Date(j.review_requested_at), ref)
@@ -118,6 +192,7 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
     reviewRequestsSent,
     monthExpenses,
     monthProfit,
+    referral,
   };
 }
 
