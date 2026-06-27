@@ -148,6 +148,7 @@ type SheetState =
   | 'record_deposit'
   | 'request_payment'
   | 'write_off'
+  | 'confirm_not_home'
   | 'review_prompt'
   | 'recurring_prompt';
 
@@ -1777,7 +1778,7 @@ export default function JobDetail() {
 
         {/* Secondary action */}
         <button
-          onClick={handleNotHome}
+          onClick={() => setSheet('confirm_not_home')}
           className="w-full text-center text-sm text-brand-muted py-2 mb-2 underline underline-offset-2 cursor-pointer"
         >
           Customer not home?
@@ -2805,6 +2806,31 @@ export default function JobDetail() {
     </BottomSheet>
   );
 
+  const renderConfirmNotHomeSheet = () => (
+    <BottomSheet
+      isOpen={sheet === 'confirm_not_home'}
+      onClose={() => setSheet(null)}
+      title="Customer not home?"
+      subtitle={job && customer ? `${customer.name} · ${job.title}` : undefined}
+    >
+      <div className="mb-4 px-1">
+        <p className="text-sm text-brand-dark leading-relaxed">
+          This will mark the job as a no-show. You can reschedule or charge a callout fee afterwards.
+        </p>
+      </div>
+      <SheetRow
+        label="Yes, mark as no-show"
+        onTap={() => { handleNotHome(); setSheet(null); }}
+        variant="destructive"
+      />
+      <SheetRow
+        label="Cancel"
+        onTap={() => setSheet(null)}
+        isLast
+      />
+    </BottomSheet>
+  );
+
   const renderRescheduleSheet = () => (
     <BottomSheet
       isOpen={sheet === 'reschedule'}
@@ -3128,6 +3154,7 @@ export default function JobDetail() {
       {renderDepositSheet()}
       {renderRequestPaymentSheet()}
       {renderWriteOffSheet()}
+      {renderConfirmNotHomeSheet()}
       
       {renderRescheduleSheet()}
       {renderCalloutChargeSheet()}
