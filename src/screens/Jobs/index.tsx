@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
@@ -328,7 +327,7 @@ export default function Jobs() {
     <div
       key={job.id}
       onClick={() => navigate(`/jobs/${job.id}`)}
-      className="flex items-center gap-2.5 p-4 bg-white border border-brand-border rounded-lg cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 mb-2.5"
+      className="flex items-center gap-2.5 p-4 bg-white border border-brand-border rounded-lg cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 mb-2 mx-0"
     >
       <div className="flex-1 min-w-0">
         <div className="text-base font-semibold text-brand-black truncate">
@@ -351,7 +350,7 @@ export default function Jobs() {
   const renderGroupHeader = (status: JobStatus, count: number) => (
     <div
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 py-2.5 px-3 mb-1 cursor-pointer active:opacity-60 transition-opacity bg-[var(--app-shell-bg)]"
+      className="flex items-center gap-2 py-3 px-4 cursor-pointer active:opacity-60 transition-opacity bg-[var(--app-shell-bg)] border-b border-brand-borderLight"
       style={{ position: 'sticky', top: `${headerHeight}px`, zIndex: 20 }}
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
@@ -369,7 +368,7 @@ export default function Jobs() {
     <div
       key={status}
       onClick={() => toggleGroup(status)}
-      className="flex items-center gap-2 py-3 px-1 cursor-pointer active:opacity-60 transition-opacity"
+      className="flex items-center gap-2 py-3 px-4 cursor-pointer active:opacity-60 transition-opacity"
     >
       <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClasses[status]}`} />
       <span className="text-sm font-semibold text-brand-dark flex-1">
@@ -385,21 +384,11 @@ export default function Jobs() {
   const renderExpandedGroup = (status: JobStatus, jobs: JobWithTotal[]) => {
     const tint = statusBgTints[status];
     return (
-      <div key={status} className="mb-5">
+      <div key={status} className="mb-4">
         {renderGroupHeader(status, jobs.length)}
-        <AnimatePresence initial={false}>
-          <motion.div
-            initial={{ height: 'auto', opacity: 1 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={tint ? { backgroundColor: tint } : undefined} className="rounded-xl px-2 py-1">
-              {jobs.map(renderJobRow)}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        <div style={tint ? { backgroundColor: tint } : undefined} className="px-4 py-1">
+          {jobs.map(renderJobRow)}
+        </div>
       </div>
     );
   };
@@ -459,7 +448,7 @@ export default function Jobs() {
     }
 
     return (
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
+      <div className="pt-2 pb-4">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>
