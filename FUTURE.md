@@ -286,5 +286,32 @@ The custom items library (`custom_items` table) already stores Dave's regular ch
 
 ---
 
-*Last updated: 2026-06-26*
+## NEXT FEATURES PRD (27 June 2026)
+
+> **Context:** Post-QA, all critical bugs fixed. 129/164 features tested and working.
+> Full PRD: `docs/PRD-NEXT-FEATURES-2026-06-27.md`
+> Booking audit: `docs/BOOKING-SYSTEM-AUDIT-AND-PLAN.md`
+
+### Build Order
+
+| Sprint | Features | Duration | Impact |
+|---|---|---|---|
+| **1 (now)** | Fix all QA critical bugs (Add Customer, edit customer, log out, marketing hero, email validation, duplicate templates, save draft, forgot password) | 2-3 days | Unblocks user testing |
+| **2** | Materials CRUD + Expense & profit tracking | 4-5 days | Dashboard accuracy |
+| **3** | End-of-day prompt + Quote revision + Notification flow | 3-4 days | Daily engagement |
+| **4** | Important notes + Cloud sync hardening | 4-5 days | Retention + data safety |
+
+### Booking System Redesign (separate track)
+
+| Phase | Features | Duration | Priority |
+|---|---|---|---|
+| **1** | Calendar conflict prevention (block pending slots, conflict check on accept, visual indicator) | 2-3 days | Critical |
+| **2** | Notification infrastructure (email to merchant + client, push, in-app toast) | 3-4 days | Critical |
+| **3** | Task card & sheet redesign (colour coding, conflict display, batch handling, calendar preview) | 3-4 days | High |
+| **4** | Calendar configuration (working hours, OOO mode, travel buffer) | 2-3 days | Medium |
+| **5** | Deposit on booking (Stripe integration with booking flow) | 2-3 days | Medium |
+
+---
+
+*Last updated: 2026-06-27*
 *Author: Codex*
