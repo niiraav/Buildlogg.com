@@ -697,6 +697,10 @@ export default function JobDetail() {
 
   const handleRequestStripePayment = async (type: 'deposit' | 'full') => {
     if (!job || !userId || stripeLoading) return;
+    if (!profile?.stripe_connected) {
+      showToast('Enable card payments in Settings first', 'info');
+      return;
+    }
     const summary = paymentSummary(job, payments, total);
     const amount = type === 'deposit' ? summary.depositAmount : summary.amountDue;
     if (amount <= 0) {
@@ -2295,7 +2299,7 @@ export default function JobDetail() {
           onTap={() => setSheet('record_deposit')}
         />
       )}
-      {(() => {
+      {profile?.stripe_connected && (() => {
         if (!job) return null;
         const summary = paymentSummary(job, payments, total);
         if (summary.amountDue <= 0) return null;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -15,6 +15,7 @@ import { capturePDFGenerated } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
 import BrandedLoader from '../../components/BrandedLoader';
 import FeedbackSheet from '../../components/FeedbackSheet';
+import { showToast } from '../../components/Toast/store';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import { ProBadge } from '../../components/ProBadge';
 
@@ -79,6 +80,7 @@ export default function Settings() {
   const { isDark, toggle } = useTheme();
   const [showBrandingSheet, setShowBrandingSheet] = useState(false);
   const [showReviewsSheet, setShowReviewsSheet] = useState(false);
+  const [showCardPaymentsSheet, setShowCardPaymentsSheet] = useState(false);
   const [showLogoHelp, setShowLogoHelp] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   
@@ -459,6 +461,20 @@ export default function Settings() {
               ) : (
                 <ProBadge upgradeUrl={upgradeUrl} />
               )}
+            </div>
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              onClick={() => setShowCardPaymentsSheet(true)}
+            >
+              <span className="text-sm font-medium text-brand-dark">Card payments</span>
+              <div className="flex items-center gap-2">
+                {profile?.stripe_connected ? (
+                  <span className="text-xs font-semibold text-status-green">On</span>
+                ) : (
+                  <span className="text-xs text-brand-muted">Enable</span>
+                )}
+                <ChevronRight size={14} className="text-brand-muted" />
+              </div>
             </div>
 
           </div>
@@ -930,6 +946,69 @@ export default function Settings() {
             );
           })}
         </div>
+      </BottomSheet>
+
+      {/* Card payments sheet */}
+      <BottomSheet
+        isOpen={showCardPaymentsSheet}
+        onClose={() => setShowCardPaymentsSheet(false)}
+        title="Card payments"
+        subtitle={profile?.stripe_connected ? 'Card payments are on' : undefined}
+      >
+        {profile?.stripe_connected ? (
+          <div className="flex flex-col gap-3">
+            <div className="bg-status-greenBg border border-green-200 rounded-lg p-3 flex items-start gap-2">
+              <Check size={16} className="text-status-green shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-status-green font-medium">Card payments are enabled</p>
+                <p className="text-xs text-status-green mt-1">Clients can pay by card when you send them a payment link from a job.</p>
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={async () => {
+                await updateProfile({ stripe_connected: false });
+                setShowCardPaymentsSheet(false);
+                showToast('Card payments turned off', 'success');
+              }}
+            >
+              Turn off card payments
+            </Button>
+            <Button variant="ghost" fullWidth onClick={() => setShowCardPaymentsSheet(false)}>
+              Close
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-brand-dark leading-relaxed">
+              Let clients pay by card when you send them a payment link. They pay online — you get notified when it's done.
+            </p>
+            <div className="bg-brand-surface border border-brand-border rounded-lg p-3">
+              <p className="text-xs font-semibold text-brand-mid mb-2">How it works</p>
+              <ol className="text-xs text-brand-dark space-y-1.5">
+                <li>1. Send a payment link via WhatsApp from a job</li>
+                <li>2. Client opens the link and pays by card</li>
+                <li>3. Job updates automatically — deposit marked as paid</li>
+              </ol>
+            </div>
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={async () => {
+                await updateProfile({ stripe_connected: true, stripe_account_id: 'buildlogg-shared' });
+                setShowCardPaymentsSheet(false);
+                showToast('Card payments enabled', 'success');
+              }}
+            >
+              <CreditCard size={18} className="mr-2" />
+              Enable card payments
+            </Button>
+            <Button variant="ghost" fullWidth onClick={() => setShowCardPaymentsSheet(false)}>
+              Maybe later
+            </Button>
+          </div>
+        )}
       </BottomSheet>
 
       {/* Feedback sheet */}
