@@ -2,9 +2,8 @@
  * PDF Quote & Invoice Generator — client-side via jsPDF + autoTable.
  * Generates branded A4 PDFs with itemized tables, payment details, and VAT.
  */
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { Profile, Customer, Job, LineItem, Payment } from './db';
+import type { jsPDF } from 'jspdf';
 import { formatAmount } from './paymentHelpers';
 
 interface QuotePDFData {
@@ -126,7 +125,9 @@ function buildFooter(doc: jsPDF, profile: Profile): void {
   }
 }
 
-export function generateQuotePDF(data: QuotePDFData): Blob {
+export async function generateQuotePDF(data: QuotePDFData): Promise<Blob> {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const { profile, customer, job, lineItems, total, validUntil } = data;
 
@@ -206,7 +207,9 @@ export function generateQuotePDF(data: QuotePDFData): Blob {
   return doc.output('blob');
 }
 
-export function generateInvoicePDF(data: InvoicePDFData): Blob {
+export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const { profile, customer, job, lineItems, payments, amountDue, dueDate } = data;
 

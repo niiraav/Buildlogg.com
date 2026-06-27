@@ -145,7 +145,7 @@ export default function Settings() {
     [userId, profile]
   );
 
-  const handlePreviewPDF = () => {
+  const handlePreviewPDF = async () => {
     if (!profile) return;
     const dummyCustomer = { id: 'preview', user_id: '', name: 'Sample Customer', phone: '', created_at: '', updated_at: '', _sync_status: 'synced' as const };
     const dummyJob = { id: 'preview', user_id: '', customer_id: 'preview', title: 'Sample service', status: 'awaiting_payment' as const, is_multi_day: false, payment_terms: 'invoice' as const, created_at: '', updated_at: '', _sync_status: 'synced' as const };
@@ -153,7 +153,7 @@ export default function Settings() {
       { id: '1', job_id: 'preview', description: 'Service call', amount: 100, sort_order: 0, added_on_site: false, created_at: '', _sync_status: 'synced' as const },
       { id: '2', job_id: 'preview', description: 'Materials', amount: 50, sort_order: 1, added_on_site: false, created_at: '', _sync_status: 'synced' as const },
     ];
-    const blob = generateInvoicePDF({ profile, customer: dummyCustomer, job: dummyJob, lineItems: dummyItems, total: 150, payments: [], amountDue: 150 });
+    const blob = await generateInvoicePDF({ profile, customer: dummyCustomer, job: dummyJob, lineItems: dummyItems, total: 150, payments: [], amountDue: 150 });
     setShowBrandingSheet(false);
     setPdfBlob(blob);
     capturePDFGenerated({ jobId: 'preview', type: 'invoice', hasLogo: !!profile.logo_data_url, isVat: !!profile.vat_registered });

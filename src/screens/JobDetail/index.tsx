@@ -172,7 +172,7 @@ export default function JobDetail() {
     title: string;
     messageText: string;
     onSend: (method: SendMethod, pdfShared: boolean) => void;
-    pdfOptions?: { label: string; generatePdf: () => Blob; fileName: string; onPdfGenerated?: () => void };
+    pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string; onPdfGenerated?: () => void };
     fullMessage?: string;
     compactMessage?: string;
   } | null>(null);
@@ -2307,9 +2307,9 @@ export default function JobDetail() {
                 onSend: (method, pdfShared) => handleSendReminder(method, pdfShared),
                 pdfOptions: {
                   label: 'Attach PDF invoice',
-                  generatePdf: () => {
+                  generatePdf: async () => {
                     if (!profile || !customer || !job) throw new Error('Missing data');
-                    return generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: total, dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined });
+                    return await generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: total, dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined });
                   },
                   fileName: `invoice-${job.invoice_number || job.job_number}.pdf`,
                 },

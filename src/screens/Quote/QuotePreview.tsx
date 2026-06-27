@@ -166,10 +166,10 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
   const { can } = useEntitlements();
   const pdfOptions = can('pdf_quotes') && job && customer && profile ? {
     label: 'Attach PDF quote',
-    generatePdf: () => {
+    generatePdf: async () => {
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + (profile.quote_valid_days || 30));
-      const blob = generateQuotePDF({ profile, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
+      const blob = await generateQuotePDF({ profile, customer, job, lineItems: items, total, validUntil: validUntil.toISOString() });
       capturePDFGenerated({ jobId, type: 'quote', hasLogo: !!profile.logo_data_url, isVat: !!profile.vat_registered });
       return blob;
     },

@@ -14,7 +14,7 @@ const SIGNATURE = '— Sent via Buildlogg.com';
 
 export interface SendSheetPdfOptions {
   label: string;
-  generatePdf: () => Blob;
+  generatePdf: () => Promise<Blob>;
   fileName: string;
   onPdfGenerated?: () => void;
 }
@@ -92,7 +92,7 @@ export function SendSheet({
 
   const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare;
 
-  const handleTogglePDF = () => {
+  const handleTogglePDF = async () => {
     if (attachPDF) {
       setAttachPDF(false);
       setPdfBlob(null);
@@ -104,7 +104,7 @@ export function SendSheet({
       haptic('light');
       setGeneratingPdf(true);
       try {
-        const blob = pdfOptions!.generatePdf();
+        const blob = await pdfOptions!.generatePdf();
         setPdfBlob(blob);
         setAttachPDF(true);
         pdfOptions?.onPdfGenerated?.();
