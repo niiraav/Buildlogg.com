@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { haptic } from '../../lib/haptics';
 
 export interface HomeTabSwitcherProps {
@@ -93,13 +92,12 @@ export const HomeTabSwitcher: React.FC<HomeTabSwitcherProps> = ({
       )}
 
       {/* Animated underline */}
-      <motion.div
-        className="absolute bottom-0 h-0.5 bg-brand-black rounded-full"
-        animate={{
-          left: underline.left + 2,
-          width: Math.max(underline.width - 18, 32),
+      <div
+        className="absolute bottom-0 h-0.5 bg-brand-black rounded-full transition-all duration-200 ease-out"
+        style={{
+          left: `${underline.left + 2}px`,
+          width: `${Math.max(underline.width - 18, 32)}px`,
         }}
-        transition={{ type: 'spring', stiffness: 400, damping: 35, duration: 0.2 }}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
   return (
@@ -61,13 +60,12 @@ export function SkeletonJobListRow() {
 /** Fade-in wrapper for real content replacing skeletons */
 export function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, delay }}
+    <div
+      className="animate-[fadeIn_0.2s_ease-out]"
+      style={{ animationDelay: `${delay}s` }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 

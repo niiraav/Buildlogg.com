@@ -31,7 +31,7 @@ const InstallModal: React.FC<{
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/55"
-          style={{ backdropFilter: 'blur(2px)' }}
+          style={{ backdropFilter: 'blur(2px)', transition: 'opacity 0.2s ease-out' }}
           onClick={() => { haptic('light'); onClose(); }}
         />
         {/* Card */}
