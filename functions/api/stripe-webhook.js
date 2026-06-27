@@ -1,22 +1,16 @@
 // Buildlogg — Stripe Webhook Handler (Cloudflare Pages Function)
 // POST /api/stripe-webhook
-// Receives Stripe webhook events and updates job/payment status in Supabase.
+// Verifies webhook signature using Web Crypto API (no Stripe SDK needed — works in Workers)
 //
-// Env vars (set in Cloudflare Pages dashboard):
-//   STRIPE_WEBHOOK_SECRET     — webhook signing secret (whsec_...)
-//   SUPABASE_URL              — app's Supabase project URL
-//   SUPABASE_SERVICE_ROLE_KEY — bypasses RLS for server-side queries
-//
-// Setup:
-//   1. In Stripe Dashboard → Developers → Webhooks → Add endpoint:
-//      URL: https://buildlogg.com/api/stripe-webhook
-//      Events: checkout.session.completed
-//   2. Copy the signing secret (whsec_...) and add to Cloudflare as STRIPE_WEBHOOK_SECRET
-
-import Stripe from 'stripe';
+// Env vars:
+//   STRIPE_WEBHOOK_SECRET     — whsec_... from Stripe Dashboard
+//   STRIPE_SECRET_KEY         — sk_... for API calls
+//   SUPABASE_URL              — Supabase project URL
+//   SUPABASE_SERVICE_ROLE_KEY — bypasses RLS
 
 async function supabaseQuery(url, key, table, query, method = 'GET', body = null) {
   const headers = { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' };
+  if (method === 'PATCH') headers['Prefer'] = 'return=minimal';
   const fullUrl = `${url}/rest/v1/${table}${query}`;
   const options = { method, headers };
   if (body) options.body = JSON.stringify(body);
@@ -25,45 +19,65 @@ async function supabaseQuery(url, key, table, query, method = 'GET', body = null
   return resp;
 }
 
-async function supabasePatch(url, key, table, query, body) {
-  const headers = {
-    'apikey': key,
-    'Authorization': `Bearer ${key}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal',
-  };
-  const resp = await fetch(`${url}/rest/v1/${table}${query}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(body),
-  });
-  return resp;
+// Verify Stripe webhook signature using Web Crypto API
+async function verifySignature(payload, signatureHeader, secret) {
+  const parts = signatureHeader.split(',');
+  const timestamp = parts.find(p => p.startsWith('t='))?.split('=')[1];
+  const v1Signature = parts.find(p => p.startsWith('v1='))?.split('=')[1];
+  if (!timestamp || !v1Signature) return false;
+
+  // Check timestamp freshness (5 min tolerance)
+  const age = Math.floor(Date.now() / 1000) - parseInt(timestamp);
+  if (age > 300) return false;
+
+  // Compute HMAC-SHA256
+  const signedPayload = `${timestamp}.${payload}`;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(signedPayload));
+  const computedSignature = Array.from(new Uint8Array(sigBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return computedSignature === v1Signature;
 }
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  const STRIPE_SECRET = env.STRIPE_WEBHOOK_SECRET;
-  const STRIPE_KEY = env.STRIPE_SECRET_KEY;
+  const WEBHOOK_SECRET = env.STRIPE_WEBHOOK_SECRET;
   const SUPABASE_URL = env.SUPABASE_URL;
   const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!STRIPE_SECRET || !STRIPE_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
+  if (!WEBHOOK_SECRET || !SUPABASE_URL || !SUPABASE_KEY) {
     return new Response('Server not configured', { status: 500 });
   }
 
-  const stripe = new Stripe(STRIPE_KEY);
-
-  // Verify webhook signature
   const payload = await request.text();
   const signature = request.headers.get('Stripe-Signature');
 
+  if (!signature) {
+    return new Response('Missing signature', { status: 400 });
+  }
+
+  // Verify signature
+  const isValid = await verifySignature(payload, signature, WEBHOOK_SECRET);
+  if (!isValid) {
+    return new Response('Invalid signature', { status: 400 });
+  }
+
+  // Parse event
   let event;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, STRIPE_SECRET);
-  } catch (err) {
-    console.error('[stripe-webhook] Signature verification failed:', err.message);
-    return new Response('Invalid signature', { status: 400 });
+    event = JSON.parse(payload);
+  } catch {
+    return new Response('Invalid JSON', { status: 400 });
   }
 
   // Handle checkout.session.completed
@@ -74,7 +88,7 @@ export async function onRequestPost(context) {
     const merchantId = metadata.merchant_id;
     const jobId = metadata.job_id || null;
     const type = metadata.type || 'deposit';
-    const amountPaid = session.amount_total / 100; // Stripe stores in pence
+    const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
 
     try {
       // 1. Look up checkout_sessions by stripe_session_id
@@ -88,26 +102,24 @@ export async function onRequestPost(context) {
 
       const checkoutRecord = sessions[0];
 
-      // 2. Idempotency check — if already paid, skip
+      // 2. Idempotency check
       if (checkoutRecord.status === 'paid') {
         return new Response('OK (already processed)', { status: 200 });
       }
 
-      // 3. Update checkout_sessions status to paid
-      await supabasePatch(SUPABASE_URL, SUPABASE_KEY, 'checkout_sessions',
-        `?id=eq.${checkoutRecord.id}`,
+      // 3. Update checkout_sessions status
+      await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'checkout_sessions',
+        `?id=eq.${checkoutRecord.id}`, 'PATCH',
         { status: 'paid', paid_at: new Date().toISOString() }
       );
 
-      // 4. If job_id is set, update the job
+      // 4. If job_id is set, update the job + create payment record
       if (jobId) {
-        // Update job deposit status
-        await supabasePatch(SUPABASE_URL, SUPABASE_KEY, 'jobs',
-          `?id=eq.${jobId}`,
+        await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'jobs',
+          `?id=eq.${jobId}`, 'PATCH',
           { deposit_status: 'paid', deposit_paid_at: new Date().toISOString(), updated_at: new Date().toISOString() }
         );
 
-        // Create a payment record
         await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'payments', '', 'POST', {
           job_id: jobId,
           type: type === 'deposit' ? 'deposit' : 'full',
@@ -124,10 +136,9 @@ export async function onRequestPost(context) {
 
     } catch (err) {
       console.error('[stripe-webhook] Processing error:', err);
-      return new Response('OK (error logged)', { status: 200 }); // Return 200 so Stripe doesn't retry
+      return new Response('OK (error logged)', { status: 200 });
     }
   }
 
-  // Unhandled event type — acknowledge but don't process
   return new Response('OK', { status: 200 });
 }
