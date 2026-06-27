@@ -17,7 +17,7 @@ import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
 import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
 import { captureVerticalSelected } from '../../lib/analytics';
-import { seedMessageTemplates, seedMissingTemplates } from '../../lib/seedMessageTemplates';
+import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { seedSampleJob } from '../../lib/seedSampleJob';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 
@@ -220,7 +220,6 @@ export default function Onboarding() {
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
-    seedMissingTemplates(resolvedUserId).catch(() => {});
     // Seed a sample job so the user lands on a populated home screen
     const profileData = await db.profiles.get(resolvedUserId);
     seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
