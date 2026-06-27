@@ -52,6 +52,8 @@ export function paymentMethodLabel(method: Payment['method']): string {
       return 'Bank Transfer';
     case 'terminal':
       return 'Terminal';
+    case 'card':
+      return 'Card';
     case 'other':
       return 'Other';
     default:

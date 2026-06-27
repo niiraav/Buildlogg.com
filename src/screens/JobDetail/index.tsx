@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle, CreditCard,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
 import { addToSyncQueue } from '../../lib/syncQueue';
+import { createCheckoutSession } from '../../lib/stripe';
 import { useAppStore } from '../../store/useAppStore';
 import { setContextualFlag } from '../../lib/notificationManager';
-import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded } from '../../lib/analytics';
+import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded, capture } from '../../lib/analytics';
 import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
@@ -145,6 +146,7 @@ type SheetState =
   | 'edit_payment_method'
   | 'finish_previous'
   | 'record_deposit'
+  | 'request_payment'
   | 'write_off'
   | 'review_prompt'
   | 'recurring_prompt';
@@ -199,6 +201,7 @@ export default function JobDetail() {
   const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
   const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   /* Initialize callout amount from profile */
   useEffect(() => {
@@ -688,6 +691,67 @@ export default function JobDetail() {
       setSheet(null);
     } finally {
       setPaymentProcessing(false);
+      refresh();
+    }
+  };
+
+  const handleRequestStripePayment = async (type: 'deposit' | 'full') => {
+    if (!job || !userId || stripeLoading) return;
+    const summary = paymentSummary(job, payments, total);
+    const amount = type === 'deposit' ? summary.depositAmount : summary.amountDue;
+    if (amount <= 0) {
+      showToast('Nothing to charge', 'info', 2000);
+      return;
+    }
+    setStripeLoading(true);
+    try {
+      const result = await createCheckoutSession({
+        merchantId: userId,
+        jobId: job.id,
+        amount,
+        description: `${type === 'deposit' ? 'Deposit' : 'Payment'} for ${job.title || 'job'}`,
+        type,
+      });
+      const n = now();
+      const jobPatch: Partial<Job> = {
+        deposit_status: 'requested',
+        deposit_stripe_url: result.url,
+        deposit_stripe_link_id: result.id,
+        deposit_requested_at: n,
+        updated_at: n,
+        _sync_status: 'pending',
+      };
+      if (type === 'deposit') {
+        jobPatch.deposit_amount = amount;
+      }
+      await db.jobs.update(job.id, jobPatch);
+      await addToSyncQueue('jobs', job.id, { ...jobPatch }, 'update');
+      const logId = crypto.randomUUID();
+      await db.work_log.add({
+        id: logId, job_id: job.id, type: 'status_change',
+        description: `Card payment link sent — ${type === 'deposit' ? 'Deposit' : 'Payment'} £${formatAmount(amount)} via Stripe`,
+        amount, created_at: n, _sync_status: 'pending',
+      });
+      await addToSyncQueue('work_log', logId, {
+        id: logId, job_id: job.id, type: 'status_change',
+        description: `Card payment link sent — ${type === 'deposit' ? 'Deposit' : 'Payment'} £${formatAmount(amount)} via Stripe`,
+        amount, created_at: n,
+      }, 'insert');
+      capture('stripe_payment_link_sent', { type, amount });
+      setSheet(null);
+      const businessName = profile?.business_name || profile?.full_name || 'Your business';
+      const firstName = (customer?.name || 'there').split(' ')[0];
+      const label = type === 'deposit' ? 'deposit' : 'balance';
+      setSendSheetConfig({
+        title: `Send payment link to ${customer?.name || 'customer'}?`,
+        messageText: `Hi ${firstName}, please pay your £${formatAmount(amount)} ${label} here: ${result.url} — ${businessName}`,
+        onSend: () => { setSendSheetConfig(null); refresh(); },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not create payment link';
+      showToast(msg, 'error', 4000);
+    } finally {
+      setStripeLoading(false);
       refresh();
     }
   };
@@ -1580,6 +1644,18 @@ export default function JobDetail() {
                 </span>
               </div>
             )}
+            {job.deposit_status === 'requested' && job.deposit_stripe_url && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-status-amberBg border-y border-amber-200">
+                <CreditCard size={16} className="text-status-amber shrink-0" />
+                <span className="text-sm text-status-amber flex-1">Deposit link sent — waiting for payment</span>
+                <button
+                  onClick={() => setSheet('request_payment')}
+                  className="text-xs font-semibold text-status-amber underline cursor-pointer shrink-0"
+                >
+                  Resend
+                </button>
+              </div>
+            )}
             <div className="flex justify-between items-center px-4 py-3">
               <span className="text-sm text-brand-muted">Payment terms</span>
               <span className="text-sm font-medium text-brand-black text-right">
@@ -2219,6 +2295,20 @@ export default function JobDetail() {
           onTap={() => setSheet('record_deposit')}
         />
       )}
+      {(() => {
+        if (!job) return null;
+        const summary = paymentSummary(job, payments, total);
+        if (summary.amountDue <= 0) return null;
+        const validStatus = ['quoted', 'booked', 'in_progress', 'awaiting_payment'].includes(job.status);
+        if (!validStatus) return null;
+        return (
+          <SheetRow
+            icon={<CreditCard size={18} className="text-brand-dark" />}
+            label="Request card payment"
+            onTap={() => setSheet('request_payment')}
+          />
+        );
+      })()}
       {job?.status === 'awaiting_payment' && (
         <SheetRow
           label="Write off"
@@ -2551,6 +2641,74 @@ export default function JobDetail() {
           onTap={() => handleRecordDeposit('other')}
           isLast
           disabled={paymentProcessing}
+        />
+      </BottomSheet>
+    );
+  };
+
+  const renderRequestPaymentSheet = () => {
+    if (!job) return null;
+    const summary = paymentSummary(job, payments, total);
+    const canRequestDeposit = job.payment_terms === 'deposit' && job.deposit_pct && job.deposit_status !== 'paid';
+    const canRequestBalance = summary.amountDue > 0 && job.deposit_status !== 'requested';
+    const linkSent = job.deposit_status === 'requested' && job.deposit_stripe_url;
+    return (
+      <BottomSheet
+        isOpen={sheet === 'request_payment'}
+        onClose={() => !stripeLoading && setSheet(null)}
+        title="Request card payment"
+        subtitle={job && customer ? `${customer.name} · ${job.title}` : undefined}
+      >
+        {canRequestDeposit && (
+          <SheetRow
+            icon={<CreditCard size={18} className="text-brand-dark" />}
+            label={`Request deposit — £${formatAmount(summary.depositAmount)}`}
+            onTap={() => handleRequestStripePayment('deposit')}
+            disabled={stripeLoading}
+          />
+        )}
+        {canRequestBalance && (
+          <SheetRow
+            icon={<CreditCard size={18} className="text-brand-dark" />}
+            label={`Request ${job.deposit_status === 'paid' ? 'balance' : 'payment'} — £${formatAmount(summary.amountDue)}`}
+            onTap={() => handleRequestStripePayment('full')}
+            disabled={stripeLoading}
+          />
+        )}
+        {linkSent && (
+          <>
+            <SheetRow
+              label="Link sent — waiting for payment"
+              sublabel="The customer hasn't paid yet"
+              onTap={() => {}}
+            />
+            <SheetRow
+              label="Resend link"
+              onTap={() => {
+                if (!job.deposit_stripe_url) return;
+                const businessName = profile?.business_name || profile?.full_name || 'Your business';
+                const firstName = (customer?.name || 'there').split(' ')[0];
+                const summary2 = paymentSummary(job, payments, total);
+                const amount = summary2.depositAmount > 0 && job.deposit_status !== 'paid' ? summary2.depositAmount : summary2.amountDue;
+                setSheet(null);
+                setSendSheetConfig({
+                  title: `Resend payment link to ${customer?.name || 'customer'}?`,
+                  messageText: `Hi ${firstName}, please pay your £${formatAmount(amount)} here: ${job.deposit_stripe_url} — ${businessName}`,
+                  onSend: () => { setSendSheetConfig(null); refresh(); },
+                });
+              }}
+              disabled={stripeLoading}
+            />
+          </>
+        )}
+        {!canRequestDeposit && !canRequestBalance && !linkSent && (
+          <SheetRow label="No payment due" onTap={() => setSheet(null)} isLast />
+        )}
+        <SheetRow
+          label="Close"
+          onTap={() => setSheet(null)}
+          isLast
+          disabled={stripeLoading}
         />
       </BottomSheet>
     );
@@ -2897,6 +3055,7 @@ export default function JobDetail() {
       {renderMarkDoneSheet()}
       {renderMarkPaidSheet()}
       {renderDepositSheet()}
+      {renderRequestPaymentSheet()}
       {renderWriteOffSheet()}
       
       {renderRescheduleSheet()}

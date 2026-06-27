@@ -49,8 +49,12 @@ export async function onRequestPost(context) {
     }
 
     const merchant = profiles[0];
-    if (!merchant.stripe_connected) {
-      return json({ error: 'Stripe not connected. Go to Settings to connect.' }, 400);
+    // Single-account mode: if STRIPE_SECRET_KEY is set (checked at top of handler),
+    // we use it directly — no stripe_connected gate needed.
+    // Stripe Connect (per-merchant accounts) would require stripe_account_id +
+    // stripe_connected check, but that's not the current architecture.
+    if (merchant.stripe_connected === false && !STRIPE_KEY) {
+      return json({ error: 'Stripe not configured' }, 500);
     }
 
     // Create Stripe Checkout Session

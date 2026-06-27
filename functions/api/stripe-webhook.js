@@ -107,29 +107,48 @@ export async function onRequestPost(context) {
         return new Response('OK (already processed)', { status: 200 });
       }
 
-      // 3. Update checkout_sessions status
-      await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'checkout_sessions',
-        `?id=eq.${checkoutRecord.id}`, 'PATCH',
-        { status: 'paid', paid_at: new Date().toISOString() }
-      );
-
-      // 4. If job_id is set, update the job + create payment record
+      // 3. If job_id is set, update the job + create payment record FIRST
+      //    (before marking checkout_sessions as paid, so a failed payment INSERT
+      //    doesn't poison the idempotency check on webhook retry)
       if (jobId) {
-        await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'jobs',
-          `?id=eq.${jobId}`, 'PATCH',
-          { deposit_status: 'paid', deposit_paid_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-        );
+        // Look up current job status to decide the status transition
+        const jobs = await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'jobs',
+          `?id=eq.${jobId}&select=status`);
 
+        const currentStatus = jobs && jobs.length > 0 ? jobs[0].status : null;
+        const now = new Date().toISOString();
+        const jobPatch = { deposit_status: 'paid', deposit_paid_at: now, updated_at: now };
+
+        // Update job.status based on payment type:
+        // - deposit on a 'quoted' job → 'booked' (matches manual handleRecordDeposit)
+        // - full payment → 'paid' with actual_end (matches manual handleMarkPaid)
+        if (type === 'deposit' && currentStatus === 'quoted') {
+          jobPatch.status = 'booked';
+        } else if (type === 'full') {
+          jobPatch.status = 'paid';
+          jobPatch.actual_end = now;
+        }
+
+        await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'jobs',
+          `?id=eq.${jobId}`, 'PATCH', jobPatch);
+
+        // Create payment record — no _sync_status (column DEFAULT 'synced' is correct
+        // for server-side inserts; initialSync will set it to 'synced' on pull)
         await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'payments', '', 'POST', {
           job_id: jobId,
           type: type === 'deposit' ? 'deposit' : 'full',
           method: 'card',
           amount: amountPaid,
-          recorded_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          _sync_status: 'pending',
+          recorded_at: now,
+          created_at: now,
         });
       }
+
+      // 4. Mark checkout_sessions as paid (AFTER job + payment updates succeed)
+      await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'checkout_sessions',
+        `?id=eq.${checkoutRecord.id}`, 'PATCH',
+        { status: 'paid', paid_at: new Date().toISOString() }
+      );
 
       console.log('[stripe-webhook] Payment processed:', sessionId, 'amount:', amountPaid);
       return new Response('OK', { status: 200 });
