@@ -1,6 +1,12 @@
 // Buildlogg — Client-Facing Booking Page (Cloudflare Pages Function)
 // GET  /book/:slug  → render booking page HTML
 // POST /book/:slug  → process booking request
+//
+// REFERRAL SOURCES — drift guard: these <option value="..."> keys MUST match
+// the REFERRAL_SOURCES array in src/lib/referral.ts so in-app, online, and
+// dashboard all aggregate against the same source keys.
+// Current keys: google, instagram, recommended, saw_work, other
+// When adding/removing a source, update BOTH this file and src/lib/referral.ts.
 const UK_PHONE_REGEX = /^(\+44|0)[0-9]{10}$/;
 
 function json(data, status = 200) {
