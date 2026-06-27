@@ -19,7 +19,7 @@ import { MapPreview } from '../../components/MapPreview';
 import { InvoiceItemRow, InvoiceTotalRow } from '../../components/InvoiceItemRow';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PhotoGallery } from '../../components/PhotoGallery';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 import {
   captureNewJobInterceptShown,
   captureNewJobInterceptMarkDone,
@@ -3084,7 +3084,7 @@ export default function JobDetail() {
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <BrandedLoader size={48} fullscreen={false} />
+          <SkeletonInline />
         </div>
       </div>
     );

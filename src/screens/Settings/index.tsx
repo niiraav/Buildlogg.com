@@ -13,7 +13,7 @@ import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { generateInvoicePDF } from '../../lib/pdfGenerator';
 import { capturePDFGenerated } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonSettingsScreen } from '../../components/Skeleton';
 import FeedbackSheet from '../../components/FeedbackSheet';
 import { showToast } from '../../components/Toast/store';
 import { useEntitlements } from '../../hooks/useEntitlements';
@@ -215,7 +215,7 @@ export default function Settings() {
   const businessNameEmpty = !businessName.trim();
 
   if (loading) {
-    return <BrandedLoader fullscreen />;
+    return <SkeletonSettingsScreen />;
   }
 
   return (

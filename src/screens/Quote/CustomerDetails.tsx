@@ -5,7 +5,7 @@ import { Button } from '../../components/Button';
 import { useAppStore } from '../../store/useAppStore';
 import { searchCustomers, findDuplicateByPhone } from '../../lib/customers';
 import type { Customer } from '../../lib/db';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 
 /* ─── helpers ─── */
 
@@ -157,7 +157,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     return (
       <div className="flex flex-col min-h-[100dvh]">
         <div className="flex-1 flex items-center justify-center">
-          <BrandedLoader size={48} fullscreen={false} />
+          <SkeletonInline />
         </div>
       </div>
     );

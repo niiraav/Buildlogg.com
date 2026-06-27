@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { findDuplicateByPhone } from '../../lib/customers';
 import { addToSyncQueue } from '../../lib/syncQueue';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
 
 const UK_PHONE_RE = /^(\+44|0)7\d{9}$/;
@@ -86,7 +86,7 @@ export default function AddCustomer() {
           <h1 className="text-lg font-extrabold text-brand-black">Add customer</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <BrandedLoader size={36} fullscreen={false} />
+          <SkeletonInline />
         </div>
       </div>
     );

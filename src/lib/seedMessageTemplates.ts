@@ -125,5 +125,51 @@ export async function seedMissingTemplates(userId: string): Promise<number> {
     await addToSyncQueue('message_templates', tmpl.id, { body: updatedBody, updated_at: now }, 'update');
   }
 
+  // Deduplicate is_default flags — ensure exactly one default per category
+  await deduplicateDefaults(userId);
+
   return inserted;
+}
+
+/**
+ * Ensure exactly one default template per category.
+ * - If multiple templates have is_default=true in a category, keep the first
+ *   (by sort_order) and unset the rest.
+ * - If a category has templates but none with is_default=true, set the first
+ *   one (by sort_order) as the default.
+ * - If a category has no templates, skip (seedMissingTemplates handles it).
+ * Idempotent — safe to run on every login.
+ */
+export async function deduplicateDefaults(userId: string): Promise<void> {
+  const categories: MessageTemplate['category'][] = [
+    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'
+  ];
+  const now = new Date().toISOString();
+
+  for (const category of categories) {
+    const templates = await db.message_templates
+      .where('user_id')
+      .equals(userId)
+      .filter((t) => t.category === category)
+      .sortBy('sort_order');
+
+    if (templates.length === 0) continue;
+
+    const defaults = templates.filter((t) => t.is_default);
+
+    if (defaults.length > 1) {
+      // Keep the first default, unset the rest
+      const keepId = defaults[0].id;
+      for (const tmpl of defaults) {
+        if (tmpl.id === keepId) continue;
+        await db.message_templates.update(tmpl.id, { is_default: false, updated_at: now, _sync_status: 'pending' });
+        await addToSyncQueue('message_templates', tmpl.id, { is_default: false, updated_at: now }, 'update');
+      }
+    } else if (defaults.length === 0) {
+      // No default — set the first template as default
+      const tmpl = templates[0];
+      await db.message_templates.update(tmpl.id, { is_default: true, updated_at: now, _sync_status: 'pending' });
+      await addToSyncQueue('message_templates', tmpl.id, { is_default: true, updated_at: now }, 'update');
+    }
+  }
 }

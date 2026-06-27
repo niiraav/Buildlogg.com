@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../../components/Button';
 import { haptic } from '../../lib/haptics';
 import { captureCustomItemAdded } from '../../lib/analytics';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
 
@@ -106,7 +106,7 @@ export default function CustomItems() {
           <h1 className="text-lg font-extrabold text-brand-black">My Items</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <BrandedLoader size={36} fullscreen={false} />
+          <SkeletonInline />
         </div>
       </div>
     );
