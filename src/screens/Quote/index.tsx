@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
-import { captureJobCreated, captureQuoteSent, capture } from '../../lib/analytics';
+import { captureJobCreated, captureQuoteSent, capture, captureReferralSourceTracked } from '../../lib/analytics';
 import { createQuoteFollowUp } from '../../lib/quoteFollowUp';
 import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import { setContextualFlag } from '../../lib/notificationManager';
@@ -268,7 +268,7 @@ export default function Quote() {
     setStep('builder');
   };
 
-  const handlePreviewSend = async (method: SendMethod, messageContent?: string) => {
+  const handlePreviewSend = async (method: SendMethod, messageContent?: string, referral?: { source: string; detail?: string }) => {
     if (!jobId || !userId) return;
     const n = now();
 
@@ -276,14 +276,19 @@ export default function Quote() {
     const validDays = profile?.quote_valid_days ?? 30;
     const expiresAt = new Date(Date.now() + validDays * 86400000).toISOString();
 
-    await db.jobs.update(jobId, {
+    const jobUpdate: Record<string, unknown> = {
       status: 'quoted',
       quote_sent_at: n,
       quote_expires_at: expiresAt,
       quote_send_method: method,
       updated_at: n,
       _sync_status: 'pending',
-    });
+    };
+    if (referral?.source) {
+      jobUpdate.referral_source = referral.source;
+      jobUpdate.referral_detail = referral.detail || null;
+    }
+    await db.jobs.update(jobId, jobUpdate);
 
     
     if (true) {
@@ -305,11 +310,19 @@ export default function Quote() {
         retry_count: 0,
       });
     }
+    const syncPayload: Record<string, unknown> = {
+      status: 'quoted', quote_sent_at: n, quote_expires_at: expiresAt,
+      quote_send_method: method, updated_at: n,
+    };
+    if (referral?.source) {
+      syncPayload.referral_source = referral.source;
+      syncPayload.referral_detail = referral.detail || null;
+    }
     await db.sync_queue.add({
       operation: 'update',
       table_name: 'jobs',
       record_id: jobId,
-      payload: { status: 'quoted', quote_sent_at: n, quote_expires_at: expiresAt, quote_send_method: method, updated_at: n },
+      payload: syncPayload,
       created_at: n,
       retry_count: 0,
     });
@@ -317,6 +330,9 @@ export default function Quote() {
     hapticSuccess();
     showSuccess('Quote sent!');
     captureQuoteSent(method);
+    if (referral?.source) {
+      captureReferralSourceTracked({ source: referral.source, context: 'in_app' });
+    }
     setContextualFlag();
     createQuoteFollowUp(jobId, userId!).catch(() => {});
     setSendMethod(method);
