@@ -428,7 +428,7 @@ export default function Booking() {
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Working days & hours</div>
           <div className="bg-white border border-brand-border rounded-xl p-4">
             {/* Working days pills */}
-            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Days you work</label>
+            <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Days you work</span>
             <div className="flex gap-1.5 mb-4">
               {[
                 { day: 1, label: 'M' },
@@ -465,7 +465,7 @@ export default function Booking() {
             </div>
 
             {/* Working hours */}
-            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Working hours</label>
+            <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Working hours</span>
             <div className="flex items-center gap-2 mb-4">
               <input
                 type="time"
@@ -483,7 +483,7 @@ export default function Booking() {
             </div>
 
             {/* Blocked dates */}
-            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Blocked dates (holidays)</label>
+            <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Blocked dates (holidays)</span>
             <p className="text-xs text-brand-muted mb-2">Clients can&rsquo;t book these dates</p>
             <div className="flex flex-col gap-2 mb-2">
               {(profile?.booking_blocked_dates || []).map((date) => (
