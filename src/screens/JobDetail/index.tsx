@@ -483,6 +483,41 @@ export default function JobDetail() {
 
   const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
     if (!job || !userId || paymentProcessing) return;
+
+    // £0.00 jobs: skip payment flow entirely, mark as paid
+    if (total === 0) {
+      setPaymentProcessing(true);
+      const n = now();
+      try {
+        const logId = crypto.randomUUID();
+        await db.jobs.update(job.id, {
+          status: 'paid',
+          actual_end: n,
+          updated_at: n,
+          _sync_status: 'pending',
+        });
+        await db.work_log.add({
+          id: logId,
+          job_id: job.id,
+          type: 'status_change',
+          description: 'Job completed — no charge',
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        await addToSyncQueue('jobs', job.id, { status: 'paid', actual_end: n, updated_at: n }, 'update');
+        await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — no charge', created_at: n }, 'insert');
+        hapticSuccess();
+        showSuccess('Job completed — no charge');
+        setContextualFlag();
+        captureJobMarkedPaid();
+        setSheet(null);
+      } finally {
+        setPaymentProcessing(false);
+        refresh();
+      }
+      return;
+    }
+
     setPaymentProcessing(true);
     const n = now();
     try {
