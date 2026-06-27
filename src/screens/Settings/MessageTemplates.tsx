@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SkeletonInline } from '../../components/Skeleton';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import { db, type MessageTemplate, type TemplateCategory } from '../../lib/db';
@@ -20,6 +22,8 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   update: 'Update',
   custom: 'Custom',
 };
+
+const CATEGORY_ORDER: TemplateCategory[] = ['booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'];
 
 // Pre-filled template variations per category — 3 options each
 const TEMPLATE_PRESETS: Record<TemplateCategory, Array<{ name: string; body: string }>> = {
@@ -71,6 +75,9 @@ export default function MessageTemplates() {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [editing, setEditing] = useState<MessageTemplate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedCategories, setExpandedCategories] = useState<Set<TemplateCategory>>(
+    new Set(CATEGORY_ORDER)
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -155,8 +162,10 @@ export default function MessageTemplates() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--app-shell-bg)]">
-        <div className="w-8 h-8 border-2 border-brand-border border-t-brand-black rounded-full animate-spin" />
+      <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+        <div className="px-4 pt-4 pb-3 border-b border-brand-borderLight">
+          <SkeletonInline />
+        </div>
       </div>
     );
   }
@@ -191,29 +200,83 @@ export default function MessageTemplates() {
             <p className="text-xs text-brand-muted">Tap "New template" below to get started</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {templates.map((tmpl) => (
-              <div
-                key={tmpl.id}
-                onClick={() => setEditing(tmpl)}
-                className="bg-white border border-brand-border rounded-lg p-4 cursor-pointer active:scale-[0.98] transition-transform"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-semibold text-brand-black">{tmpl.name || 'Untitled'}</span>
-                  <div className="flex items-center gap-1.5">
-                    {tmpl.is_default && (
-                      <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded">
-                        Default
-                      </span>
-                    )}
-                    <span className="text-xs font-medium text-brand-mid bg-brand-surface px-2 py-0.5 rounded">
-                      {CATEGORY_LABELS[tmpl.category]}
-                    </span>
+          <div className="flex flex-col gap-4">
+            {CATEGORY_ORDER.map((category) => {
+              const catTemplates = templates.filter((t) => t.category === category);
+              if (catTemplates.length === 0) return null;
+              const isExpanded = expandedCategories.has(category);
+              const defaultTmpl = catTemplates.find((t) => t.is_default);
+
+              // Single template — show directly without collapsible header
+              if (catTemplates.length === 1) {
+                const tmpl = catTemplates[0];
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => setEditing(tmpl)}
+                    className="bg-white border border-brand-border rounded-lg p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-brand-black">{tmpl.name || 'Untitled'}</span>
+                      {tmpl.is_default && (
+                        <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-brand-dark line-clamp-2 leading-relaxed">{tmpl.body || '(empty — tap to edit)'}</p>
                   </div>
+                );
+              }
+
+              // Multiple templates — collapsible section
+              return (
+                <div key={category}>
+                  <button
+                    onClick={() => {
+                      haptic('light');
+                      setExpandedCategories((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(category)) next.delete(category);
+                        else next.add(category);
+                        return next;
+                      });
+                    }}
+                    className="flex items-center justify-between w-full py-2 px-1 cursor-pointer active:opacity-60 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? <ChevronDown size={16} className="text-brand-muted" /> : <ChevronRight size={16} className="text-brand-muted" />}
+                      <span className="text-sm font-bold text-brand-dark">{CATEGORY_LABELS[category]}</span>
+                      <span className="text-xs text-brand-muted">{catTemplates.length}</span>
+                    </div>
+                    {defaultTmpl && !isExpanded && (
+                      <span className="text-xs text-brand-muted truncate ml-2">{defaultTmpl.name}</span>
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <div className="flex flex-col gap-2.5 mt-1">
+                      {catTemplates.map((tmpl) => (
+                        <div
+                          key={tmpl.id}
+                          onClick={() => setEditing(tmpl)}
+                          className="bg-white border border-brand-border rounded-lg p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-semibold text-brand-black">{tmpl.name || 'Untitled'}</span>
+                            {tmpl.is_default && (
+                              <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-brand-dark line-clamp-2 leading-relaxed">{tmpl.body || '(empty — tap to edit)'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-brand-dark line-clamp-2 leading-relaxed">{tmpl.body || '(empty — tap to edit)'}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
