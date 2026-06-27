@@ -444,12 +444,12 @@ export default function Booking() {
                 return (
                   <button
                     key={day}
-                    onClick={() => {
+                    onClick={async () => {
                       const current = profile?.booking_working_days || [1,2,3,4,5];
                       const next = isActive
                         ? current.filter(d => d !== day)
                         : [...current, day].sort();
-                      if (userId) updateProfileFields(userId, { booking_working_days: next });
+                      if (userId) { const updated = await updateProfileFields(userId, { booking_working_days: next }); setProfile(updated); }
                       haptic('light');
                     }}
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-colors ${
@@ -470,14 +470,14 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_hours_start || '09:00'}
-                onChange={(e) => { if (userId) updateProfileFields(userId, { booking_hours_start: e.target.value }); }}
+                onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_start: e.target.value }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
               <span className="text-sm text-brand-muted">to</span>
               <input
                 type="time"
                 value={profile?.booking_hours_end || '17:00'}
-                onChange={(e) => { if (userId) updateProfileFields(userId, { booking_hours_end: e.target.value }); }}
+                onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_end: e.target.value }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
             </div>
@@ -492,9 +492,9 @@ export default function Booking() {
                     {new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const current = profile?.booking_blocked_dates || [];
-                      if (userId) updateProfileFields(userId, { booking_blocked_dates: current.filter(d => d !== date) });
+                      if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: current.filter(d => d !== date) }); setProfile(updated); }
                     }}
                     className="text-brand-muted cursor-pointer"
                     aria-label="Remove"
@@ -512,12 +512,12 @@ export default function Booking() {
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
               <button
-                onClick={() => {
+                onClick={async () => {
                   const input = document.getElementById('blocked-date-input') as HTMLInputElement;
                   if (!input || !input.value) return;
                   const current = profile?.booking_blocked_dates || [];
                   if (current.includes(input.value)) { showToast('Date already blocked', 'info'); return; }
-                  if (userId) updateProfileFields(userId, { booking_blocked_dates: [...current, input.value].sort() });
+                  if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: [...current, input.value].sort() }); setProfile(updated); }
                   input.value = '';
                   haptic('light');
                 }}
