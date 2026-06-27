@@ -2115,15 +2115,17 @@ export default function Home() {
           {pendingBookings.map((b) => (
             <div
               key={b.id}
-              onClick={() => { setSelectedBooking(b); setSheet('booking_request'); }}
+              onClick={() => { setSelectedBooking(b); setBookingConflict(null); setSheet('booking_request'); }}
               className="bg-white border border-brand-border rounded-lg p-3 cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-semibold text-brand-black">{b.client_name}</span>
-                {b.service_amount > 0 && <span className="text-sm font-bold text-brand-black">£{b.service_amount.toFixed(0)}</span>}
+                <span className="text-xs font-medium text-brand-mid">{b.requested_date} · {b.requested_time}</span>
               </div>
-              <p className="text-xs text-brand-muted">{b.service_description}</p>
-              <p className="text-xs text-brand-mid mt-1">{b.requested_date} at {b.requested_time}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-brand-muted truncate">{b.service_description}</p>
+                {b.service_amount > 0 && <span className="text-xs font-bold text-brand-dark ml-2 shrink-0">£{b.service_amount.toFixed(0)}</span>}
+              </div>
             </div>
           ))}
         </div>
