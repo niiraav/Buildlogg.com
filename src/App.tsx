@@ -176,24 +176,17 @@ function AuthGuard() {
     const handleOffline = () => {
       setOnline(false);
     };
-    let lastFullSync = 0;
-    const handleFocus = () => {
-      if (navigator.onLine) {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
         syncWorker().catch(() => {});
-        // Only pull all data on genuine focus (returned from background),
-        // not on every click within the page. Throttle to once per 30s.
-        const now = Date.now();
-        if (now - lastFullSync > 30000) {
-          lastFullSync = now;
-          const uid = useAppStore.getState().userId;
-          if (uid) initialSync(uid).catch(() => {});
-        }
+        const uid = useAppStore.getState().userId;
+        if (uid) initialSync(uid).catch(() => {});
       }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     syncInterval = setInterval(() => {
       if (navigator.onLine) syncWorker().catch(() => {});
@@ -239,7 +232,7 @@ function AuthGuard() {
       subscription.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (syncInterval) clearInterval(syncInterval);
     };
   }, [navigate, setUserId, setOnline]);
