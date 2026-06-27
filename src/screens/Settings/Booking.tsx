@@ -423,6 +423,112 @@ export default function Booking() {
           </div>
         </div>
 
+        {/* Working days & hours */}
+        <div>
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Working days & hours</div>
+          <div className="bg-white border border-brand-border rounded-xl p-4">
+            {/* Working days pills */}
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Days you work</label>
+            <div className="flex gap-1.5 mb-4">
+              {[
+                { day: 1, label: 'M' },
+                { day: 2, label: 'T' },
+                { day: 3, label: 'W' },
+                { day: 4, label: 'T' },
+                { day: 5, label: 'F' },
+                { day: 6, label: 'S' },
+                { day: 0, label: 'S' },
+              ].map(({ day, label }) => {
+                const days = profile?.booking_working_days || [1,2,3,4,5];
+                const isActive = days.includes(day);
+                return (
+                  <button
+                    key={day}
+                    onClick={() => {
+                      const current = profile?.booking_working_days || [1,2,3,4,5];
+                      const next = isActive
+                        ? current.filter(d => d !== day)
+                        : [...current, day].sort();
+                      if (userId) updateProfileFields(userId, { booking_working_days: next });
+                      haptic('light');
+                    }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-colors ${
+                      isActive
+                        ? 'bg-brand-black text-brand-surface'
+                        : 'bg-brand-surface text-brand-mid border border-brand-border'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Working hours */}
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Working hours</label>
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="time"
+                value={profile?.booking_hours_start || '09:00'}
+                onChange={(e) => updateProfileFields(userId, { booking_hours_start: e.target.value })}
+                className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+              <span className="text-sm text-brand-muted">to</span>
+              <input
+                type="time"
+                value={profile?.booking_hours_end || '17:00'}
+                onChange={(e) => updateProfileFields(userId, { booking_hours_end: e.target.value })}
+                className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+            </div>
+
+            {/* Blocked dates */}
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Blocked dates (holidays)</label>
+            <p className="text-xs text-brand-muted mb-2">Clients can&rsquo;t book these dates</p>
+            <div className="flex flex-col gap-2 mb-2">
+              {(profile?.booking_blocked_dates || []).map((date) => (
+                <div key={date} className="flex items-center justify-between bg-brand-surface border border-brand-border rounded-lg px-3 py-2">
+                  <span className="text-sm font-medium text-brand-dark">
+                    {new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const current = profile?.booking_blocked_dates || [];
+                      if (userId) updateProfileFields(userId, { booking_blocked_dates: current.filter(d => d !== date) });
+                    }}
+                    className="text-brand-muted cursor-pointer"
+                    aria-label="Remove"
+                  >
+                    <span className="text-lg">\u00d7</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                id="blocked-date-input"
+                min={new Date().toISOString().split('T')[0]}
+                className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById('blocked-date-input') as HTMLInputElement;
+                  if (!input || !input.value) return;
+                  const current = profile?.booking_blocked_dates || [];
+                  if (current.includes(input.value)) { showToast('Date already blocked', 'info'); return; }
+                  if (userId) updateProfileFields(userId, { booking_blocked_dates: [...current, input.value].sort() });
+                  input.value = '';
+                  haptic('light');
+                }}
+                className="px-4 h-12 bg-brand-black text-brand-surface rounded-lg text-sm font-semibold cursor-pointer"
+              >
+                Block
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Privacy section */}
         <div>
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Privacy</div>
