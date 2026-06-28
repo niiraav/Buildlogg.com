@@ -574,11 +574,12 @@ recurring job task cards.
 | 5 | BU-1: Booking link on QuoteSent | MED-HIGH — self-serve booking | S | Both | ⬜ Next |
 | 6 | CU-2: Stripe link in chase messages | HIGH — gets overdue money | S-M | Both | ✅ Shipped (c83f5de) |
 | 7 | BU-4: Rebook link post-payment | MED — recurring revenue | S | Sophie core | ✅ Shipped (c83f5de) |
-| 8 | XU-7: Templates in booking + chase | MED — consistency | S-M | Both | ⬜ |
-| 9 | BU-5: Deposits on booking page | HIGH — reduces no-shows | M | Sophie core | ⬜ |
+| 8 | XU-7: Templates in booking + chase | MED — consistency | S-M | Both | ✅ Shipped (0577849) |
+| 9 | BU-5: Deposits on booking page | HIGH — reduces no-shows | M | Sophie core | ✅ Shipped (0577849) |
 | 10 | XU-6: Mini stat on Home | MED — daily feedback | S | Both | ⬜ |
 
 *Audit date: 2026-06-28*
-*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4, BU-1, XU-6, XU-2 marked as shipped*
+*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4, BU-1, XU-6, XU-2, CU-2, BU-4, BU-3, BU-7, CU-3/XU-5 marked as shipped*
 *Also shipped: XU-2 (Pricing insights on Dashboard + avg/job on CustomerDetail) — commit 7c995cc*
+*Also shipped: BU-3 + BU-7 + CU-3/XU-5 (booking link on CustomerDetail, logo on booking page, QR codes on invoice PDFs) — commit 255a226*
 *Author: Codex*
