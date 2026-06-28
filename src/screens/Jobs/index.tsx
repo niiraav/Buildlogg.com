@@ -2,6 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
+import { BottomSheet } from '../../components/BottomSheet';
+import WeekView from '../../components/WeekView';
+import { CompactWeekStrip } from '../../components/CompactWeekStrip';
+import { useScrollHide } from '../../hooks/useScrollHide';
+import { capture } from '../../lib/analytics';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
@@ -122,6 +127,8 @@ export default function Jobs() {
     }
   }, [dateFilter]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showWeekSheet, setShowWeekSheet] = useState(false);
+  const weekStripVisible = useScrollHide();
 
   /* --- reactive data (useLiveQuery) --- */
   const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
@@ -148,6 +155,7 @@ export default function Jobs() {
   // Jobs with job numbers (from raw, already backfilled via useEffect)
   const jobs = useMemo<Job[]>(() => rawJobs || [], [rawJobs]);
   const lineItems = useMemo<LineItem[]>(() => rawLineItems || [], [rawLineItems]);
+  const lineItemsMap = useMemo<Record<string, LineItem[]>>(() => { const m: Record<string, LineItem[]> = {}; lineItems.forEach(li => { if (!m[li.job_id]) m[li.job_id] = []; m[li.job_id].push(li); }); return m; }, [lineItems]);
 
   /* derived */
   const jobsWithData = useMemo<JobWithTotal[]>(() => {
@@ -212,15 +220,6 @@ export default function Jobs() {
     unpaid: searchFilteredJobs.filter((j) => j.status === 'awaiting_payment').length,
   }), [searchFilteredJobs]);
 
-  // Summary strip: active count, unpaid count, awaiting total
-  const summary = useMemo(() => {
-    const active = filteredJobs.filter((j) => j.status === 'in_progress' || j.status === 'booked').length;
-    const unpaid = filteredJobs.filter((j) => j.status === 'awaiting_payment').length;
-    const awaitingTotal = filteredJobs
-      .filter((j) => j.status === 'awaiting_payment')
-      .reduce((s, j) => s + j.total, 0);
-    return { active, unpaid, awaitingTotal };
-  }, [filteredJobs]);
 
   const toggleGroup = (status: JobStatus) => {
     setExpanded((prev) => {
@@ -438,30 +437,35 @@ export default function Jobs() {
 
   return (
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
-      {/* Merged sticky header: title + date banner + filter chips + search */}
+      {/* Compact sticky header: week strip (scroll-to-hide) + filter chips + search */}
       <div
         className="sticky top-0 z-40 bg-[var(--app-shell-bg)] border-b border-brand-borderLight"
       >
-        <div className="px-4 pt-5 pb-2">
-          <div className="flex items-center justify-between">
-            <h1 className="screen-title text-brand-black">Jobs</h1>
-            <SyncIndicator />
-          </div>
+        {/* Sync indicator row (no title — tab bar shows it) */}
+        <div className="flex justify-end px-4 pt-3 pb-1">
+          <SyncIndicator />
         </div>
 
-        {/* Date filter banner */}
-        {dateFilter && (
-          <div className="flex items-center justify-between bg-brand-surface border border-brand-border rounded-lg px-3 py-2 mx-4 mb-2">
-            <span className="text-sm font-medium text-brand-dark">
-              {new Date(dateFilter).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
-            </span>
-            <button onClick={() => {
+        {/* Compact week strip — scroll-to-hide */}
+        <div style={{ maxHeight: weekStripVisible ? '64px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
+          <CompactWeekStrip
+            jobs={jobs}
+            selectedDate={dateFilter || undefined}
+            onDayTap={(date) => {
+              const dateStr = date.toISOString().split('T')[0];
+              const params = new URLSearchParams(searchParams);
+              params.set('date', dateStr);
+              setSearchParams(params);
+              capture('week_strip_day_tapped', { date: dateStr });
+            }}
+            onExpand={() => { setShowWeekSheet(true); capture('week_strip_expanded', {}); }}
+            onClearDate={() => {
               const params = new URLSearchParams(searchParams);
               params.delete('date');
               setSearchParams(params);
-            }} className="text-sm text-brand-mid underline cursor-pointer">Clear</button>
-          </div>
-        )}
+            }}
+          />
+        </div>
 
         {/* Filter chips with counts */}
         <div className="px-4 pb-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -518,22 +522,32 @@ export default function Jobs() {
           </div>
         )}
 
-        {/* Summary strip */}
-        {hasAnyJobs && (summary.active > 0 || summary.unpaid > 0) && (
-          <div className="px-4 pb-2">
-            <p className="text-xs text-brand-muted">
-              {summary.active > 0 && <span>{summary.active} active</span>}
-              {summary.active > 0 && summary.unpaid > 0 && <span> · </span>}
-              {summary.unpaid > 0 && <span>{summary.unpaid} unpaid</span>}
-              {summary.awaitingTotal > 0 && <span> · £{summary.awaitingTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} awaiting</span>}
-            </p>
-          </div>
-        )}
+
       </div>
 
       {/* Body */}
       {renderBody()}
 
+      {/* WeekView BottomSheet — full week view with day cards */}
+      <BottomSheet
+        isOpen={showWeekSheet}
+        onClose={() => setShowWeekSheet(false)}
+        title="This week"
+      >
+        <WeekView
+          jobs={jobs}
+          customers={customers}
+          lineItems={lineItemsMap}
+          onDayTap={(date) => {
+            setShowWeekSheet(false);
+            const dateStr = date.toISOString().split('T')[0];
+            const params = new URLSearchParams(searchParams);
+            params.set('date', dateStr);
+            setSearchParams(params);
+            capture('week_view_day_tapped', { source: 'jobs' });
+          }}
+        />
+      </BottomSheet>
 
     </div>
   );
