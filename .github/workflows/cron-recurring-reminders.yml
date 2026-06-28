@@ -1,0 +1,37 @@
+# W3-1: Smart Reminders cron job
+# Runs daily at 09:00 BST (08:00 UTC) — calls the Buildlogg cron endpoint
+# to process due recurring jobs and send email/push reminders.
+#
+# Setup required:
+# 1. Add CRON_SECRET as a GitHub repository secret (Settings → Secrets and variables → Actions → New repository secret)
+# 2. Add the SAME CRON_SECRET to Cloudflare Pages env vars (Production + Preview)
+#    Name: CRON_SECRET  Type: Secret
+# 3. Redeploy on Cloudflare so the Function picks up the new env var
+
+name: Smart Reminders Cron
+
+on:
+  schedule:
+    # 08:00 UTC = 09:00 BST (British Summer Time)
+    # GitHub Actions runs in UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron endpoint
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://buildlogg.com/api/cron-recurring-reminders")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Cron endpoint returned $HTTP_CODE"
+            exit 1
+          fi
+          echo "::notice::Reminders processed successfully"
