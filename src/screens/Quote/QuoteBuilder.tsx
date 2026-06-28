@@ -795,13 +795,14 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                 value={date}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDate(e.target.value)}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onBlur={handleDateBlur}
                 className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
             </div>
           </div>
 
-          <div className="flex gap-2.5">
+          <div className="flex flex-col md:flex-row gap-2.5">
             <div className="flex-1">
               <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
                 Start <span className="normal-case font-normal tracking-0">(optional)</span>
@@ -812,6 +813,7 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                   value={startTime}
                   min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
                   onChange={(e) => setStartTime(e.target.value)}
+                  onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                   onBlur={handleStartTimeBlur}
                   className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                 />
@@ -841,6 +843,7 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                     value={endTime}
                     min={startTime || undefined}
                     onChange={(e) => setEndTime(e.target.value)}
+                    onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                     onBlur={handleEndTimeBlur}
                     className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                   />

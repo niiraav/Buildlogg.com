@@ -796,11 +796,13 @@ a.auth-link:hover, button.auth-link:hover { text-decoration: underline; }
 
 /* Hide unnecessary native UI on date/time inputs — keep the picker indicator */
 input[type="date"]::-webkit-inner-spin-button,
-input[type="time"]::-webkit-inner-spin-button {
+input[type="time"]::-webkit-inner-spin-button,
+input[type="datetime-local"]::-webkit-inner-spin-button {
   display: none;
 }
 
 input[type="date"]::-webkit-clear-button,
-input[type="time"]::-webkit-clear-button {
+input[type="time"]::-webkit-clear-button,
+input[type="datetime-local"]::-webkit-clear-button {
   display: none;
 }

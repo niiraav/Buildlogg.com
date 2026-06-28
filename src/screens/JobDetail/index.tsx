@@ -3078,6 +3078,7 @@ export default function JobDetail() {
           type="datetime-local"
           value={rescheduleDate}
           onChange={(e) => setRescheduleDate(e.target.value)}
+          onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
           className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
         />
       </div>
