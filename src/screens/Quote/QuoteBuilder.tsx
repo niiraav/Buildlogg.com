@@ -70,6 +70,7 @@ interface EditableItem {
 interface QuoteBuilderProps {
   customerId: string;
   jobId?: string;
+  sourceJobId?: string;
   onPreview: () => void;
   onBack: () => void;
   onSaveDraft: () => void;
@@ -77,7 +78,7 @@ interface QuoteBuilderProps {
 
 /* ─── component ─── */
 
-export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onSaveDraft }: QuoteBuilderProps) {
+export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview, onBack, onSaveDraft }: QuoteBuilderProps) {
   const userId = useAppStore((s) => s.userId);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [_customerHistory, setCustomerHistory] = useState<{
@@ -244,8 +245,60 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
         });
         setCurrentJobId(newJobId);
 
-        // Auto-fill default labour charge from profile (only if enabled in onboarding)
-        if (p && p.default_labour_charge > 0) {
+        // BR-1: If sourceJobId provided, clone items from the source job instead of default labour
+        if (sourceJobId) {
+          const sourceJob = await db.jobs.get(sourceJobId);
+          if (sourceJob) {
+            setTitle(sourceJob.title || '');
+            setPaymentTerms(sourceJob.payment_terms || 'on_completion');
+            const presets = [10, 20, 25, 50];
+            if (sourceJob.deposit_pct && !presets.includes(sourceJob.deposit_pct)) {
+              setDepositPct(sourceJob.deposit_pct);
+              setDepositCustom(String(sourceJob.deposit_pct));
+            } else {
+              setDepositPct(sourceJob.deposit_pct || 20);
+              setDepositCustom(null);
+            }
+            const sourceItems = await db.line_items.where('job_id').equals(sourceJobId).toArray();
+            if (sourceItems.length > 0) {
+              const clonedItems = sourceItems.map((i) => ({
+                id: crypto.randomUUID(),
+                description: i.description,
+                detail: i.detail || '',
+                amount: i.amount ? i.amount.toFixed(2) : '',
+                amountNum: i.amount || 0,
+              }));
+              setItems(clonedItems);
+              for (const ci of clonedItems) {
+                await db.line_items.add({
+                  id: ci.id,
+                  job_id: newJobId,
+                  description: ci.description,
+                  detail: ci.detail || undefined,
+                  amount: ci.amountNum,
+                  sort_order: sourceItems.find(si => si.description === ci.description)?.sort_order || 0,
+                  added_on_site: false,
+                  created_at: n,
+                  _sync_status: 'pending',
+                });
+                await db.sync_queue.add({
+                  operation: 'insert',
+                  table_name: 'line_items',
+                  record_id: ci.id,
+                  payload: {
+                    id: ci.id, job_id: newJobId,
+                    description: ci.description, amount: ci.amountNum,
+                    sort_order: sourceItems.find(si => si.description === ci.description)?.sort_order || 0,
+                    added_on_site: false, created_at: n,
+                  },
+                  created_at: n,
+                  retry_count: 0,
+                });
+              }
+            }
+          }
+        } else if (p && p.default_labour_charge > 0) {
+          // Auto-fill default labour charge from profile (only if enabled in onboarding)
           const itemId = crypto.randomUUID();
           const desc = p.default_labour_description || 'Labour';
           const amt = p.default_labour_charge;
@@ -284,7 +337,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     };
 
     load();
-  }, [customerId, currentJobId, userId]);
+  }, [customerId, currentJobId, userId, sourceJobId]);
 
   /* ─── derived ─── */
   const total = useMemo(() => items.reduce((sum, i) => sum + (i.amountNum || 0), 0), [items]);

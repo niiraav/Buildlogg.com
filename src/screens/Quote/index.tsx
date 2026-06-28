@@ -22,7 +22,7 @@ function now() { return new Date().toISOString(); }
 
 /* ─── types ─── */
 
-type EntryPoint = 'missed_call' | 'new_quote' | 'task' | 'revise';
+type EntryPoint = 'missed_call' | 'new_quote' | 'task' | 'revise' | 'requote';
 
 type QuoteStep = 'missed_call' | 'customer_details' | 'builder' | 'preview' | 'sent';
 
@@ -32,6 +32,7 @@ interface LocationState {
   entryPoint?: EntryPoint;
   customerId?: string;
   jobId?: string;
+  sourceJobId?: string;
 }
 
 /* ─── component ─── */
@@ -45,9 +46,10 @@ export default function Quote() {
   const entryPoint: EntryPoint = state.entryPoint || 'new_quote';
   const initialCustomerId = state.customerId;
   const initialJobId = state.jobId;
+  const initialSourceJobId = state.sourceJobId;
 
   const [step, setStep] = useState<QuoteStep>(
-    initialCustomerId && initialJobId
+    (initialCustomerId && initialJobId) || (initialCustomerId && initialSourceJobId)
       ? 'builder'
       : entryPoint === 'missed_call'
       ? 'missed_call'
@@ -384,8 +386,9 @@ export default function Quote() {
         <QuoteBuilder
           customerId={customerId}
           jobId={jobId}
+          sourceJobId={initialSourceJobId}
           onPreview={handleBuilderPreview}
-          onBack={entryPoint === 'revise' ? () => navigate(-1) : () => setStep('customer_details')}
+          onBack={entryPoint === 'revise' || entryPoint === 'requote' ? () => navigate(-1) : () => setStep('customer_details')}
           onSaveDraft={handleSaveDraft}
         />
       );

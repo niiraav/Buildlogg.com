@@ -1400,15 +1400,27 @@ export default function JobDetail() {
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Close
         </Button>
+        {!job?.is_sample && (
+          <Button variant="secondary" onClick={() => navigate('/quote', { state: { customerId: job?.customer_id, sourceJobId: job?.id, entryPoint: 'requote' } })}>
+            Create similar quote
+          </Button>
+        )}
       </div>
     </div>
   );
 
   const renderTerminalFooter = () => (
     <div className="sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight px-4 py-2 pb-[calc(4px_+_env(safe-area-inset-bottom))]">
-      <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
-        Go Home
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
+          Go Home
+        </Button>
+        {!job?.is_sample && (
+          <Button variant="secondary" onClick={() => navigate('/quote', { state: { customerId: job?.customer_id, sourceJobId: job?.id, entryPoint: 'requote' } })}>
+            Create similar quote
+          </Button>
+        )}
+      </div>
     </div>
   );
 
@@ -2198,6 +2210,14 @@ export default function JobDetail() {
           </Button>
         </div>
       </div>
+      {!job?.is_sample && (
+        <button
+          onClick={() => navigate('/quote', { state: { customerId: job?.customer_id, sourceJobId: job?.id, entryPoint: 'requote' } })}
+          className="w-full text-center text-sm text-brand-muted py-2 mt-1 underline underline-offset-2 cursor-pointer"
+        >
+          Create similar quote
+        </button>
+      )}
     </div>
   );
 
