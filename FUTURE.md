@@ -584,3 +584,105 @@ recurring job task cards.
 *Also shipped: BU-3 + BU-7 + CU-3/XU-5 (booking link on CustomerDetail, logo on booking page, QR codes on invoice PDFs) — commit 255a226*
 *Also shipped: BU-6 + CU-4 (booking accept deposit link + card payment upsell nudge) — commit 99ba61b*
 *Author: Codex*
+
+---
+
+## Sprint 1: Email Capture + Recurring Mode Selection (W3-1 Channel Fix)
+
+> **Date:** 2026-06-28
+> **Date:** 2026-06-28
+> **Status:** ✅ Shipped (commit 0cc9807, merged 2bc47c5)
+> **Goal:** Solve the W3-1 channel problem. Auto-reminders need email data, but email is barely captured today. These 5 changes make email capture natural at the moments where the customer is present or the merchant has intent.
+
+### Problem
+
+W3-1 Smart Reminders shipped with `remind_client` mode (auto-email the client). But email is captured in only 2 places (AddCustomer optional field, booking page optional field) and neither is a high-intent moment. Dave's 30-40 customers likely have 0-3 emails on file. Sophie's 50+ clients likely have 5-10 (only from the booking page). The auto-email mode will silently fall back to push for 95%+ of customers.
+
+### Items
+
+| # | Feature | Files | Effort | Status |
+|---|---------|-------|--------|--------|
+| 1 | Email field on Quote CustomerDetails step | `CustomerDetails.tsx`, `Quote/index.tsx` | Cheap | ✅ |
+| 2 | Email capture on recurring_prompt sheet (shown when customer has no email) | `JobDetail/index.tsx`, `Home/index.tsx` | Cheap | ✅ |
+| 3 | Email edit on CustomerDetail (InlineEditRow) | `CustomerDetail.tsx`, `InlineEditRow/index.tsx` | Cheap | ✅ |
+| 4 | Mode selection on recurring_prompt sheet (Remind me / Auto-message / Both) | `JobDetail/index.tsx`, `Home/index.tsx` | Cheap | ✅ |
+| 5 | Email coverage stat in Reminders settings ("X of Y clients have email") | `Reminders.tsx` | Cheap | ✅ |
+
+### Sequencing
+
+- Steps 1 + 3 + 5: parallel (disjoint files)
+- Steps 2 + 4: serial (both modify recurring_prompt sheets)
+- Order: 1 → 3 → 5 (parallel) → 2 + 4 (serial)
+
+### Edge Cases
+
+- **No email on file**: recurring_prompt shows email input field; CustomerDetail shows "Add email" placeholder
+- **Customer already has email**: recurring_prompt skips email field, shows interval + mode only
+- **Invalid email**: no validation in v1; bounces caught by cron endpoint (`last_reminder_status = 'bounced'`)
+- **No customers at all**: email coverage stat hidden (new user)
+- **All customers have email**: stat shows "50 of 50"
+- **Email save fails on recurring_prompt**: try/catch — `createRecurringJob` still runs, email just isn't saved
+
+### Integration Risk
+
+- `CustomerDetails.tsx` onComplete type: adding optional field, existing callers unaffected (Low)
+- `JobDetail/Home` recurring_prompt: must preserve existing interval buttons + callout charge guard (Medium)
+- `CustomerDetail.tsx`: replacing display-only span with InlineEditRow (Low)
+- `Reminders.tsx`: adding stat card (Low)
+
+### Assumptions
+
+1. Email is optional everywhere — merchant decides when to ask
+2. No email validation in v1 — bounces handled by cron endpoint
+3. Mode on recurring_prompt defaults to `'remind_me'` — safest, no surprise sends
+4. Email field on recurring_prompt only shows when customer has no email
+5. Coverage stat counts non-archived customers only
+6. Branded emails (logo in email body) deferred to Sprint 3 — email template is default/fixed
+
+### Out of Scope
+
+- Branded email templates (logo, colours, HTML) — Sprint 3 Pro feature
+- SMS via Twilio — Sprint 4
+- WhatsApp Business API — Phase 4
+- Email validation/regex — refinement
+- Making email required on booking page — Sprint 3
+- Template usage for manual WhatsApp sends — Sprint 2
+- Bounce/failure surfacing — Sprint 2
+- Deep-link from push — Sprint 2
+- Per-job custom message — Sprint 3
+
+---
+
+## Sprint 2: Make the Feature Actually Work (✅ Shipped — commit 897a149, merged 55b34bf)
+
+| # | Feature | Files | Effort |
+|---|---------|-------|--------|
+| 6 | Use `recurring_reminder` template for manual WhatsApp sends | `Home/index.tsx` | Cheap |
+| 7 | Surface bounce/failure status in recurring_actions sheet | `Home/index.tsx` | Cheap |
+| 8 | Recurring jobs display on CustomerDetail | `CustomerDetail.tsx` | Medium |
+| 9 | Deep-link from push notification to recurring task card | `sw.ts`, `App.tsx`, `Home/index.tsx` | Medium |
+| 10 | Customer has no phone guard on WhatsApp button | `Home/index.tsx` | Cheap |
+
+## Sprint 3: Pro Upsell + Data Quality (Planned)
+
+| # | Feature | Files | Effort |
+|---|---------|-------|--------|
+| 11 | Branded reminder emails (Pro — logo only, default template) | `cron-recurring-reminders.js`, `entitlements.ts` | Medium |
+| 12 | Reminder effectiveness insight on Dashboard | `insights.ts`, `Dashboard/index.tsx` | Medium |
+| 13 | "No response after 3 reminders" → suggest phone call | `Home/index.tsx` | Cheap |
+| 14 | Per-recurring-job custom message | `recurringJobs.ts`, `Home/index.tsx` | Medium |
+| 15 | Booking page email required when booking_enabled | `functions/book/[[slug]].js` | Cheap |
+
+## Sprint 4: Channel Alternatives (Planned — requires external accounts)
+
+| # | Feature | Files | Effort |
+|---|---------|-------|--------|
+| 16 | SMS auto-send via Twilio | `cron-recurring-reminders.js`, new `smsConfig.ts` | High |
+| 17 | WhatsApp Business API auto-send | New Function, Meta account | Very High |
+| 18 | Quote follow-up email channel | `quoteFollowUp.ts`, cron endpoint | Medium |
+| 19 | Payment chase email channel | `paymentChase.ts`, cron endpoint | Medium |
+
+---
+
+*Added: 2026-06-28*
+*Author: Codex*
