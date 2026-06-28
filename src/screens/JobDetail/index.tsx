@@ -3261,49 +3261,51 @@ export default function JobDetail() {
           />
         </div>
       </div>
-      <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
-          Start time
-        </label>
-        <div className="relative">
-          <input
-            type="time"
-            value={editStartTime}
-            onChange={(e) => setEditStartTime(e.target.value)}
-            onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-            className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
-          />
-        </div>
-      </div>
-      <div className="mb-3">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
-          End time <span className="normal-case font-normal tracking-0">(optional)</span>
-        </label>
-        {!editEndTime ? (
-          <button
-            onClick={() => setEditEndTime(addTwoHours(editStartTime))}
-            className="w-full h-12 px-3.5 border-2 border-brand-border border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
-          >
-            <Plus size={14} className="text-brand-muted" />
-  Add end time
-          </button>
-        ) : (
+      <div className="flex flex-row gap-2.5 mb-3">
+        <div className="flex-1 min-w-0">
+          <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+            Start time
+          </label>
           <div className="relative">
             <input
               type="time"
-              value={editEndTime}
-              onChange={(e) => setEditEndTime(e.target.value)}
+              value={editStartTime}
+              onChange={(e) => setEditStartTime(e.target.value)}
               onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-              className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              className="w-full h-12 px-3.5 pr-8 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
             />
-            <button
-              onClick={() => setEditEndTime('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
-              aria-label="Clear end time"
-            >
-              <X size={12} className="text-brand-muted" />            </button>
           </div>
-        )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+            End time <span className="normal-case font-normal tracking-0">(optional)</span>
+          </label>
+          {!editEndTime ? (
+            <button
+              onClick={() => setEditEndTime(addTwoHours(editStartTime))}
+              className="w-full h-12 px-3.5 border-2 border-brand-border border-dashed rounded-lg flex items-center gap-2 text-sm font-medium text-brand-muted cursor-pointer bg-white hover:bg-brand-surface active:bg-brand-borderLight transition-colors"
+            >
+              <Plus size={14} className="text-brand-muted" />
+  Add end time
+            </button>
+          ) : (
+            <div className="relative">
+              <input
+                type="time"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
+                className="w-full h-12 px-3.5 pr-8 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+              <button
+                onClick={() => setEditEndTime('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-borderLight flex items-center justify-center cursor-pointer"
+                aria-label="Clear end time"
+              >
+                <X size={12} className="text-brand-muted" />            </button>
+            </div>
+          )}
+        </div>
       </div>
       <div>
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">

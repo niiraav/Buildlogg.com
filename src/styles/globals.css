@@ -89,6 +89,15 @@ input[type="time"]::-webkit-date-and-time-value {
   text-align: left;
 }
 
+/* Normalise native date/time inputs to match text inputs — prevents
+   "squared" appearance on iOS and height jumps when value changes */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ───────────────────────────────────────────────────────────────────
    Dark mode overrides — comprehensive, Cal.com-inspired
    Strategy: every Tailwind bg-white / text-gray-* / bg-gray-* utility

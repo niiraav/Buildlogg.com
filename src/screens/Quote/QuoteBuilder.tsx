@@ -797,13 +797,13 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                 onChange={(e) => setDate(e.target.value)}
                 onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onBlur={handleDateBlur}
-                className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-2.5">
-            <div className="flex-1">
+          <div className="flex flex-row gap-2.5">
+            <div className="flex-1 min-w-0">
               <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
                 Start <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
@@ -815,11 +815,11 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                   onChange={(e) => setStartTime(e.target.value)}
                   onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                   onBlur={handleStartTimeBlur}
-                  className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                  className="w-full h-12 px-3.5 pr-8 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                 />
               </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
                 End <span className="normal-case font-normal tracking-0">(optional)</span>
               </label>
@@ -845,7 +845,7 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
                     onChange={(e) => setEndTime(e.target.value)}
                     onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                     onBlur={handleEndTimeBlur}
-                    className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                    className="w-full h-12 px-3.5 pr-8 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                   />
                   <button
                     onClick={() => { setEndTime(''); saveJob(); }}
