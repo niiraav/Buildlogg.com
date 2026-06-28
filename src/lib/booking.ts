@@ -4,7 +4,7 @@
  * booking_requests row is created in Supabase and synced to Dexie.
  * The merchant sees it as a task card on Home and can accept or reject it.
  */
-import { db, type BookingRequest, type Customer, type Job, type Profile } from './db';
+import { db, type BookingRequest, type Customer, type Job } from './db';
 import { getFilledTemplateMessage } from './templateEngine';
 import { findDuplicateByPhone } from './customers';
 import { nextJobNumber } from './jobNumbers';
