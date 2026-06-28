@@ -147,6 +147,7 @@ export default function Quote() {
   // Clear persisted state when leaving quote flow (completed or cancelled)
   const clearPersistedState = () => {
     localStorage.removeItem('buildlogg_quote_state');
+    localStorage.removeItem('buildlogg_quote_customer_form');
   };
 
   /* Save customer data to Dexie (new or update) */

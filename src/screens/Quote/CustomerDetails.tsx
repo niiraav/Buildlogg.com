@@ -74,19 +74,42 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
 
-  /* Load existing customer if provided */
+  const FORM_KEY = 'buildlogg_quote_customer_form';
+
+  /* Load existing customer if provided, OR restore from localStorage on refresh */
   useEffect(() => {
-    if (!customerId) { setLoading(false); return; }
-    db.customers.get(customerId).then((c) => {
-      if (c) {
-        setName(c.name === 'Unknown' ? '' : c.name);
-        setPhone(c.phone);
-        setAddress(c.address || '');
-        setEmail(c.email || '');
+    if (customerId) {
+      db.customers.get(customerId).then((c) => {
+        if (c) {
+          setName(c.name === 'Unknown' ? '' : c.name);
+          setPhone(c.phone);
+          setAddress(c.address || '');
+          setEmail(c.email || '');
+        }
+        setLoading(false);
+      });
+    } else {
+      // Try restoring form fields from localStorage (handles page refresh)
+      const saved = localStorage.getItem(FORM_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setName(parsed.name || '');
+          setPhone(parsed.phone || '');
+          setAddress(parsed.address || '');
+          setEmail(parsed.email || '');
+        } catch {}
       }
       setLoading(false);
-    });
+    }
   }, [customerId]);
+
+  // Persist form fields to localStorage on every change
+  useEffect(() => {
+    if (!customerId && (name || phone || address || email)) {
+      localStorage.setItem(FORM_KEY, JSON.stringify({ name, phone, address, email }));
+    }
+  }, [name, phone, address, email, customerId]);
 
   const handleEdit = useCallback(() => {
     if (nameRef.current) nameRef.current.focus();
@@ -150,6 +173,8 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       return;
     }
     setPhoneError(false);
+    // Clear persisted form — data is now saved to Dexie via the parent
+    localStorage.removeItem(FORM_KEY);
     onComplete({
       id: customerId || selectedCustomerId || crypto.randomUUID(),
       name: name.trim(),
