@@ -662,7 +662,7 @@ W3-1 Smart Reminders shipped with `remind_client` mode (auto-email the client). 
 | 9 | Deep-link from push notification to recurring task card | `sw.ts`, `App.tsx`, `Home/index.tsx` | Medium |
 | 10 | Customer has no phone guard on WhatsApp button | `Home/index.tsx` | Cheap |
 
-## Sprint 3: Pro Upsell + Data Quality (Planned)
+## Sprint 3: Pro Upsell + Data Quality (✅ Shipped — commits d2875b9, b0b11e7)
 
 | # | Feature | Files | Effort |
 |---|---------|-------|--------|
@@ -672,7 +672,10 @@ W3-1 Smart Reminders shipped with `remind_client` mode (auto-email the client). 
 | 14 | Per-recurring-job custom message | `recurringJobs.ts`, `Home/index.tsx` | Medium |
 | 15 | Booking page email required when booking_enabled | `functions/book/[[slug]].js` | Cheap |
 
-## Sprint 4: Channel Alternatives (Planned — requires external accounts)
+## Sprint 4: Channel Alternatives (Partially Shipped — items 18-19 ✅, 16-17 skipped)
+
+> **Items 18-19 shipped:** commit f69dcde
+> **Items 16-17 skipped:** No user demand yet to justify external accounts (Twilio, WhatsApp Business API).
 
 | # | Feature | Files | Effort |
 |---|---------|-------|--------|
