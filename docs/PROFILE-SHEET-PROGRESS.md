@@ -1,6 +1,6 @@
 # Profile Summary Card + Edit Sheet — Progress Log
 
-> **Commit:** (this commit)
+> **Commit:** (fcb5ef9)
 > **Date:** 2026-06-28
 > **Status:** Implemented, tsc + vite build + lint green
 
