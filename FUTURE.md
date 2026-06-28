@@ -688,3 +688,137 @@ W3-1 Smart Reminders shipped with `remind_client` mode (auto-email the client). 
 
 *Added: 2026-06-28*
 *Author: Codex*
+
+---
+
+## Brainstorm: High-Impact Features Not in PRD (2026-06-28)
+
+> **Method:** Audited every built feature + engine against the two personas'
+> daily workflows. These 5 features connect existing engines to moments where
+> the user needs them — no new infrastructure, no reinvented wheels.
+
+### BR-1. Quick Requote from JobDetail
+
+**Persona:** Both (Dave 5-10 quotes/week, Sophie rebooks similar services)
+**Pain removed:** Dave finishes a boiler service for Mark. Three months later
+Mark calls for another. Dave navigates to Jobs, finds the old job, tries to
+remember what he charged, manually recreates each line item. 5 minutes per
+repeat quote × 5-10/week = 25-50 min/week wasted.
+**Solution:** On any completed/cancelled/written-off job detail page, add a
+"Create similar quote" button. Tapping it navigates to QuoteBuilder with the
+same customer + same line items pre-filled as a starting point. Dave adjusts
+prices if needed and sends in 30 seconds.
+**Leverages:** QuoteBuilder already accepts `jobId` via route state (used by
+"Resend quote" from QuoteSent). Just add a button on non-quoted/non-booked
+jobs that passes the old job's line items.
+**Effort:** S
+**Immediacy:** Felt on first repeat customer — saves 4 minutes instantly.
+
+### BR-2. Outstanding Balance on JobCard
+
+**Persona:** Dave (15-20 active jobs, late payers are his #1 pain)
+**Pain removed:** Dave opens the Jobs page, sees 6 "Awaiting Payment" jobs.
+He has to tap into each one to see who owes £450 vs who owes £25. He can't
+prioritize chasing without opening every job.
+**Solution:** On the JobCard component, when `status === 'awaiting_payment'`
+and `amountDue > 0`, show a red "£X outstanding" badge below the job title.
+Dave scans the list and knows instantly who to chase first.
+**Leverages:** `paymentSummary()` in `paymentHelpers.ts` already computes
+`amountDue`. `JobCard` already receives job + line items. `StatusBadge`
+pattern already exists for coloured pills.
+**Effort:** S
+**Immediacy:** Felt on first glance at the Jobs list with any unpaid jobs.
+
+### BR-3. Customer Merge Suggestion on New Quote
+
+**Persona:** Both (Dave has 30-40 customers, Sophie has 50+)
+**Pain removed:** Dave logs a missed call from "J Smith" and creates a new
+customer. Two weeks later he realises "J Smith" is the same person as "John
+Smith" he already has — now there are two records with split job history.
+Over months, duplicate records make the CRM unreliable.
+**Solution:** In QuoteBuilder, when the user enters a phone number, check
+`findDuplicateByPhone()`. If a match is found, show a subtle banner: "This
+looks like John Smith (3 jobs) — use existing record?" Tapping merges the
+new quote into the existing customer instead of creating a duplicate.
+**Leverages:** `findDuplicateByPhone()` in `customers.ts` already does phone
+matching (used in booking accept flow). `mergeCustomers()` already exists.
+Just wire the check into QuoteBuilder's phone input.
+**Effort:** S-M
+**Immediacy:** Felt on first duplicate — prevents data rot from day one.
+
+### BR-4. Batch Quote Send
+
+**Persona:** Dave (sends 5-10 quotes per session, often back-to-back)
+**Pain removed:** Dave just finished quoting 5 jobs from missed calls. He
+has to open each one, tap "Preview & Send", tap "Send via WhatsApp", repeat
+5 times. It's tedious and he sometimes forgets to send one.
+**Solution:** Add a "Select" mode to the Jobs list (long-press or a select
+button). User selects multiple quoted jobs, taps "Send all via WhatsApp".
+The app loops through each job, opening WhatsApp with the pre-filled message
+for each. User confirms each send (WhatsApp deep-link requires manual
+confirmation — can't bypass).
+**Leverages:** QuoteBuilder + SendSheet already handle single sends. Template
+engine personalises each message. Selection mode is a new UI pattern but
+the send logic is all existing.
+**Effort:** M
+**Immediacy:** Felt on first multi-quote session — saves 2-3 minutes per
+batch of 5.
+
+### BR-5. Deposit Status Badge on JobCard
+
+**Persona:** Sophie (deposit no-shows are her #1 pain, payment_terms =
+'deposit')
+**Pain removed:** Sophie opens Jobs, sees 3 "Booked" jobs. She doesn't know
+which clients have paid their deposit vs which haven't. She might block off
+a chair for someone who hasn't committed financially.
+**Solution:** On JobCard, when `payment_terms === 'deposit'`, show a small
+pill: green "Deposit paid" if `deposit_status === 'paid'`, amber "Deposit
+due" if `deposit_status === 'requested'`, gray "No deposit" if
+`deposit_status === 'none' or undefined`.
+**Leverages:** `Job.deposit_status` field exists. `StatusBadge` + `JobCard`
+components already render badges. Just add a conditional pill.
+**Effort:** S
+**Immediacy:** Felt on first glance at Jobs list with deposit-term jobs.
+
+---
+
+## Updated Priority — Remaining Items (2026-06-28)
+
+### Items Removed from Priority List
+
+| Item | Reason |
+|------|--------|
+| XU-10: Calendar ICS batch export | Reduces app engagement — Dave should live in Buildlogg, not his phone calendar. Per-job "Add to calendar" already exists on JobDetail. |
+| XU-9: Voice input on expense + notes | Clutters UI, high error rate for numbers/amounts, typing is faster and more accurate for financial data. |
+
+### Items Still Valid (ranked)
+
+| # | Feature | Persona | Impact | Effort | Notes |
+|---|---------|---------|--------|--------|-------|
+| 1 | BR-1: Quick Requote from JobDetail | Both | Saves 4 min per repeat quote | S | Highest ROI — pure wiring of existing QuoteBuilder |
+| 2 | BR-2: Outstanding balance on JobCard | Dave | Scan who owes what without opening each job | S | Single highest-friction gap on Jobs page |
+| 3 | BR-5: Deposit status badge on JobCard | Sophie | Knows which clients are committed | S | Confidence before blocking a chair |
+| 4 | BR-3: Customer merge suggestion on new quote | Both | Prevents CRM data rot | S-M | `findDuplicateByPhone` + `mergeCustomers` already exist |
+| 5 | XU-3: Recurring jobs on CustomerDetail + Dashboard | Both | Sophie sees next service per client | S-M | CustomerDetail already loads recurring_jobs; Dashboard needs stat |
+| 6 | XU-8: Scheduling conflicts in booking accept | Both | Full conflict detection (travel time + back-to-back) in accept flow | S-M | `detectConflicts()` exists; basic overlap already works via `checkBookingConflict` |
+| 7 | BR-4: Batch quote send | Dave | Send 5 quotes in one batch | M | Needs selection mode UI; send logic is existing |
+| 8 | W3-1: Smart reminders (auto-send) | Sophie | Automatic WhatsApp/SMS reminders | Very High | Needs WhatsApp Business API or Twilio — DEFERRED. Task-card-based reminders already live via cron Functions. |
+
+### W3-1 Clarification: Auto-Send vs Task Cards
+
+The existing cron Functions (`cron-recurring-reminders.js`,
+`cron-quote-follow-ups.js`, `cron-payment-chases.js`) already generate
+**task cards** on Home automatically. The user gets a reminder card, taps
+"Send", and WhatsApp opens with a pre-filled message.
+
+**True auto-send** (no user tap required) needs either:
+- WhatsApp Business API — expensive, Meta approval, ToS restrictions (DEFERRED)
+- SMS gateway (Twilio) — new 3rd party system, per-message cost
+
+Without those APIs, the task-card-based reminder system is the practical
+limit. It's already live and working.
+
+---
+
+*Added: 2026-06-28*
+*Author: Codex*
