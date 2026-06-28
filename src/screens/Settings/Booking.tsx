@@ -470,6 +470,7 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_hours_start || '09:00'}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_start: e.target.value }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
@@ -477,6 +478,7 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_hours_end || '17:00'}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_end: e.target.value }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
@@ -489,6 +491,7 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_break_start || ''}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_start: e.target.value || undefined }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
@@ -496,6 +499,7 @@ export default function Booking() {
               <input
                 type="time"
                 value={profile?.booking_break_end || ''}
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_end: e.target.value || undefined }); setProfile(updated); } }}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
@@ -522,7 +526,8 @@ export default function Booking() {
                     <input
                       type="time"
                       value={perDay?.start || ''}
-                      onChange={async (e) => {
+                      onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
+                onChange={async (e) => {
                         if (!userId) return;
                         const current = profile?.booking_hours_per_day || {};
                         const end = perDay?.end || '';
@@ -541,7 +546,8 @@ export default function Booking() {
                     <input
                       type="time"
                       value={perDay?.end || ''}
-                      onChange={async (e) => {
+                      onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
+                onChange={async (e) => {
                         if (!userId) return;
                         const current = profile?.booking_hours_per_day || {};
                         const start = perDay?.start || '';
@@ -599,6 +605,7 @@ export default function Booking() {
               <input
                 type="date"
                 id="blocked-date-input"
+                onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
                 min={new Date().toISOString().split('T')[0]}
                 className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />

@@ -3242,6 +3242,7 @@ export default function JobDetail() {
             type="date"
             value={editDate}
             onChange={(e) => setEditDate(e.target.value)}
+            onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
             className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
           />
         </div>
@@ -3255,6 +3256,7 @@ export default function JobDetail() {
             type="time"
             value={editStartTime}
             onChange={(e) => setEditStartTime(e.target.value)}
+            onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
             className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
           />
         </div>
@@ -3277,6 +3279,7 @@ export default function JobDetail() {
               type="time"
               value={editEndTime}
               onChange={(e) => setEditEndTime(e.target.value)}
+              onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
               className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
             />
             <button
