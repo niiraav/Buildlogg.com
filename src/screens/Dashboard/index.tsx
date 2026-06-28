@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users, Calendar } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users, Calendar, Plus } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../lib/db';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
 import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed, captureInsightsShown, captureInsightCtaTapped, captureInsightDismissed } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
+import { BottomSheet } from '../../components/BottomSheet';
+import { Button } from '../../components/Button';
+import { addToSyncQueue } from '../../lib/syncQueue';
 import { getJobTitlePricingHistory, type JobTitlePricing } from '../../lib/pricingHistory';
 import { generateInsights, type Insight } from '../../lib/insights';
 import InsightCard from '../../components/InsightCard';
@@ -52,6 +55,36 @@ export default function Dashboard() {
     if (!userId || !stats || !canSeeInsights) return;
     generateInsights(userId, stats).then(setInsights).catch(() => {});
   }, [userId, stats, canSeeInsights]);
+
+  // General expense logging
+  const [showExpenseSheet, setShowExpenseSheet] = useState(false);
+  const [expenseDesc, setExpenseDesc] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+
+  const handleLogGeneralExpense = async () => {
+    const amount = parseFloat(expenseAmount);
+    if (!expenseDesc.trim() || isNaN(amount) || amount <= 0) return;
+    const n = new Date().toISOString();
+    const id = crypto.randomUUID();
+    await db.work_log.add({
+      id,
+      job_id: null,
+      type: 'expense',
+      description: expenseDesc.trim(),
+      amount,
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await addToSyncQueue('work_log', id, { id, job_id: null, type: 'expense', description: expenseDesc.trim(), amount, created_at: n }, 'insert');
+    setExpenseDesc('');
+    setExpenseAmount('');
+    setShowExpenseSheet(false);
+    // Refresh stats
+    if (userId) {
+      getDashboardStats(userId).then(s => setStats(s));
+    }
+    showSuccess('Expense logged');
+  };
 
   // Load dismissed insights from localStorage (month-scoped)
   useEffect(() => {
@@ -253,6 +286,13 @@ export default function Dashboard() {
           {stats.monthExpenses === 0 && (
             <p className="text-xs text-brand-muted mt-1">Log expenses on jobs to see your true profit</p>
           )}
+          <button
+            onClick={() => setShowExpenseSheet(true)}
+            className="flex items-center gap-1 text-xs font-semibold text-brand-dark mt-2 cursor-pointer"
+          >
+            <Plus size={13} />
+            Log expense
+          </button>
         </div>
 
         {/* XU-3: Recurring revenue tracked */}
@@ -362,6 +402,50 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* General expense sheet */}
+      <BottomSheet
+        isOpen={showExpenseSheet}
+        onClose={() => setShowExpenseSheet(false)}
+        title="Log expense"
+        subtitle="General expense (not tied to a specific job)"
+      >
+        <div className="mb-3">
+          <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+            Description
+          </label>
+          <input
+            type="text"
+            value={expenseDesc}
+            onChange={(e) => setExpenseDesc(e.target.value)}
+            placeholder="e.g. Gel polish bulk order"
+            className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+            Amount
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-medium text-brand-black">£</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={expenseAmount}
+              onChange={(e) => setExpenseAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full h-12 pl-8 pr-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+            />
+          </div>
+        </div>
+        <Button
+          variant="primary"
+          onClick={handleLogGeneralExpense}
+          disabled={!expenseDesc.trim() || !expenseAmount || parseFloat(expenseAmount) <= 0}
+        >
+          Log expense
+        </Button>
+      </BottomSheet>
     </div>
   );
 }

@@ -150,7 +150,7 @@ export type WorkLogType =
 
 export interface WorkLogEntry {
   id: string;
-  job_id: string;
+  job_id: string | null;
   type: WorkLogType;
   description: string;
   amount?: number;
