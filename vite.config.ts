@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+import fs from 'fs';
 
 export default defineConfig({
   plugins: [
@@ -39,6 +40,24 @@ export default defineConfig({
         enabled: false,
       },
     }),
+    {
+      name: 'generate-version-json',
+      writeBundle() {
+        const hash = Date.now().toString();
+        fs.writeFileSync(
+          path.resolve(__dirname, 'dist/version.json'),
+          JSON.stringify({ hash, builtAt: new Date().toISOString() })
+        );
+        // Ensure _headers includes version.json cache-control
+        const headersPath = path.resolve(__dirname, 'dist/_headers');
+        let headers = '';
+        try { headers = fs.readFileSync(headersPath, 'utf8'); } catch {}
+        if (!headers.includes('/version.json')) {
+          headers += '\n/version.json\n  Cache-Control: no-cache, no-store, must-revalidate\n';
+          fs.writeFileSync(headersPath, headers);
+        }
+      },
+    },
   ],
   resolve: {
     alias: {

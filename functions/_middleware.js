@@ -3,7 +3,7 @@ export async function onRequest(context) {
   const path = url.pathname;
 
   // Let static assets pass through directly
-  if (path.startsWith('/assets/') || path.startsWith('/icons/') || path.startsWith('/manifest')) {
+  if (path.startsWith('/assets/') || path.startsWith('/icons/') || path.startsWith('/manifest') || path === '/version.json' || path === '/sw.js') {
     return context.next();
   }
 

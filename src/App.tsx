@@ -20,6 +20,7 @@ import { checkEndOfDay } from './lib/notifications';
 import DesktopNudge from './components/DesktopNudge';
 import { SkeletonAppScreen } from './components/Skeleton';
 import { useTheme } from './hooks/useTheme';
+import { useUpdateCheck } from './hooks/useUpdateCheck';
 import { ToastContainer } from './components/Toast';
 import { TabBar } from './components/TabBar';
 import Auth from './screens/Auth';
@@ -356,6 +357,26 @@ function AppRoutes() {
   );
 }
 
+/* ─── PWA update banner ─── */
+function UpdateBanner() {
+  const { updateAvailable, dismiss, applyUpdate } = useUpdateCheck();
+  if (!updateAvailable) return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 right-4 z-[60] bg-brand-black text-white rounded-xl p-4 shadow-lg flex items-center justify-between max-w-sm mx-auto">
+      <span className="text-sm font-medium">A new version is available</span>
+      <div className="flex items-center gap-3">
+        <button onClick={dismiss} className="text-xs font-medium text-white/60 underline">
+          Later
+        </button>
+        <button onClick={applyUpdate} className="text-sm font-bold underline">
+          Refresh
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── App root ─── */
 export default function App() {
   useEffect(() => {
@@ -371,6 +392,7 @@ export default function App() {
     <div id="app-shell" className="flex flex-col h-[100dvh] overflow-x-clip overflow-y-auto md:overflow-y-hidden">
       <DesktopNudge />
       <ToastContainer />
+      <UpdateBanner />
       <div className="flex-1 min-h-0 flex flex-col relative">
         <Router basename="/app" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ScreenTracker />
