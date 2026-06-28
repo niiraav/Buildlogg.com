@@ -477,7 +477,7 @@ export default function Jobs() {
         </div>
 
         {/* Compact week strip — scroll-to-hide */}
-        <div style={{ maxHeight: weekStripVisible ? '64px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
+        <div style={{ maxHeight: weekStripVisible ? '68px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
           <CompactWeekStrip
             jobs={jobs}
             selectedDate={dateFilter || undefined}
@@ -496,7 +496,7 @@ export default function Jobs() {
         </div>
 
         {/* Filter chips with counts */}
-        <div className="px-4 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="px-4 pt-1 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {filters.map((f) => {
             const isActive = filter === f.key;
             const count = filterCounts[f.key];
@@ -541,23 +541,25 @@ export default function Jobs() {
         </button>
         </div>
 
-        {/* Search bar */}
+        {/* Search bar — scroll-to-hide (shy) */}
         {hasAnyJobs && (
-          <div className="px-4 pb-2 shrink-0">
-            <div className="relative flex items-center">
-              <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>
-              <input id="jobs-search-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or job…"
-                className="w-full h-11 pl-10 pr-9 text-base font-medium text-brand-black bg-brand-borderLight border border-transparent rounded-xl outline-none focus:border-brand-black focus:bg-white transition-colors"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 p-1 cursor-pointer">
-                  <X size={14} className="text-brand-muted" />
-                </button>
-              )}
+          <div style={{ maxHeight: weekStripVisible ? '60px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
+            <div className="px-4 pt-1 pb-3">
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>
+                <input id="jobs-search-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or job…"
+                  className="w-full h-11 pl-10 pr-9 text-base font-medium text-brand-black bg-brand-borderLight border border-transparent rounded-xl outline-none focus:border-brand-black focus:bg-white transition-colors"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 p-1 cursor-pointer">
+                    <X size={14} className="text-brand-muted" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
