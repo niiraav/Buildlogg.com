@@ -214,6 +214,7 @@ async function sendEmail(
     senderName: FROM_NAME.replace(' at Buildlogg', '').replace('Buildlogg', 'James'),
     companyName: 'Buildlogg',
     unsubscribeUrl: unsubUrl,
+    heroImage: emailContent.heroImage,
   });
 
   const listUnsubscribeHeader = `<${unsubUrl}>`;
@@ -431,12 +432,25 @@ async function main() {
   const allLeads = loadLeads(csvPathFinal);
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-  // Microsoft domains warm-up filter
+  // Microsoft domains warm-up — gradual ramp instead of hard block.
+  // Microsoft builds sender reputation by seeing emails to its users that
+  // are NOT marked as spam. Completely skipping Microsoft domains leaves
+  // Microsoft with zero reputation data, causing it to default to junk.
+  // Solution: allow a small daily quota of Microsoft sends during warm-up,
+  // ramping up as total volume grows.
   const MICROSOFT_DOMAINS = [
     'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'outlook.co.uk',
     'live.com', 'live.co.uk', 'msn.com', 'windowslive.com',
   ];
   const WARMUP_THRESHOLD = 500;
+  // Daily Microsoft cap scales with total sends: 5/day under 200, 10/day
+  // under 400, 20/day under 500, unlimited after 500.
+  function microsoftDailyCap(totalSent: number): number {
+    if (totalSent >= WARMUP_THRESHOLD) return Infinity;
+    if (totalSent >= 400) return 20;
+    if (totalSent >= 200) return 10;
+    return 5;
+  }
   const { count: totalSentCount } = await supabase
     .from('cold_email_sends')
     .select('*', { count: 'exact', head: true })
@@ -445,14 +459,34 @@ async function main() {
 
   let qualifiedLeads = allLeads.filter(l => (l.score || 0) >= 70);
   if (isWarmingUp) {
-    const before = qualifiedLeads.length;
-    qualifiedLeads = qualifiedLeads.filter(l => {
+    const msCap = microsoftDailyCap(totalSentCount || 0);
+    const today = new Date().toISOString().slice(0, 10);
+    // Count today's Microsoft sends (Supabase doesn't support LIKE in .in())
+    const { data: todaySends } = await supabase
+      .from('cold_email_sends')
+      .select('lead_email')
+      .gte('sent_at', `${today}T00:00:00Z`)
+      .lte('sent_at', `${today}T23:59:59Z`);
+    const msSentToday = (todaySends || []).filter((row: any) => {
+      const domain = (row.lead_email || '').toLowerCase().split('@')[1] || '';
+      return MICROSOFT_DOMAINS.includes(domain);
+    }).length;
+    const msRemaining = Math.max(0, msCap - msSentToday);
+
+    const nonMsLeads = qualifiedLeads.filter(l => {
       const domain = (l.email || '').toLowerCase().split('@')[1] || '';
       return !MICROSOFT_DOMAINS.includes(domain);
     });
-    console.log(`Loaded ${allLeads.length} leads | Qualified: ${qualifiedLeads.length} | Warm-up: skipping ${before - qualifiedLeads.length} Microsoft leads (re-include after ${WARMUP_THRESHOLD} sends)`);
+    const msLeads = qualifiedLeads.filter(l => {
+      const domain = (l.email || '').toLowerCase().split('@')[1] || '';
+      return MICROSOFT_DOMAINS.includes(domain);
+    });
+    const msToInclude = msLeads.slice(0, msRemaining);
+    const msDeferred = msLeads.length - msToInclude.length;
+    qualifiedLeads = [...nonMsLeads, ...msToInclude];
+    console.log(`Loaded ${allLeads.length} leads | Qualified: ${qualifiedLeads.length} | Warm-up: ${msLeads.length} Microsoft leads (${msToInclude.length} included, ${msDeferred} deferred — cap ${msCap}/day at ${totalSentCount}/${WARMUP_THRESHOLD} total)`);
   } else {
-    console.log(`Loaded ${allLeads.length} leads | Qualified: ${qualifiedLeads.length}`);
+    console.log(`Loaded ${allLeads.length} leads | Qualified: ${qualifiedLeads.length} | Microsoft domains: fully included (warm-up complete)`);
   }
 
   // Generic email exclusion
