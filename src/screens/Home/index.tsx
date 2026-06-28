@@ -228,6 +228,7 @@ export default function Home() {
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
 
   const [sampleExplored, setSampleExplored] = useState(() => localStorage.getItem('buildlogg_sample_explored') === 'true');
+  const [cardNudgeDismissed, setCardNudgeDismissed] = useState(() => localStorage.getItem('buildlogg_tip_dismissed_card_payments') === '1');
   const [selectedFollowUp, setSelectedFollowUp] = useState<(QuoteFollowUp & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedChase, setSelectedChase] = useState<(PaymentChase & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
@@ -2089,6 +2090,24 @@ export default function Home() {
                     <CreditCard size={18} className="mr-2" />
                     Send card payment link
                   </Button>
+                )}
+                {!profile?.stripe_connected && !cardNudgeDismissed && (
+                  <div className="flex items-start gap-2 bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
+                    <CreditCard size={16} className="text-brand-muted shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-brand-mid leading-relaxed">Tired of chasing? Let customers pay online.</p>
+                      <button onClick={() => navigate('/settings')} className="text-xs font-semibold text-brand-dark underline underline-offset-2 cursor-pointer mt-1">
+                        Enable card payments →
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => { localStorage.setItem('buildlogg_tip_dismissed_card_payments', '1'); setCardNudgeDismissed(true); }}
+                      className="text-brand-muted cursor-pointer shrink-0"
+                      aria-label="Dismiss"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 )}
               </>
               ) : null}
