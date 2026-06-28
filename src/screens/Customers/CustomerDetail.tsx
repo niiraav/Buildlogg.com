@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
 import { captureCustomerDetailViewed, capture } from '../../lib/analytics';
 import { addToSyncQueue } from '../../lib/syncQueue';
+import { InlineEditRow } from '../../components/InlineEditRow';
 import { showSuccess } from '../../components/Toast/store';
 import { useAppStore } from '../../store/useAppStore';
 import { bookingPageUrl } from '../../lib/referral';
@@ -182,9 +183,22 @@ export default function CustomerDetail() {
                 {customer.address}
               </button>
             )}
-            {customer.email && (
-              <span className="text-sm text-brand-muted">{customer.email}</span>
-            )}
+            <div className="flex-1 min-w-0">
+              <InlineEditRow
+                label="Email"
+                value={customer.email || ''}
+                inputType="email"
+                placeholder="Add email for reminders"
+                onSave={async (value) => {
+                  if (!customerId) return;
+                  const n = new Date().toISOString();
+                  const emailVal = value.trim() || undefined;
+                  await db.customers.update(customerId, { email: emailVal, updated_at: n, _sync_status: 'pending' });
+                  await addToSyncQueue('customers', customerId, { email: emailVal || null, updated_at: n }, 'update');
+                  setCustomer(prev => prev ? { ...prev, email: emailVal } : prev);
+                }}
+              />
+            </div>
           </div>
         </div>
 

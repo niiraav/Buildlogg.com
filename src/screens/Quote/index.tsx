@@ -148,7 +148,7 @@ export default function Quote() {
   };
 
   /* Save customer data to Dexie (new or update) */
-  const saveCustomer = async (data: { id: string; name: string; phone: string; address?: string }) => {
+  const saveCustomer = async (data: { id: string; name: string; phone: string; address?: string; email?: string }) => {
     if (!userId) return;
     const n = now();
     const existing = await db.customers.get(data.id);
@@ -158,6 +158,7 @@ export default function Quote() {
         name: data.name,
         phone: data.phone,
         address: data.address,
+        email: data.email,
         updated_at: n,
         _sync_status: 'pending',
       });
@@ -165,7 +166,7 @@ export default function Quote() {
         operation: 'update',
         table_name: 'customers',
         record_id: data.id,
-        payload: { name: data.name, phone: data.phone, address: data.address, updated_at: n },
+        payload: { name: data.name, phone: data.phone, address: data.address, email: data.email, updated_at: n },
         created_at: n,
         retry_count: 0,
       });
@@ -176,6 +177,7 @@ export default function Quote() {
         name: data.name,
         phone: data.phone,
         address: data.address,
+        email: data.email,
         created_at: n,
         updated_at: n,
         _sync_status: 'pending',
@@ -184,7 +186,7 @@ export default function Quote() {
         operation: 'insert',
         table_name: 'customers',
         record_id: data.id,
-        payload: { id: data.id, user_id: userId, name: data.name, phone: data.phone, address: data.address, created_at: n, updated_at: n },
+        payload: { id: data.id, user_id: userId, name: data.name, phone: data.phone, address: data.address, email: data.email, created_at: n, updated_at: n },
         created_at: n,
         retry_count: 0,
       });
@@ -198,7 +200,7 @@ export default function Quote() {
     navigate('/', { replace: true, state: { initialTab: 'drafts' } });
   };
 
-  const handleCustomerDetailsComplete = async (data: { id: string; name: string; phone: string; address?: string }) => {
+  const handleCustomerDetailsComplete = async (data: { id: string; name: string; phone: string; address?: string; email?: string }) => {
     await saveCustomer(data);
     setCustomerId(data.id);
 

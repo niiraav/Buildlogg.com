@@ -6,7 +6,7 @@ export interface InlineEditRowProps {
   label: string;
   value: string;
   onSave: (newValue: string) => void;
-  inputType?: 'text' | 'tel' | 'number';
+  inputType?: 'text' | 'tel' | 'number' | 'email';
   inputMode?: 'text' | 'numeric' | 'decimal' | 'tel';
   placeholder?: string;
   prefix?: string;

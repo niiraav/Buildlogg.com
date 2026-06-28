@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { db, type Job, type Customer, type LineItem, type WorkLogEntry } from '../../lib/db';
+import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type ReminderMode } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
 import { JobCard } from '../../components/JobCard';
 import { ActiveBar } from '../../components/ActiveBar';
@@ -266,6 +266,8 @@ export default function Home() {
     return () => window.removeEventListener('focus', update);
   }, []);
   const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
+  const [recurringEmailInput, setRecurringEmailInput] = useState('');
+  const [recurringMode, setRecurringMode] = useState<ReminderMode>('remind_me');
   const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -2030,37 +2032,89 @@ export default function Home() {
         subtitle={selectedJobId ? `${customerFor(selectedJobId)?.name || ''} · ${jobs.find(x => x.id === selectedJobId)?.title || ''}` : undefined}
       >
         <div className="flex flex-col gap-2">
+          {selectedJobId && (() => {
+            const c = customerFor(selectedJobId);
+            return c && !c.email ? (
+              <div className="mb-2">
+                <label className="block text-label font-semibold text-brand-dark mb-1">Add email for auto-reminders (optional)</label>
+                <input
+                  type="email"
+                  value={recurringEmailInput}
+                  onChange={(e) => setRecurringEmailInput(e.target.value)}
+                  placeholder="e.g. sarah@example.com"
+                  className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none focus:border-brand-black"
+                />
+              </div>
+            ) : null;
+          })()}
           <Button variant="ghost" onClick={() => setSheet(null)} fullWidth>
             One-off
           </Button>
           <Button variant="secondary" onClick={async () => {
             const j = jobs.find(x => x.id === selectedJobId);
             if (!j || !userId) return;
-            await createRecurringJob(j, 'monthly');
+            if (recurringEmailInput.trim()) {
+              try {
+                const n = new Date().toISOString();
+                await db.customers.update(j.customer_id, { email: recurringEmailInput.trim(), updated_at: n, _sync_status: 'pending' });
+                await addToSyncQueue('customers', j.customer_id, { email: recurringEmailInput.trim(), updated_at: n }, 'update');
+              } catch {}
+            }
+            await createRecurringJob(j, 'monthly', { reminderMode: recurringMode });
             showToast('Monthly reminder set');
             setSheet(null);
           }} fullWidth>Monthly</Button>
           <Button variant="secondary" onClick={async () => {
             const j = jobs.find(x => x.id === selectedJobId);
             if (!j || !userId) return;
-            await createRecurringJob(j, 'quarterly');
+            if (recurringEmailInput.trim()) {
+              try {
+                const n = new Date().toISOString();
+                await db.customers.update(j.customer_id, { email: recurringEmailInput.trim(), updated_at: n, _sync_status: 'pending' });
+                await addToSyncQueue('customers', j.customer_id, { email: recurringEmailInput.trim(), updated_at: n }, 'update');
+              } catch {}
+            }
+            await createRecurringJob(j, 'quarterly', { reminderMode: recurringMode });
             showToast('Quarterly reminder set');
             setSheet(null);
           }} fullWidth>Quarterly</Button>
           <Button variant="secondary" onClick={async () => {
             const j = jobs.find(x => x.id === selectedJobId);
             if (!j || !userId) return;
-            await createRecurringJob(j, 'six_monthly');
+            if (recurringEmailInput.trim()) {
+              try {
+                const n = new Date().toISOString();
+                await db.customers.update(j.customer_id, { email: recurringEmailInput.trim(), updated_at: n, _sync_status: 'pending' });
+                await addToSyncQueue('customers', j.customer_id, { email: recurringEmailInput.trim(), updated_at: n }, 'update');
+              } catch {}
+            }
+            await createRecurringJob(j, 'six_monthly', { reminderMode: recurringMode });
             showToast('6-monthly reminder set');
             setSheet(null);
           }} fullWidth>6-monthly</Button>
           <Button variant="primary" onClick={async () => {
             const j = jobs.find(x => x.id === selectedJobId);
             if (!j || !userId) return;
-            await createRecurringJob(j, 'annual');
+            if (recurringEmailInput.trim()) {
+              try {
+                const n = new Date().toISOString();
+                await db.customers.update(j.customer_id, { email: recurringEmailInput.trim(), updated_at: n, _sync_status: 'pending' });
+                await addToSyncQueue('customers', j.customer_id, { email: recurringEmailInput.trim(), updated_at: n }, 'update');
+              } catch {}
+            }
+            await createRecurringJob(j, 'annual', { reminderMode: recurringMode });
             showToast('Annual reminder set');
             setSheet(null);
           }} fullWidth>Annual</Button>
+          <div className="pt-2 mt-2 border-t border-brand-borderLight">
+            <p className="text-label font-semibold text-brand-mid mb-2">Reminder mode</p>
+            <div className="flex gap-2">
+              <button onClick={() => setRecurringMode('remind_me')} className={`flex-1 py-2 rounded-lg text-xs font-medium cursor-pointer ${recurringMode === 'remind_me' ? 'bg-status-blue text-white' : 'bg-brand-surface text-brand-dark'}`}>Remind me</button>
+              <button onClick={() => setRecurringMode('remind_client')} className={`flex-1 py-2 rounded-lg text-xs font-medium cursor-pointer ${recurringMode === 'remind_client' ? 'bg-status-blue text-white' : 'bg-brand-surface text-brand-dark'}`}>Auto-message</button>
+              <button onClick={() => setRecurringMode('both')} className={`flex-1 py-2 rounded-lg text-xs font-medium cursor-pointer ${recurringMode === 'both' ? 'bg-status-blue text-white' : 'bg-brand-surface text-brand-dark'}`}>Both</button>
+            </div>
+            {recurringMode !== 'remind_me' && <p className="text-xs text-brand-muted mt-1.5">Auto-message emails the client automatically when due</p>}
+          </div>
         </div>
       </BottomSheet>
 
