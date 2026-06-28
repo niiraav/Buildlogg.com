@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Maximize2, X } from 'lucide-react';
 import type { Job } from '../../lib/db';
 import { haptic } from '../../lib/haptics';
 
@@ -7,8 +6,6 @@ export interface CompactWeekStripProps {
   jobs: Job[];
   selectedDate?: string;
   onDayTap: (date: Date) => void;
-  onExpand: () => void;
-  onClearDate?: () => void;
 }
 
 const DAY_NAMES = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -29,7 +26,7 @@ function jobOnDay(job: Job, date: Date): boolean {
   return jobStart.toDateString() === date.toDateString();
 }
 
-export function CompactWeekStrip({ jobs, selectedDate, onDayTap, onExpand, onClearDate }: CompactWeekStripProps) {
+export function CompactWeekStrip({ jobs, selectedDate, onDayTap }: CompactWeekStripProps) {
   const weekDays = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -62,7 +59,7 @@ export function CompactWeekStrip({ jobs, selectedDate, onDayTap, onExpand, onCle
           <button
             key={i}
             onClick={() => { haptic('light'); onDayTap(date); }}
-            className={`flex-1 min-w-[36px] max-w-[52px] rounded-lg py-1.5 px-1 flex flex-col items-center cursor-pointer transition-all active:scale-95 ${
+            className={`flex-1 min-w-[36px] max-w-[80px] rounded-lg py-1.5 px-1 flex flex-col items-center cursor-pointer transition-all active:scale-95 ${
               isToday
                 ? 'bg-brand-black text-brand-surface'
                 : isSelected
@@ -84,24 +81,6 @@ export function CompactWeekStrip({ jobs, selectedDate, onDayTap, onExpand, onCle
           </button>
         );
       })}
-      {/* Expand button */}
-      <button
-        onClick={() => { haptic('light'); onExpand(); }}
-        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer text-brand-muted hover:text-brand-dark hover:bg-brand-surface transition-colors ml-1"
-        aria-label="Expand week view"
-      >
-        <Maximize2 size={14} />
-      </button>
-      {/* Clear date button */}
-      {selectedDate && onClearDate && (
-        <button
-          onClick={() => { haptic('light'); onClearDate(); }}
-          className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer text-brand-muted hover:text-brand-dark transition-colors"
-          aria-label="Clear date filter"
-        >
-          <X size={14} />
-        </button>
-      )}
     </div>
   );
 }
