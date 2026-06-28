@@ -41,6 +41,18 @@ cleanupOutdatedCaches();
 // Take control immediately (but only after activation, which is now manual)
 clientsClaim();
 
+// Push event handler — show notification from server-side push messages
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Buildlogg', {
+      body: data.body || '',
+      icon: '/icons/apple-touch-icon-180.png',
+      data: { url: data.url || '/app/' },
+    })
+  );
+});
+
 // Notification click handler — deep-link to the job if notification data has a URL,
 // otherwise fall back to the Jobs unpaid filter.
 self.addEventListener('notificationclick', (event) => {

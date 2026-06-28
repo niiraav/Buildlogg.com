@@ -127,5 +127,14 @@ export async function initialSync(userId: string) {
     supabase.from('recurring_jobs').select('*').eq('user_id', userId),
     db.recurring_jobs);
 
+  // payment_chases — pre-existing omission fix
+  await syncTable(
+    supabase.from('payment_chases').select('*').eq('user_id', userId),
+    db.payment_chases);
+
+  // W3-1: reminder_log
+  await syncTable(
+    supabase.from('reminder_log').select('*').eq('user_id', userId),
+    db.reminder_log);
 
 }

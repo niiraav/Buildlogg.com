@@ -56,6 +56,13 @@ const DEFAULT_TEMPLATES: Array<Omit<MessageTemplate, 'id' | 'user_id' | 'created
     is_default: true,
     sort_order: 6,
   },
+  {
+    category: 'recurring_reminder',
+    name: 'Recurring reminder',
+    body: 'Hi {firstName}, your {jobTitle} is due soon. Book your next appointment: {bookingLink} — {businessName}',
+    is_default: true,
+    sort_order: 7,
+  },
 ];
 
 export async function seedMessageTemplates(userId: string): Promise<number> {
@@ -89,7 +96,7 @@ export async function seedMissingTemplates(userId: string): Promise<number> {
   // Guard: only run once per user per device. The race condition between
   // this function and initialSync caused exponential template duplication.
   // Once templates exist (either from seeding or from Supabase sync), don't seed again.
-  const flagKey = `buildlogg_templates_seeded_${userId}`;
+  const flagKey = `buildlogg_templates_seeded_v2_${userId}`;
   if (localStorage.getItem(flagKey) === 'true') return 0;
 
   let inserted = 0;
@@ -153,7 +160,7 @@ export async function seedMissingTemplates(userId: string): Promise<number> {
  */
 export async function deduplicateDefaults(userId: string): Promise<void> {
   const categories: MessageTemplate['category'][] = [
-    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'
+    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom', 'recurring_reminder'
   ];
   const now = new Date().toISOString();
 
@@ -193,7 +200,7 @@ export async function deduplicateDefaults(userId: string): Promise<void> {
  */
 export async function deduplicateTemplates(userId: string): Promise<number> {
   const categories: MessageTemplate['category'][] = [
-    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'
+    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom', 'recurring_reminder'
   ];
   let deleted = 0;
 

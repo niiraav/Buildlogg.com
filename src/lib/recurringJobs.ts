@@ -3,7 +3,7 @@
  * Creates repeat job reminders after a job is marked as paid.
  * Pure logic over Dexie — no UI.
  */
-import { db, type Job, type RecurringJob, type RecurrenceInterval } from './db';
+import { db, type Job, type RecurringJob, type RecurrenceInterval, type ReminderMode, type ReminderLog } from './db';
 import { addToSyncQueue } from './syncQueue';
 
 const LEAD_DAYS_DEFAULT = 14;
@@ -55,13 +55,14 @@ export async function hasActiveRecurrence(
 export async function createRecurringJob(
   fromJob: Job,
   interval: RecurrenceInterval,
-  options?: { suggestedMonth?: number },
+  options?: { suggestedMonth?: number; reminderMode?: ReminderMode },
 ): Promise<string> {
   const now = new Date();
   const nowIso = now.toISOString();
   const nextDue = calculateNextDue(now, interval, options?.suggestedMonth);
 
   const customer = await db.customers.get(fromJob.customer_id);
+  const profile = await db.profiles.get(fromJob.user_id);
   const id = crypto.randomUUID();
   const record: RecurringJob = {
     id,
@@ -76,6 +77,8 @@ export async function createRecurringJob(
     status: 'active',
     contact_attempts: 0,
     suggested_month: options?.suggestedMonth,
+    reminder_mode: options?.reminderMode ?? profile?.default_reminder_mode ?? 'remind_me',
+    reminder_count: 0,
     created_at: nowIso,
     updated_at: nowIso,
     _sync_status: 'pending',
@@ -131,11 +134,15 @@ export async function advanceRecurrence(id: string): Promise<void> {
     next_due_at: nextDue,
     last_completed_at: nowIso,
     contact_attempts: 0,
+    reminder_count: 0,
+    last_reminder_sent_at: undefined,
+    last_reminder_status: undefined,
     updated_at: nowIso,
     _sync_status: 'pending',
   });
   await addToSyncQueue('recurring_jobs', id, {
-    next_due_at: nextDue, last_completed_at: nowIso, contact_attempts: 0, updated_at: nowIso,
+    next_due_at: nextDue, last_completed_at: nowIso, contact_attempts: 0,
+    reminder_count: 0, updated_at: nowIso,
   }, 'update');
 }
 
@@ -207,10 +214,53 @@ export async function reactivateDormant(id: string): Promise<void> {
   await db.recurring_jobs.update(id, {
     status: 'active',
     contact_attempts: 0,
+    reminder_count: 0,
+    last_reminder_sent_at: undefined,
+    last_reminder_status: undefined,
     updated_at: now,
     _sync_status: 'pending',
   });
   await addToSyncQueue('recurring_jobs', id, {
-    status: 'active', contact_attempts: 0, updated_at: now,
+    status: 'active', contact_attempts: 0, reminder_count: 0, updated_at: now,
   }, 'update');
+}
+
+// W3-1: Smart reminder management functions
+
+export async function setReminderMode(id: string, mode: ReminderMode): Promise<void> {
+  const now = new Date().toISOString();
+  await db.recurring_jobs.update(id, {
+    reminder_mode: mode,
+    updated_at: now,
+    _sync_status: 'pending',
+  });
+  await addToSyncQueue('recurring_jobs', id, {
+    reminder_mode: mode, updated_at: now,
+  }, 'update');
+}
+
+export async function updateReminderLeadDays(id: string, days: number): Promise<void> {
+  const clamped = Math.max(1, Math.min(90, days));
+  const now = new Date().toISOString();
+  await db.recurring_jobs.update(id, {
+    reminder_lead_days: clamped,
+    updated_at: now,
+    _sync_status: 'pending',
+  });
+  await addToSyncQueue('recurring_jobs', id, {
+    reminder_lead_days: clamped, updated_at: now,
+  }, 'update');
+}
+
+export async function getReminderHistory(id: string, limit = 5): Promise<ReminderLog[]> {
+  try {
+    return await db.reminder_log
+      .where('recurring_job_id')
+      .equals(id)
+      .reverse()
+      .sortBy('sent_at')
+      .then(results => results.slice(0, limit));
+  } catch {
+    return [];
+  }
 }

@@ -24,6 +24,7 @@ const PLACEHOLDERS: Record<string, PlaceholderFn> = {
   '{amount}': (_, __, ___, t) => `£${t.toFixed(2)}`,
   '{businessName}': (_, __, p) => p.business_name || p.full_name,
   '{jobNumber}': (j) => j.job_number || '',
+  '{bookingLink}': (_, __, p) => p.booking_slug && p.booking_enabled ? `https://buildlogg.com/book/${p.booking_slug}` : '',
   '{reviewLink}': (_, __, p) => p.google_business_url || '',
 };
 

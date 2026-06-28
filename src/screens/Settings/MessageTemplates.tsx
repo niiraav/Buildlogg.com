@@ -21,9 +21,10 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   receipt: 'Receipt',
   update: 'Update',
   custom: 'Custom',
+  recurring_reminder: 'Recurring reminder',
 };
 
-const CATEGORY_ORDER: TemplateCategory[] = ['booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'];
+const CATEGORY_ORDER: TemplateCategory[] = ['booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom', 'recurring_reminder'];
 
 // Pre-filled template variations per category — 3 options each
 const TEMPLATE_PRESETS: Record<TemplateCategory, Array<{ name: string; body: string }>> = {
@@ -66,6 +67,9 @@ const TEMPLATE_PRESETS: Record<TemplateCategory, Array<{ name: string; body: str
     { name: 'Blank template', body: '' },
     { name: 'General message', body: 'Hi {firstName}, this is {businessName} re: the {jobTitle}. ' },
     { name: 'On my way', body: 'Hi {firstName}, I\'m on my way to you now for the {jobTitle}. Should be about 15 minutes. — {businessName}' },
+  ],
+  recurring_reminder: [
+    { name: 'Recurring reminder', body: 'Hi {firstName}, your {jobTitle} is due soon. Book your next appointment: {bookingLink} — {businessName}' },
   ],
 };
 

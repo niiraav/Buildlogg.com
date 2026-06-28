@@ -1,18 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
-import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed } from '../../lib/analytics';
+import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed, captureInsightsShown, captureInsightCtaTapped, captureInsightDismissed } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
 import { getJobTitlePricingHistory, type JobTitlePricing } from '../../lib/pricingHistory';
+import { generateInsights, type Insight } from '../../lib/insights';
+import InsightCard from '../../components/InsightCard';
+import { useEntitlements } from '../../hooks/useEntitlements';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
+  const { can, upgradeUrl } = useEntitlements();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [pricing, setPricing] = useState<JobTitlePricing | null>(null);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+
+  const canSeeInsights = can('business_insights');
 
   useEffect(() => {
     if (!userId) return;
@@ -36,6 +44,55 @@ export default function Dashboard() {
       captureReferralCardViewed();
     }
   }, [stats?.referral?.total]);
+
+  // W3-3: Generate insights after stats are loaded
+  useEffect(() => {
+    if (!userId || !stats || !canSeeInsights) return;
+    generateInsights(userId, stats).then(setInsights).catch(() => {});
+  }, [userId, stats, canSeeInsights]);
+
+  // Load dismissed insights from localStorage (month-scoped)
+  useEffect(() => {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const key = `buildlogg_insight_dismissed_${monthKey}`;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) setDismissedInsights(new Set(JSON.parse(raw)));
+    } catch { /* ignore */ }
+  }, []);
+
+  const visibleInsights = useMemo(
+    () => insights.filter((i) => !dismissedInsights.has(i.id)),
+    [insights, dismissedInsights],
+  );
+
+  // Fire analytics when insights first render
+  useEffect(() => {
+    if (visibleInsights.length > 0) {
+      captureInsightsShown({
+        count: visibleInsights.length,
+        types: visibleInsights.map((i) => i.type),
+      });
+    }
+  }, [visibleInsights.length]);
+
+  const handleDismissInsight = (id: string) => {
+    setDismissedInsights((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      const monthKey = new Date().toISOString().slice(0, 7);
+      const key = `buildlogg_insight_dismissed_${monthKey}`;
+      try { localStorage.setItem(key, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+    const insight = insights.find((i) => i.id === id);
+    if (insight) captureInsightDismissed({ type: insight.type });
+  };
+
+  const handleInsightCta = (insight: Insight) => {
+    captureInsightCtaTapped({ type: insight.type });
+    if (insight.ctaRoute) navigate(insight.ctaRoute);
+  };
 
   const handleExport = async () => {
     if (!userId) return;
@@ -80,6 +137,31 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 pt-4 pb-8 flex-1">
+        {/* W3-3: Business insights & coaching */}
+        {canSeeInsights && visibleInsights.length > 0 && (
+          <div className="mb-4 space-y-3">
+            {visibleInsights.map((insight) => (
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                onDismiss={handleDismissInsight}
+                onCta={handleInsightCta}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* W3-3: Pro upsell for non-Pro users */}
+        {!canSeeInsights && (
+          <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+            <p className="text-sm font-bold text-brand-black">Business coaching insights</p>
+            <p className="text-xs text-brand-muted mt-1 leading-relaxed">Upgrade to Pro for personalised coaching — win rate trends, profit alerts, and payment chase nudges.</p>
+            <a href={upgradeUrl} className="inline-flex items-center gap-1 mt-2.5 text-xs font-semibold text-brand-black cursor-pointer">
+              Upgrade to Pro <TrendingUp size={13} />
+            </a>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-white border border-brand-border rounded-xl p-4">
             <div className="flex items-center gap-1.5 mb-1">

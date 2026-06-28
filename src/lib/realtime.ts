@@ -69,6 +69,7 @@ async function handleEvent(
     payments: db.payments as unknown as Table<{ id: string; _sync_status: string; updated_at?: string }>,
     booking_requests: db.booking_requests as unknown as Table<{ id: string; _sync_status: string; updated_at?: string }>,
     job_photos: db.job_photos as unknown as Table<{ id: string; _sync_status: string; updated_at?: string }>,
+    reminder_log: db.reminder_log as unknown as Table<{ id: string; _sync_status: string; updated_at?: string }>,
   };
   const dexieTable = tableMap[tableName];
   if (!dexieTable) return;
@@ -182,6 +183,18 @@ export function subscribeRealtime(userId: string, onUpdate: RealtimeCallback): (
     )
     .subscribe();
   channels.push(photoChannel);
+
+  // Group 5: reminder_log (INSERT only — immutable log entries)
+  const reminderChannel = supabase
+    .channel(`realtime:reminder_log:${userId}`)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'reminder_log', filter: `user_id=eq.${userId}` },
+      (payload) => {
+        handleEvent('reminder_log', 'INSERT', payload.new as { id: string } | null, null, onUpdate);
+      }
+    )
+    .subscribe();
+  channels.push(reminderChannel);
 
   // Return cleanup function
   return () => {

@@ -325,3 +325,32 @@ export function captureReferralSourceTracked(data: { source: string; detail?: st
 export function captureReferralCardViewed() {
   capture('referral_card_viewed');
 }
+
+// W3-1: Smart reminder analytics
+export function captureReminderModeChanged(mode: string, context: 'settings' | 'task_card', recurringJobId?: string) {
+  capture('reminder_mode_changed', { mode, context, recurring_job_id: recurringJobId });
+}
+
+export function captureReminderLeadDaysChanged(days: number, recurringJobId: string) {
+  capture('reminder_lead_days_changed', { days, recurring_job_id: recurringJobId });
+}
+
+export function capturePushSubscribed(endpointDomain: string) {
+  capture('push_subscribed', { endpoint_domain: endpointDomain });
+}
+
+export function capturePushUnsubscribed(reason: 'manual' | 'expired' = 'manual') {
+  capture('push_unsubscribed', { reason });
+}
+
+/* ─── W3-3: Business Insights & Coaching ─── */
+
+export function captureInsightsShown(data: { count: number; types: string[] }) {
+  capture('insights_shown', data);
+}
+export function captureInsightCtaTapped(data: { type: string }) {
+  capture('insight_cta_tapped', data);
+}
+export function captureInsightDismissed(data: { type: string }) {
+  capture('insight_dismissed', data);
+}
