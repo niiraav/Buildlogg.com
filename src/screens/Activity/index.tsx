@@ -135,9 +135,13 @@ export default function Activity() {
       {/* Activity list */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))]">
         {days.length === 0 ? (
-          <div className="min-h-[50dvh] flex flex-col items-center justify-center text-brand-muted">
-            <p className="text-sm">No activity yet</p>
-            <p className="text-sm mt-1">Send quotes, mark jobs as paid, or log new leads</p>
+          <div className="min-h-[50dvh] flex flex-col items-center justify-center text-center">
+            <p className="text-base font-semibold text-brand-black">No activity yet</p>
+            <p className="text-sm text-brand-muted mt-1 mb-6">Send quotes, mark jobs as paid, or log new leads to see your history here.</p>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <button onClick={() => navigate('/quote')} className="h-12 bg-brand-black text-brand-surface rounded-xl text-sm font-semibold cursor-pointer active:opacity-80">+ New Quote</button>
+              <button onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} className="h-12 bg-brand-surface text-brand-black border border-brand-border rounded-xl text-sm font-semibold cursor-pointer active:opacity-80">Log Missed Call</button>
+            </div>
           </div>
         ) : (
           <div>

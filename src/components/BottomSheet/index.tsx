@@ -180,7 +180,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           )}
           <button
             onClick={() => { haptic('light'); onClose(); }}
-            className="w-7 h-7 flex items-center justify-center text-brand-muted cursor-pointer -mr-1 shrink-0"
+            className="w-9 h-9 flex items-center justify-center text-brand-muted cursor-pointer -mr-2 shrink-0"
             aria-label="Close"
           >
             <X size={18} />

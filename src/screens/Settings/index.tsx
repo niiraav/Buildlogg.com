@@ -287,16 +287,16 @@ export default function Settings() {
                 placeholder="Your name"
               />
             </div>
-            <div className={`px-4 ${businessNameEmpty ? 'bg-red-50' : ''}`}>
+            <div className={`px-4 ${businessNameEmpty ? 'bg-status-amberBg' : ''}`}>
               <div
                 className={`min-h-13 flex items-center justify-between border-b border-brand-borderLight ${
-                  businessNameEmpty ? 'border-red-200' : ''
+                  businessNameEmpty ? 'border-amber-200' : ''
                 }`}
                 onClick={() => {
                   if (editingField !== 'business_name') setEditingField('business_name');
                 }}
               >
-                <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-red' : 'text-brand-dark'}`}>
+                <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-amber' : 'text-brand-dark'}`}>
                   Business name
                 </span>
                 <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export default function Settings() {
                     </>
                   ) : (
                     <>
-                      <span className={`text-base font-medium ${businessNameEmpty ? 'text-status-error italic' : 'text-brand-black'}`}>
+                      <span className={`text-base font-medium ${businessNameEmpty ? 'text-status-amber italic' : 'text-brand-black'}`}>
                         {businessNameEmpty ? 'Tap to add ›' : businessName}
                       </span>
                       <ChevronRight size={14} className="text-brand-muted" />
