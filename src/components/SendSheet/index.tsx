@@ -229,6 +229,46 @@ export function SendSheet({
         isOpen={isOpen && !showPdfPreview}
         onClose={onClose}
         title={title}
+        footer={
+          <>
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                onClick={handleWhatsApp}
+                disabled={!hasPhone}
+                fullWidth
+              >
+                <MessageCircle size={18} className="mr-2" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleText}
+                disabled={!hasPhone}
+                fullWidth
+              >
+                {attachPDF ? 'Text' : 'SMS'}
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-2">
+              <button
+                onClick={handleCopyMessage}
+                className="flex items-center gap-1.5 text-sm font-medium text-brand-mid cursor-pointer"
+              >
+                <Clipboard size={14} />
+                Copy
+              </button>
+              {onSaveDraft && (
+                <button
+                  onClick={handleSaveDraft}
+                  className="flex items-center gap-1.5 text-sm font-medium text-brand-muted cursor-pointer"
+                >
+                  Save draft
+                </button>
+              )}
+            </div>
+          </>
+        }
       >
         {/* Message preview — editable, text selectable */}
         <div className="mb-4">
@@ -307,42 +347,6 @@ export function SendSheet({
         {(showPdfToggle || pdfLocked) && (
           <div className="h-px bg-brand-border mb-4 -mt-2" />
         )}
-
-        {/* Send buttons */}
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="primary"
-            onClick={handleWhatsApp}
-            disabled={!hasPhone}
-            fullWidth
-          >
-            <MessageCircle size={18} className="mr-2" />
-            Send via WhatsApp
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleText}
-            disabled={!hasPhone}
-            fullWidth
-          >
-            {attachPDF ? 'Send via text' : 'Send via SMS'}
-          </Button>
-          <button
-            onClick={handleCopyMessage}
-            className="flex items-center justify-center gap-2 w-full min-h-11 text-sm font-medium text-brand-mid cursor-pointer"
-          >
-            <Clipboard size={16} />
-            Copy message
-          </button>
-          {onSaveDraft && (
-            <button
-              onClick={handleSaveDraft}
-              className="flex items-center justify-center w-full min-h-11 text-sm font-medium text-brand-muted cursor-pointer"
-            >
-              Save as draft
-            </button>
-          )}
-        </div>
       </BottomSheet>
 
       {/* "Share PDF" toast */}

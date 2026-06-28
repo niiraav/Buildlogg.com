@@ -10,6 +10,8 @@ export interface BottomSheetProps {
   titleIcon?: React.ReactNode;
   subtitle?: string;
   children: React.ReactNode;
+  /** Sticky footer rendered below the scrollable area — always visible. Use for CTA buttons (max 2). */
+  footer?: React.ReactNode;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -19,6 +21,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   titleIcon,
   subtitle,
   children,
+  footer,
 }) => {
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
@@ -164,10 +167,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           transition: 'opacity 300ms ease-in-out',
         }}
       />
-      {/* Sheet */}
+      {/* Sheet — responsive: shrinks to fit content, caps at 85dvh */}
       <div
         ref={sheetRef}
-        className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] md:max-w-md md:mx-auto md:w-full"
+        className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] flex flex-col md:max-w-md md:mx-auto md:w-full"
         style={{
           transform: isHidden ? 'translateY(100%)' : 'translateY(0)',
           transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -179,13 +182,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="h-8 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+          className="h-8 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none shrink-0"
         >
           <div className="w-9 h-1 bg-brand-border rounded-sm" />
         </div>
 
         {/* Title + X button */}
-        <div className={`flex items-center px-4 ${title ? 'justify-between' : 'justify-end'}`}>
+        <div className={`flex items-center px-4 shrink-0 ${title ? 'justify-between' : 'justify-end'}`}>
           {title && (
             <div className="flex items-center gap-2">
               {titleIcon && <span className="text-brand-dark">{titleIcon}</span>}
@@ -203,13 +206,20 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
         {/* Subtitle */}
         {subtitle && (
-          <p className="text-sm text-brand-muted mt-1 px-4">{subtitle}</p>
+          <p className="text-sm text-brand-muted mt-1 px-4 shrink-0">{subtitle}</p>
         )}
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto overscroll-contain max-h-[calc(85dvh-140px)] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2">
+        {/* Scrollable content — flex-1 so it takes available space between header and footer */}
+        <div className="overflow-y-auto overscroll-contain flex-1 px-4 pt-2 pb-4">
           {children}
         </div>
+
+        {/* Sticky footer — always visible, outside scroll area */}
+        {footer && (
+          <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-brand-borderLight shrink-0">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body
