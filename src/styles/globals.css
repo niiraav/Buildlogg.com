@@ -798,11 +798,15 @@ a.auth-link:hover, button.auth-link:hover { text-decoration: underline; }
 input[type="date"]::-webkit-inner-spin-button,
 input[type="time"]::-webkit-inner-spin-button,
 input[type="datetime-local"]::-webkit-inner-spin-button {
-  display: none;
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
 }
 
 input[type="date"]::-webkit-clear-button,
 input[type="time"]::-webkit-clear-button,
 input[type="datetime-local"]::-webkit-clear-button {
-  display: none;
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
 }
