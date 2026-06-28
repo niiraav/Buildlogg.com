@@ -541,9 +541,9 @@ export default function Jobs() {
         </button>
         </div>
 
-        {/* Search bar — scroll-to-hide (shy) */}
+        {/* Search bar — always visible */}
         {hasAnyJobs && (
-          <div style={{ maxHeight: weekStripVisible ? '60px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
+          <div>
             <div className="px-4 pt-3 pb-4">
               <div className="relative flex items-center">
                 <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>

@@ -333,7 +333,7 @@ function AppRoutes() {
     </div>
   );
 
-  const rightPanelClass = 'relative flex flex-col flex-1 h-full min-h-0 bg-[var(--app-shell-bg)]';
+  const rightPanelClass = 'relative flex flex-col flex-1 h-full min-h-0 bg-[var(--app-shell-bg)] md:overflow-y-auto';
 
   if (isAuthOrOnboarding) {
     return <div className="relative flex flex-col flex-1 h-full min-h-0">{appContent}</div>;
@@ -368,7 +368,7 @@ export default function App() {
   }, []);
 
   return (
-    <div id="app-shell" className="flex flex-col h-[100dvh] overflow-x-clip overflow-y-auto">
+    <div id="app-shell" className="flex flex-col h-[100dvh] overflow-x-clip overflow-y-auto md:overflow-y-hidden">
       <DesktopNudge />
       <ToastContainer />
       <div className="flex-1 min-h-0 flex flex-col relative">
