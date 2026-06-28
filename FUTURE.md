@@ -579,5 +579,6 @@ recurring job task cards.
 | 10 | XU-6: Mini stat on Home | MED — daily feedback | S | Both | ⬜ |
 
 *Audit date: 2026-06-28*
-*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4 marked as shipped*
+*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4, BU-1, XU-6, XU-2 marked as shipped*
+*Also shipped: XU-2 (Pricing insights on Dashboard + avg/job on CustomerDetail) — commit 7c995cc*
 *Author: Codex*
