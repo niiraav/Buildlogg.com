@@ -1163,7 +1163,7 @@ export default function Home() {
   };
 
   const renderNoJobsToday = () => (
-    <div className="px-4 mt-4">
+    <div className="px-4 mt-6 py-4">
       {/* Prominent empty-day header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-2xl bg-brand-borderLight flex items-center justify-center shrink-0">
@@ -1580,7 +1580,7 @@ export default function Home() {
 
       {/* Today tab content */}
       {activeTab === 'today' && (
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <div className="px-4 pt-4 pb-4">
           {/* Active bar */}
 
           {/* W1-2: End-of-day review banner */}
