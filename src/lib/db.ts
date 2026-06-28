@@ -47,6 +47,11 @@ export interface Profile {
   // Entitlements
   subscription_status?: 'active' | 'trialing' | 'expired' | 'canceled' | null;
   subscription_ends_at?: string;
+  // W3-1: Smart reminder defaults + push subscription
+  default_reminder_mode?: ReminderMode;
+  default_reminder_channel?: 'email' | 'sms';
+  push_subscription_endpoint?: string;
+  push_subscription_keys?: { p256dh: string; auth: string };
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -136,7 +141,9 @@ export type WorkLogType =
   | 'quote_follow_up_sent' | 'quote_follow_up_snoozed' | 'quote_follow_up_responded'
   | 'recurring_reminder_sent' | 'recurring_reminder_no_response'
   | 'payment_chase_sent' | 'payment_chase_paused' | 'payment_chase_resumed'
-  | 'recurring_job_created' | 'recurring_job_cancelled';
+  | 'recurring_job_created' | 'recurring_job_cancelled'
+  // W3-1: Smart reminder work log types
+  | 'auto_reminder_sent' | 'auto_reminder_failed' | 'auto_reminder_bounced' | 'recurring_dormant_auto';
 
 export interface WorkLogEntry {
   id: string;
@@ -232,7 +239,7 @@ export interface GeneratedDocument {
 }
 
 /* ─── P2-02: Message Templates ─── */
-export type TemplateCategory = 'booking' | 'reminder' | 'invoice' | 'follow_up' | 'review' | 'receipt' | 'update' | 'custom';
+export type TemplateCategory = 'booking' | 'reminder' | 'invoice' | 'follow_up' | 'review' | 'receipt' | 'update' | 'custom' | 'recurring_reminder';
 
 export interface MessageTemplate {
   id: string;
@@ -264,6 +271,8 @@ export interface QuoteFollowUp {
 
 export type RecurrenceInterval = 'monthly' | 'quarterly' | 'six_monthly' | 'annual';
 
+export type ReminderMode = 'remind_me' | 'remind_client' | 'both';
+
 export interface RecurringJob {
   id: string;
   user_id: string;
@@ -279,6 +288,12 @@ export interface RecurringJob {
   contact_attempts: number;
   suggested_month?: number;
   notes?: string;
+  // W3-1: Smart reminder fields
+  reminder_mode?: ReminderMode;           // default: 'remind_me'
+  reminder_channel?: 'email' | 'sms';     // for remind_client mode
+  last_reminder_sent_at?: string;         // ISO timestamp of last auto-reminder
+  last_reminder_status?: 'sent' | 'failed' | 'bounced';
+  reminder_count?: number;                // incremented each cycle, reset on advance
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
@@ -325,6 +340,21 @@ export interface BookingRequest {
   _sync_status: SyncStatus;
 }
 
+/* ─── W3-1: Smart Reminders ─── */
+export interface ReminderLog {
+  id: string;
+  recurring_job_id: string;
+  user_id: string;
+  channel: 'email' | 'push' | 'sms';
+  recipient: string;
+  status: 'sent' | 'failed' | 'bounced';
+  message_preview: string;
+  provider_id?: string;
+  error_message?: string;
+  sent_at: string;
+  _sync_status: SyncStatus;
+}
+
 class BuildloggDB extends Dexie {
   profiles!: Table<Profile>;
   customers!: Table<Customer>;
@@ -342,6 +372,7 @@ class BuildloggDB extends Dexie {
   recurring_jobs!: Table<RecurringJob>;
   payment_chases!: Table<PaymentChase>;
   booking_requests!: Table<BookingRequest>;
+  reminder_log!: Table<ReminderLog>;
 
   constructor() {
     super('BuildloggDB');
@@ -381,6 +412,9 @@ class BuildloggDB extends Dexie {
       // Fix: add _sync_status index to custom_items (was missing, caused
       // SchemaError when safeBulkPut queried by _sync_status)
       custom_items: 'id, user_id, sort_order, [user_id+sort_order], _sync_status',
+    });
+    this.version(10).stores({
+      reminder_log: 'id, recurring_job_id, user_id, channel, sent_at, _sync_status',
     });
   }
 }
