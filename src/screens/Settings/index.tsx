@@ -439,6 +439,25 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Automation */}
+        <div className="mb-6">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
+            Automation
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div
+              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
+              onClick={() => navigate('/settings/reminders')}
+            >
+              <div>
+                <span className="text-sm font-medium text-brand-dark">Smart reminders</span>
+                <p className="text-xs text-brand-muted mt-0.5">Auto-message clients when recurring jobs are due</p>
+              </div>
+              <ChevronRight size={14} className="text-brand-muted" />
+            </div>
+          </div>
+        </div>
+
         {/* App — Stats, Customers & Google reviews */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">

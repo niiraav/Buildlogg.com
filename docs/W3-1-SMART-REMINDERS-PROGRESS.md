@@ -13,7 +13,7 @@ Automate the recurring job reminder layer. Adds `reminder_mode` per recurring jo
 | 4 | seedMessageTemplates.ts: recurring_reminder template, flag bump v1→v2, dedup categories | ✅ Done | abbe74e |
 | 5 | Settings/Reminders.tsx: mode toggle, channel select, push toggle | ✅ Done | 7bfe911 |
 | 6 | App.tsx: route for /settings/reminders | ✅ Done | 7bfe911 |
-| 7 | Settings/index.tsx: Automation section with Smart reminders nav row | ✅ Done | 7bfe911 |
+| 7 | Settings/index.tsx: Automation section with Smart reminders nav row | ✅ Done | 7bfe911 (re-added after merge conflict with W3-3) |
 | 8 | Home/index.tsx: recurring_actions sheet reminder info + change mode + edit timing sheets | ✅ Done | 7bfe911 |
 | 9 | pushSubscription.ts: isPushSupported, subscribePush, unsubscribePush, getPushSubscription | ✅ Done | 7bfe911 |
 | 10 | sw.ts: push event listener (notificationclick already existed) | ✅ Done | 7bfe911 |
