@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, Image as ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { haptic } from '../../lib/haptics';
 import { capturePhoto, pickPhotoFromLibrary } from '../../lib/photoCapture';
@@ -20,6 +20,57 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+
+  // Full-screen viewer animation state
+  const [viewerShouldRender, setViewerShouldRender] = useState(false);
+  const [viewerIsVisible, setViewerIsVisible] = useState(false);
+  const [viewerAnimatingOut, setViewerAnimatingOut] = useState(false);
+  const viewerCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewerEnterRafRef = useRef<number[]>([]);
+  const viewerReducedMotion = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    if (viewerOpen) {
+      setViewerShouldRender(true);
+      setViewerAnimatingOut(false);
+      setViewerIsVisible(false);
+      if (viewerReducedMotion.current) {
+        setViewerIsVisible(true);
+      } else {
+        const outerRaf = requestAnimationFrame(() => {
+          const innerRaf = requestAnimationFrame(() => {
+            setViewerIsVisible(true);
+            viewerEnterRafRef.current = [];
+          });
+          viewerEnterRafRef.current = [outerRaf, innerRaf];
+        });
+        viewerEnterRafRef.current = [outerRaf];
+      }
+    } else if (viewerShouldRender) {
+      viewerEnterRafRef.current.forEach((id) => cancelAnimationFrame(id));
+      viewerEnterRafRef.current = [];
+      setViewerAnimatingOut(true);
+      setViewerIsVisible(false);
+      viewerCloseTimer.current = setTimeout(() => {
+        setViewerShouldRender(false);
+        setViewerAnimatingOut(false);
+      }, viewerReducedMotion.current ? 0 : 320);
+    }
+    return () => {
+      if (viewerCloseTimer.current) {
+        clearTimeout(viewerCloseTimer.current);
+        viewerCloseTimer.current = null;
+      }
+    };
+  }, [viewerOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const closeViewer = useCallback(() => {
+    setViewerOpen(false);
+  }, []);
+
+  const viewerHidden = viewerAnimatingOut || !viewerIsVisible;
 
   const savePhoto = async (dataUrl: string) => {
     const photo: JobPhoto = {
@@ -141,21 +192,37 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       </BottomSheet>
 
       {/* Full-screen viewer */}
-      {viewerOpen && (
-        <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center md:left-[40%]">
+      {viewerShouldRender && (
+        <div
+          className="fixed inset-0 z-[60] bg-black flex items-center justify-center md:left-[40%]"
+          style={{
+            opacity: viewerHidden ? 0 : 1,
+            transition: 'opacity 200ms ease-out',
+          }}
+        >
           <button
-            onClick={() => setViewerOpen(false)}
+            onClick={closeViewer}
             className="absolute top-4 right-4 text-white cursor-pointer"
+            style={{ pointerEvents: viewerIsVisible ? 'auto' : 'none' }}
           >
             <X size={24} />
           </button>
-          <img src={photos[viewerIndex].data_url} className="max-w-full max-h-full" alt="Full view" />
+          <img
+            src={photos[viewerIndex].data_url}
+            className="max-w-full max-h-full"
+            alt="Full view"
+            style={{
+              transform: viewerHidden ? 'scale(1.05)' : 'scale(1)',
+              transition: 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
+            }}
+          />
           {photos.length > 1 && (
             <>
               <button
                 onClick={() => setViewerIndex((i) => Math.max(0, i - 1))}
                 className="absolute left-4 text-white cursor-pointer"
                 disabled={viewerIndex === 0}
+                style={{ pointerEvents: viewerIsVisible ? 'auto' : 'none' }}
               >
                 <ChevronLeft size={32} />
               </button>
@@ -163,6 +230,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 onClick={() => setViewerIndex((i) => Math.min(photos.length - 1, i + 1))}
                 className="absolute right-4 text-white cursor-pointer"
                 disabled={viewerIndex === photos.length - 1}
+                style={{ pointerEvents: viewerIsVisible ? 'auto' : 'none' }}
               >
                 <ChevronRight size={32} />
               </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Share, Plus, MoreVertical, Smartphone, X, Zap, Wifi, Clock, Check } from 'lucide-react';
 import { useAddToHomeScreen } from '../../hooks/useAddToHomeScreen';
@@ -24,20 +24,86 @@ const InstallModal: React.FC<{
   hasNativePrompt: boolean;
   onNativeInstall: () => void;
 }> = ({ isOpen, onClose, platform, hasNativePrompt, onNativeInstall }) => {
-  if (!isOpen) return null;
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enterRafRef = useRef<number[]>([]);
+  const reducedMotion = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      setIsAnimatingOut(false);
+      setIsVisible(false);
+      if (reducedMotion.current) {
+        setIsVisible(true);
+      } else {
+        const outerRaf = requestAnimationFrame(() => {
+          const innerRaf = requestAnimationFrame(() => {
+            setIsVisible(true);
+            enterRafRef.current = [];
+          });
+          enterRafRef.current = [outerRaf, innerRaf];
+        });
+        enterRafRef.current = [outerRaf];
+      }
+    } else if (shouldRender) {
+      enterRafRef.current.forEach((id) => cancelAnimationFrame(id));
+      enterRafRef.current = [];
+      setIsAnimatingOut(true);
+      setIsVisible(false);
+      closeTimer.current = setTimeout(() => {
+        setShouldRender(false);
+        setIsAnimatingOut(false);
+      }, reducedMotion.current ? 0 : 300);
+    }
+    return () => {
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+    };
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleTransitionEnd = useCallback((e: React.TransitionEvent) => {
+    if (e.target !== cardRef.current) return;
+    if (isAnimatingOut) {
+      setShouldRender(false);
+      setIsAnimatingOut(false);
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+    }
+  }, [isAnimatingOut]);
+
+  if (!shouldRender) return null;
+
+  const isHidden = isAnimatingOut || !isVisible;
 
   return createPortal(
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/55"
-          style={{ backdropFilter: 'blur(2px)', transition: 'opacity 0.2s ease-out' }}
+          style={{ backdropFilter: 'blur(2px)', opacity: isHidden ? 0 : 1, transition: 'opacity 250ms ease-out' }}
           onClick={() => { haptic('light'); onClose(); }}
         />
         {/* Card */}
         <div
+          ref={cardRef}
           className="relative z-[61] w-full max-w-[380px] bg-[var(--app-shell-bg)] rounded-2xl p-6 text-center"
-          style={{ boxShadow: '0 8px 40px rgba(0,0,0,.18)', transition: 'opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.2, 0, 0, 1)' }}
+          style={{
+            boxShadow: '0 8px 40px rgba(0,0,0,.18)',
+            opacity: isHidden ? 0 : 1,
+            transform: isHidden ? 'translateY(20px) scale(0.96)' : 'translateY(0) scale(1)',
+            transition: 'transform 280ms cubic-bezier(0.2, 0, 0, 1), opacity 280ms ease-out',
+          }}
+          onTransitionEnd={handleTransitionEnd}
         >
           {/* Close */}
           <button
