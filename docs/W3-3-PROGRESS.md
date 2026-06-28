@@ -17,9 +17,9 @@
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| `tsc` (no --noEmit) | ✅ Pass | Exit 0 |
+| `tsc` | ✅ Pass | Exit 0 |
 | `npm run build` | ✅ Pass | Vite build + PWA SW build succeed |
-| Pre-existing errors | ⚠️ Note | `tsc --noEmit` shows 4 errors in Home/index.tsx from W3-1 parallel work (captureReminderModeChanged etc.) — not related to W3-3 |
+| `npm run lint` (tsc --noEmit) | ✅ Pass | Exit 0 |
 
 ## Insights implemented (6)
 

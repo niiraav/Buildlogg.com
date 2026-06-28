@@ -27,7 +27,7 @@ import { shouldShowBanner as shouldShowNotificationBanner } from '../../lib/noti
 import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
 import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollowUp, incrementNudge } from '../../lib/quoteFollowUp';
 import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
-import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
+import { advanceRecurrence, cancelRecurrence, incrementContactAttempt, setReminderMode, updateReminderLeadDays } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
 import { createCheckoutSession } from '../../lib/stripe';
@@ -39,6 +39,7 @@ import { capture,
   captureQuoteFollowUpShown, captureQuoteFollowUpSent, captureQuoteFollowUpSnoozed, captureQuoteFollowUpResponded,
   capturePaymentChaseShown, capturePaymentChaseSent, capturePaymentChasePaused, capturePaymentChaseResumed,
   captureRecurringReminderShown, captureRecurringReminderActed,
+  captureReminderModeChanged, captureReminderLeadDaysChanged,
 } from '../../lib/analytics';
 import {
   captureStaleJobNudgeTapped,
@@ -170,6 +171,8 @@ type SheetState =
   | 'eod_review'
   | 'week_view'
   | 'zero_value_warning'
+  | 'reminder_mode_edit'
+  | 'reminder_lead_edit'
 
 type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder' | 'booking_request';
 
@@ -2275,7 +2278,28 @@ export default function Home() {
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
                 <p className="text-sm text-brand-dark">Next due: {nextDue} · {intervalLabels[selectedRecurring.interval] || selectedRecurring.interval}</p>
                 {selectedRecurring.status === 'dormant' && <p className="text-xs text-status-amber mt-1">Dormant — no response after multiple attempts</p>}
+                {/* W3-1: Reminder mode info */}
+                <div className="mt-2 pt-2 border-t border-brand-borderLight">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-brand-mid">Reminder mode</span>
+                    <span className="text-xs font-medium text-brand-dark">{selectedRecurring.reminder_mode === 'remind_client' ? 'Auto-message' : selectedRecurring.reminder_mode === 'both' ? 'Both' : 'Remind me'}</span>
+                  </div>
+                  {selectedRecurring.last_reminder_sent_at && (
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-brand-mid">Last sent</span>
+                      <span className="text-xs font-medium text-brand-dark">{new Date(selectedRecurring.last_reminder_sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                  )}
+                  {selectedRecurring.reminder_count && selectedRecurring.reminder_count > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-brand-mid">Sent this cycle</span>
+                      <span className="text-xs font-medium text-brand-dark">{selectedRecurring.reminder_count}x</span>
+                    </div>
+                  )}
+                </div>
               </div>
+              <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_mode_edit')}>Change reminder mode</Button>
+              <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_lead_edit')}>Edit timing ({selectedRecurring.reminder_lead_days} days before)</Button>
               <Button variant="secondary" fullWidth onClick={async () => { if (c?.phone) window.open(`tel:${c.phone}`, '_self'); await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'call' }); setSheet(null); setSelectedRecurring(null); refresh(); }}>Call customer</Button>
               <Button variant="primary" fullWidth onClick={() => {
                 setSendSheetConfig({
@@ -2522,6 +2546,38 @@ export default function Home() {
           <Button variant="ghost" onClick={() => setSheet(null)}>Cancel</Button>
         </div>
       </BottomSheet>
+
+      {/* Reminder mode edit */}
+      <BottomSheet
+        isOpen={sheet === 'reminder_mode_edit'}
+        onClose={() => setSheet('recurring_actions')}
+        title="Reminder mode"
+        subtitle={selectedRecurring ? `${customerFor(selectedRecurring.customer_id)?.name || ''} xc2xb7 ${selectedRecurring.title}` : undefined}
+      >
+        <div className="flex flex-col gap-2">
+          <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'remind_me'); captureReminderModeChanged('remind_me', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Remind me'); } }}>Remind me xe2x80x94 push notification only</Button>
+          <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'remind_client'); captureReminderModeChanged('remind_client', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Auto-message client'); } }}>Auto-message client xe2x80x94 email them automatically</Button>
+          <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'both'); captureReminderModeChanged('both', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Both'); } }}>Both xe2x80x94 notify me and email the client</Button>
+          <Button variant="ghost" fullWidth onClick={() => setSheet('recurring_actions')}>Cancel</Button>
+        </div>
+      </BottomSheet>
+
+      {/* Reminder lead days edit */}
+      <BottomSheet
+        isOpen={sheet === 'reminder_lead_edit'}
+        onClose={() => setSheet('recurring_actions')}
+        title="Reminder timing"
+        subtitle={selectedRecurring ? `Currently ${selectedRecurring.reminder_lead_days} days before due` : undefined}
+      >
+        <p className="text-sm text-brand-dark mb-4">How many days before the due date should the reminder fire? (1xe2x80x9390)</p>
+        <div className="flex flex-col gap-2">
+          {[7, 14, 30].map(d => (
+            <Button key={d} variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await updateReminderLeadDays(selectedRecurring.id, d); captureReminderLeadDaysChanged(d, selectedRecurring.id); setSheet('recurring_actions'); showToast(`Reminder set to ${d} days before`); } }}>{d} days before</Button>
+          ))}
+          <Button variant="ghost" fullWidth onClick={() => setSheet('recurring_actions')}>Cancel</Button>
+        </div>
+      </BottomSheet>
+
 
       {/* P2-A: SendSheet for task card sends */}
       <SendSheet
