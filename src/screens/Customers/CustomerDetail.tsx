@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, GitMerge } from 'lucide-react';
-import { db, type Customer, type Job, type Payment } from '../../lib/db';
+import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, GitMerge, Calendar } from 'lucide-react';
+import { db, type Customer, type Job, type Payment, type Profile } from '../../lib/db';
 import { getCustomerStats, getCustomerJobs, getCustomerPayments, archiveCustomer, unarchiveCustomer, mergeCustomers, type CustomerStats } from '../../lib/customers';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Button } from '../../components/Button';
@@ -9,6 +9,8 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { captureCustomerDetailViewed, capture } from '../../lib/analytics';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { showSuccess } from '../../components/Toast/store';
+import { useAppStore } from '../../store/useAppStore';
+import { bookingPageUrl } from '../../lib/referral';
 
 export default function CustomerDetail() {
   const navigate = useNavigate();
@@ -23,6 +25,8 @@ export default function CustomerDetail() {
   const [mergeResults, setMergeResults] = useState<Customer[]>([]);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
+  const userId = useAppStore((s) => s.userId);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (!customerId) return;
@@ -31,11 +35,13 @@ export default function CustomerDetail() {
       getCustomerStats(customerId),
       getCustomerJobs(customerId),
       getCustomerPayments(customerId),
-    ]).then(([c, s, j, p]) => {
+      userId ? db.profiles.get(userId) : Promise.resolve(undefined),
+    ]).then(([c, s, j, p, pr]) => {
       setCustomer(c || null);
       setStats(s);
       setJobs(j);
       setPayments(p);
+      setProfile(pr || null);
       setLoading(false);
       if (c) captureCustomerDetailViewed({ customerId, jobCount: j.length });
     });
@@ -291,6 +297,28 @@ export default function CustomerDetail() {
           <Plus size={18} className="mr-2" />
           New quote
         </Button>
+        {profile?.booking_enabled && profile?.booking_slug && (
+          <button
+            onClick={() => {
+              const url = bookingPageUrl(profile.booking_slug!);
+              const customerFirstName = customer.name.split(' ')[0] || 'there';
+              if (customer.phone) {
+                const phone = customer.phone.replace(/\D/g, '');
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${customerFirstName}, book your next appointment online: ${url}`)}`, '_blank');
+              } else {
+                navigator.clipboard?.writeText(url).then(() => {
+                  showSuccess('Booking link copied');
+                }).catch(() => {
+                  showSuccess('Booking link copied');
+                });
+              }
+            }}
+            className="flex items-center justify-center gap-1.5 w-full text-xs font-medium text-brand-muted mt-2 cursor-pointer"
+          >
+            <Calendar size={12} />
+            Send booking link
+          </button>
+        )}
         {!customer.is_archived && (
           <button
             onClick={() => setShowMergeSheet(true)}
