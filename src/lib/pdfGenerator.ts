@@ -189,7 +189,7 @@ export async function generateQuotePDF(data: QuotePDFData): Promise<Blob> {
     headStyles: { fillColor: INK, textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
     bodyStyles: { fontSize: 9, textColor: INK },
     alternateRowStyles: { fillColor: BRAND_BG },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 138 }, 1: { cellWidth: 42, halign: 'right' } },
     margin: { left: 14, right: 14, bottom: 30 },
     showHead: 'everyPage',
   });
@@ -209,7 +209,7 @@ export async function generateQuotePDF(data: QuotePDFData): Promise<Blob> {
       ],
       theme: 'plain',
       bodyStyles: { fontSize: 10, textColor: INK },
-      columnStyles: { 0: { cellWidth: 140, halign: 'right', fontStyle: 'bold' }, 1: { cellWidth: 42, halign: 'right', fontStyle: 'bold' } },
+      columnStyles: { 0: { cellWidth: 138, halign: 'right', fontStyle: 'bold' }, 1: { cellWidth: 42, halign: 'right', fontStyle: 'bold' } },
       margin: { left: 14, right: 14, bottom: 30 },
     });
     doc.setFontSize(8);
@@ -222,7 +222,7 @@ export async function generateQuotePDF(data: QuotePDFData): Promise<Blob> {
       body: [['Total', `£${formatAmount(total)}`]],
       theme: 'plain',
       bodyStyles: { fontSize: 12, textColor: INK, fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 140, halign: 'right' }, 1: { cellWidth: 42, halign: 'right' } },
+      columnStyles: { 0: { cellWidth: 138, halign: 'right' }, 1: { cellWidth: 42, halign: 'right' } },
       margin: { left: 14, right: 14, bottom: 30 },
     });
   }
@@ -273,7 +273,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
     headStyles: { fillColor: INK, textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
     bodyStyles: { fontSize: 9, textColor: INK },
     alternateRowStyles: { fillColor: BRAND_BG },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 138 }, 1: { cellWidth: 42, halign: 'right' } },
     margin: { left: 14, right: 14, bottom: 55 },
     showHead: 'everyPage',
   });
@@ -294,7 +294,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
       theme: 'plain',
       headStyles: { fillColor: BRAND_BG, textColor: MUTED, fontSize: 8, fontStyle: 'bold' },
       bodyStyles: { fontSize: 9, textColor: INK },
-      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42, halign: 'right' } },
+      columnStyles: { 0: { cellWidth: 138 }, 1: { cellWidth: 42, halign: 'right' } },
       margin: { left: 14, right: 14, bottom: 55 },
     });
     // @ts-expect-error
@@ -307,7 +307,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
     body: [['Amount due', `£${formatAmount(amountDue)}`]],
     theme: 'plain',
     bodyStyles: { fontSize: 12, textColor: INK, fontStyle: 'bold' },
-    columnStyles: { 0: { cellWidth: 140, halign: 'right' }, 1: { cellWidth: 42, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 138, halign: 'right' }, 1: { cellWidth: 42, halign: 'right' } },
     margin: { left: 14, right: 14, bottom: 55 },
   });
 

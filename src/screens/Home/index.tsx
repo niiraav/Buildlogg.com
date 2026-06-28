@@ -1181,11 +1181,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Section label for inline tasks */}
+      {/* Section label for inline tasks + View all link */}
       {inlineTasks.length > 0 && (
-        <span className="text-micro font-bold text-brand-mid tracking-[0.7px] block mb-2 mt-5">
-          Needs your attention
-        </span>
+        <div className="flex items-center justify-between mb-2 mt-6">
+          <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">
+            Needs your attention
+          </span>
+          {inlineTasks.length < tasks.length && (
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className="text-xs font-medium text-brand-dark underline underline-offset-2 cursor-pointer"
+            >
+              View all
+            </button>
+          )}
+        </div>
       )}
 
       {inlineTasks.length > 0 && (
@@ -1216,14 +1226,7 @@ export default function Home() {
         </div>
       )}
 
-      {inlineTasks.length < tasks.length && (
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className="text-sm font-medium text-brand-dark underline underline-offset-2 cursor-pointer mb-4"
-        >
-          View all tasks →
-        </button>
-      )}
+
     </div>
   );
 

@@ -338,7 +338,7 @@ export default function Settings() {
                     </>
                   ) : (
                     <>
-                      <span className={`text-base font-medium ${businessNameEmpty ? 'text-status-amber italic' : 'text-brand-black'}`}>
+                      <span className={`text-base font-medium truncate max-w-[60vw] ${businessNameEmpty ? 'text-status-amber italic' : 'text-brand-black'}`}>
                         {businessNameEmpty ? 'Tap to add ›' : businessName}
                       </span>
                       <ChevronRight size={14} className="text-brand-muted" />

@@ -113,7 +113,7 @@ export default function Reminders() {
                 onClick={() => updateMode(opt.value)}
                 className={`w-full px-4 min-h-13 flex items-start gap-3 text-left cursor-pointer transition-colors ${i > 0 ? 'border-t border-brand-surface' : ''} ${currentMode === opt.value ? 'bg-status-blueBg/50' : 'active:bg-brand-surface'}`}
               >
-                <div className="w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${currentMode === opt.value ? 'border-status-blue' : 'border-brand-border'}">
+                <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${currentMode === opt.value ? 'border-status-blue' : 'border-brand-border'}`}>
                   {currentMode === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-status-blue" />}
                 </div>
                 <div className="flex-1">
@@ -135,7 +135,9 @@ export default function Reminders() {
             >
               <Mail size={18} className="text-brand-mid shrink-0" />
               <span className="text-sm font-medium text-brand-dark flex-1">Email</span>
-              {currentChannel === 'email' && <div className="w-2.5 h-2.5 rounded-full bg-status-blue" />}
+              <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${currentChannel === 'email' ? 'border-status-blue' : 'border-brand-border'}`}>
+                {currentChannel === 'email' && <div className="w-2.5 h-2.5 rounded-full bg-status-blue" />}
+              </div>
             </button>
             <button
               onClick={() => updateChannel('sms')}
@@ -143,6 +145,7 @@ export default function Reminders() {
             >
               <MessageSquare size={18} className="text-brand-mid shrink-0" />
               <span className="text-sm font-medium text-brand-muted flex-1">SMS <span className="text-xs">(coming soon)</span></span>
+              <div className="w-5 h-5 rounded-full border-2 border-brand-border shrink-0 flex items-center justify-center opacity-50" />
             </button>
           </div>
         </div>
@@ -155,7 +158,7 @@ export default function Reminders() {
               <Bell size={18} className="text-brand-mid shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-brand-dark">Get notified on this device</p>
-                {!pushSupported && <p className="text-xs text-status-amber mt-0.5">Requires adding Buildlogg to your Home Screen</p>}
+                {!pushSupported && <button onClick={() => navigate("/settings")} className="text-xs text-status-amber mt-0.5 py-1 underline underline-offset-2 cursor-pointer">Requires adding to Home Screen — tap for help</button>}
               </div>
               <button
                 onClick={togglePush}

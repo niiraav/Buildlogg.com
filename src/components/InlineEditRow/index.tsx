@@ -118,7 +118,7 @@ export const InlineEditRow: React.FC<InlineEditRowProps> = ({
             </>
           ) : (
             <>
-              <span className="text-base font-medium text-brand-black">{displayValue}</span>
+              <span className="text-base font-medium text-brand-black truncate max-w-[50vw]">{displayValue}</span>
               <Pencil size={14} className="text-brand-muted" />
             </>
           )}
