@@ -579,7 +579,8 @@ recurring job task cards.
 | 10 | XU-6: Mini stat on Home | MED — daily feedback | S | Both | ⬜ |
 
 *Audit date: 2026-06-28*
-*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4, BU-1, XU-6, XU-2, CU-2, BU-4, BU-3, BU-7, CU-3/XU-5 marked as shipped*
+*Updated: 2026-06-28 — all Cross-Utilization items shipped*
 *Also shipped: XU-2 (Pricing insights on Dashboard + avg/job on CustomerDetail) — commit 7c995cc*
 *Also shipped: BU-3 + BU-7 + CU-3/XU-5 (booking link on CustomerDetail, logo on booking page, QR codes on invoice PDFs) — commit 255a226*
+*Also shipped: BU-6 + CU-4 (booking accept deposit link + card payment upsell nudge) — commit 99ba61b*
 *Author: Codex*
