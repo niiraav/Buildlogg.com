@@ -12,6 +12,7 @@ import { QuotePreviewCard } from '../../components/QuotePreviewCard';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import BrandedLoader from '../../components/BrandedLoader';
+import { bookingPageUrl } from '../../lib/referral';
 
 /* ─── helpers ─── */
 
@@ -119,8 +120,13 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       lines.push(businessName);
     }
 
+    if (profile?.booking_enabled && profile?.booking_slug) {
+      lines.push('');
+      lines.push(`Book online: ${bookingPageUrl(profile.booking_slug).replace(/^https?:\/\//, '')}`);
+    }
+
     return lines.join('\n');
-  }, [job, customer, customerFirstName, items, total, termsLabel, depositPct, depositAmount, quoteValidDays, businessName]);
+  }, [job, customer, customerFirstName, items, total, termsLabel, depositPct, depositAmount, quoteValidDays, businessName, profile?.booking_enabled, profile?.booking_slug]);
 
   // Sync messageText with the default template when data changes, unless the
   // user has manually edited the message in the SendSheet (editingMessage=true).
@@ -140,8 +146,11 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       'Details attached.'
     ];
     if (businessName) lines.push(businessName);
+    if (profile?.booking_enabled && profile?.booking_slug) {
+      lines.push(`Book online: ${bookingPageUrl(profile.booking_slug).replace(/^https?:\/\//, '')}`);
+    }
     return lines.join('\n');
-  }, [job, customer, customerFirstName, total, businessName]);
+  }, [job, customer, customerFirstName, total, businessName, profile?.booking_enabled, profile?.booking_slug]);
 
   /* ─── handlers ─── */
   const handleOpenSend = () => {

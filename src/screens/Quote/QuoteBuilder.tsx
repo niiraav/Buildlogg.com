@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ChevronLeft, X, Plus, Calendar, Clock, BookmarkPlus } from 'lucide-react';
+import { ChevronLeft, X, Plus, Calendar, Clock, BookmarkPlus, LayoutTemplate } from 'lucide-react';
 import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { nextJobNumber } from '../../lib/jobNumbers';
@@ -7,6 +7,8 @@ import { SegmentedControl } from '../../components/SegmentedControl';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
+import { BottomSheet, SheetRow } from '../../components/BottomSheet';
+import { TRADE_TEMPLATES, BEAUTY_TEMPLATES, type TemplateSeed } from '../../lib/tradeTemplates';
 import { getPricingHistory, getJobTitlePricingHistory, clearPricingCache, type PricingHistory } from '../../lib/pricingHistory';
 import { capture } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
@@ -101,6 +103,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
 
   /* custom items library */
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+  const [showTemplateSheet, setShowTemplateSheet] = useState(false);
 
   const [jobTitlePricing, setJobTitlePricing] = useState<any>(null);
   const [itemPricingHints, setItemPricingHints] = useState<Record<string, PricingHistory | null>>({});
@@ -536,6 +539,81 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
     showToast(`Saved "${description}" to your items`, 'success', 3000);
   };
 
+  // XU-1: Apply a trade/beauty template — replaces all items and writes directly to Dexie.
+  // Does NOT use saveItems() useCallback — it closes over stale items state (race condition).
+  const applyTemplate = async (seeds: TemplateSeed[]) => {
+    const newItems: EditableItem[] = seeds.map((seed) => ({
+      id: crypto.randomUUID(),
+      description: seed.description,
+      detail: seed.detail || '',
+      amount: seed.amount.toFixed(2),
+      amountNum: seed.amount,
+    }));
+    setItems(newItems);
+    setShowTemplateSheet(false);
+    capture('template_applied', { count: seeds.length });
+
+    // Write directly to Dexie (same pattern as saveItems but with explicit items)
+    if (!currentJobId || !userId) return;
+    const n = now();
+    const existing = await db.line_items.where('job_id').equals(currentJobId).toArray();
+    for (const e of existing) {
+      await db.line_items.delete(e.id);
+      await db.sync_queue.add({
+        operation: 'delete',
+        table_name: 'line_items',
+        record_id: e.id,
+        payload: {},
+        created_at: n,
+        retry_count: 0,
+      });
+    }
+    for (let idx = 0; idx < newItems.length; idx++) {
+      const i = newItems[idx];
+      await db.line_items.add({
+        id: i.id,
+        job_id: currentJobId,
+        description: i.description,
+        detail: i.detail || undefined,
+        amount: i.amountNum,
+        sort_order: idx,
+        added_on_site: false,
+        created_at: n,
+        _sync_status: 'pending',
+      });
+      await db.sync_queue.add({
+        operation: 'insert',
+        table_name: 'line_items',
+        record_id: i.id,
+        payload: {
+          id: i.id, job_id: currentJobId,
+          description: i.description,
+          detail: i.detail || undefined,
+          amount: i.amountNum,
+          sort_order: idx,
+          added_on_site: false, created_at: n,
+        },
+        created_at: n,
+        retry_count: 0,
+      });
+    }
+  };
+
+  // XU-1: Determine available templates based on profile
+  const getAvailableTemplates = (): Array<{ label: string; seeds: TemplateSeed[] }> => {
+    if (profile?.business_type === 'beauty') {
+      return [{ label: `Beauty services — ${BEAUTY_TEMPLATES.length} items`, seeds: BEAUTY_TEMPLATES }];
+    }
+    const tradeKey = profile?.trade || 'other';
+    const tradeTemplates = TRADE_TEMPLATES[tradeKey];
+    if (tradeTemplates) {
+      const tradeLabel = tradeKey === 'other' ? 'General' :
+        tradeKey.charAt(0).toUpperCase() + tradeKey.slice(1);
+      return [{ label: `${tradeLabel} — ${tradeTemplates.length} items`, seeds: tradeTemplates }];
+    }
+    return [{ label: `General — ${TRADE_TEMPLATES['other'].length} items`, seeds: TRADE_TEMPLATES['other'] }];
+  };
+
   const handleRemoveEmptyItems = () => {
     setItems((prev) => prev.filter((i) => i.description.trim() || i.amountNum > 0));
   };
@@ -818,6 +896,17 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
             Add item
           </button>
 
+          {/* XU-1: Start from template — only when items are empty or unfilled */}
+          {(items.length === 0 || (items.length === 1 && !items[0].description.trim())) && (
+            <button
+              onClick={() => setShowTemplateSheet(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 mt-2 rounded-full bg-transparent text-sm font-medium text-brand-mid cursor-pointer border border-dashed border-brand-border hover:border-brand-mid transition-colors"
+            >
+              <LayoutTemplate size={14} />
+              Start from template
+            </button>
+          )}
+
           {/* Quick-add chips — custom item library */}
           {filteredDisplayItems.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -979,6 +1068,23 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
           Save draft
         </button>
       </StickyFooter>
+
+      {/* XU-1: Template picker BottomSheet */}
+      <BottomSheet
+        isOpen={showTemplateSheet}
+        onClose={() => setShowTemplateSheet(false)}
+        title="Choose a template"
+      >
+        {getAvailableTemplates().map((tpl, idx) => (
+          <SheetRow
+            key={idx}
+            icon={<LayoutTemplate size={18} className="text-brand-dark" />}
+            label={tpl.label}
+            onTap={() => applyTemplate(tpl.seeds)}
+            isLast={idx === getAvailableTemplates().length - 1}
+          />
+        ))}
+      </BottomSheet>
     </div>
   );
 }
