@@ -4,7 +4,8 @@
  * booking_requests row is created in Supabase and synced to Dexie.
  * The merchant sees it as a task card on Home and can accept or reject it.
  */
-import { db, type BookingRequest, type Customer, type Job } from './db';
+import { db, type BookingRequest, type Customer, type Job, type Profile } from './db';
+import { getFilledTemplateMessage } from './templateEngine';
 import { findDuplicateByPhone } from './customers';
 import { nextJobNumber } from './jobNumbers';
 import { supabase } from './supabase';
@@ -122,7 +123,7 @@ export async function getPendingBookingRequests(userId: string): Promise<Booking
     return await db.booking_requests
       .where('merchant_id')
       .equals(userId)
-      .filter((b) => b.status === 'pending')
+      .filter((b) => b.status === 'pending' || b.status === 'deposit_paid')
       .sortBy('created_at');
   } catch {
     return [];
@@ -150,7 +151,7 @@ export async function acceptBookingRequest(
 }> {
   const booking = await db.booking_requests.get(bookingId);
   if (!booking) throw new Error('Booking request not found');
-  if (booking.status !== 'pending') throw new Error('Booking request is no longer pending');
+  if (booking.status !== 'pending' && booking.status !== 'deposit_paid') throw new Error('Booking request is no longer pending');
 
   const n = now();
   const profile = await db.profiles.get(userId);
@@ -225,6 +226,12 @@ export async function acceptBookingRequest(
     _sync_status: 'pending',
   };
 
+  // BU-5: If the booking request had a deposit paid via Stripe, mark the job's deposit as paid.
+  if (booking.deposit_amount && booking.deposit_amount > 0) {
+    newJob.deposit_status = 'paid';
+    newJob.deposit_amount = booking.deposit_amount;
+  }
+
   await db.jobs.add(newJob);
   await db.sync_queue.add({
     operation: 'insert', table_name: 'jobs', record_id: jobId,
@@ -286,7 +293,19 @@ export async function acceptBookingRequest(
     weekday: 'long', day: 'numeric', month: 'long',
   });
 
-  const confirmationMessage = `Hi ${firstName}, your booking is confirmed for ${dateFormatted} at ${booking.requested_time}. I'll be at the agreed location. See you then! — ${businessName}`;
+  // XU-7: Use the user's saved "booking" template if available, fall back to hardcoded.
+  const templateCustomer: Customer = {
+    id: customerId,
+    user_id: userId,
+    name: customerName,
+    phone: booking.client_phone,
+    email: booking.client_email || undefined,
+    created_at: n,
+    updated_at: n,
+    _sync_status: 'pending',
+  };
+  const fallbackMessage = `Hi ${firstName}, your booking is confirmed for ${dateFormatted} at ${booking.requested_time}. I'll be at the agreed location. See you then! — ${businessName}`;
+  const confirmationMessage = await getFilledTemplateMessage(userId, 'booking', newJob, templateCustomer, profile, booking.service_amount || 0, fallbackMessage);
 
   return {
     jobId,

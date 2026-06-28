@@ -30,6 +30,7 @@ import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '..
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
 import { createCheckoutSession } from '../../lib/stripe';
+import { getFilledTemplateMessage } from '../../lib/templateEngine';
 import type { PaymentChase, QuoteFollowUp, RecurringJob, BookingRequest } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
@@ -2013,7 +2014,8 @@ export default function Home() {
               ) : !isPaused ? (
               <>
                 <Button variant="primary" fullWidth disabled={chaseStripeLoading} onClick={async () => {
-                  let msg = stageMessages[selectedChase.stage] || stageMessages.gentle;
+                  const fallbackMsg = stageMessages[selectedChase.stage] || stageMessages.gentle;
+                  let msg = await getFilledTemplateMessage(userId!, 'invoice', selectedChase.job!, c!, profile!, total, fallbackMsg);
                   let stripeLinkIncluded = false;
                   if (profile?.stripe_connected) {
                     setChaseStripeLoading(true);

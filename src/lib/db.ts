@@ -300,7 +300,7 @@ export interface PaymentChase {
   _sync_status: SyncStatus;
 }
 
-export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'expired' | 'deposit_paid';
 
 export interface BookingRequest {
   id: string;

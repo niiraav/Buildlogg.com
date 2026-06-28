@@ -144,6 +144,13 @@ export async function onRequestPost(context) {
         });
       }
 
+      // BU-5: If no job_id but a booking_request_id exists, mark the booking deposit as paid.
+      if (!jobId && checkoutRecord.booking_request_id) {
+        await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'booking_requests',
+          `?id=eq.${checkoutRecord.booking_request_id}`, 'PATCH',
+          { status: 'deposit_paid', deposit_amount: amountPaid });
+      }
+
       // 4. Mark checkout_sessions as paid (AFTER job + payment updates succeed)
       await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'checkout_sessions',
         `?id=eq.${checkoutRecord.id}`, 'PATCH',
