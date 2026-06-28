@@ -61,16 +61,15 @@ function londonDateStr(date) {
 
 const UK_BANK_HOLIDAYS = ['2026-01-01','2026-04-03','2026-04-06','2026-05-04','2026-05-25','2026-08-31','2026-12-25','2026-12-26'];
 
-function computeAvailableSlots(bookedSlots, serviceDurationMin, bufferHours, daysAhead, workingDays, hoursStart, hoursEnd, blockedDates) {
+function computeAvailableSlots(bookedSlots, serviceDurationMin, bufferHours, daysAhead, workingDays, hoursStart, hoursEnd, blockedDates, breakStart, breakEnd, hoursPerDayRaw) {
   workingDays = workingDays || [1,2,3,4,5];
   hoursStart = hoursStart || '09:00';
   hoursEnd = hoursEnd || '17:00';
   blockedDates = blockedDates || [];
-  const startH = parseInt(hoursStart.split(':')[0]);
-  const startM = parseInt(hoursStart.split(':')[1]);
-  const endH = parseInt(hoursEnd.split(':')[0]);
-  const endM = parseInt(hoursEnd.split(':')[1]);
-  const endMinutes = endH * 60 + endM;
+  const hoursPerDay = hoursPerDayRaw ? (typeof hoursPerDayRaw === 'string' ? JSON.parse(hoursPerDayRaw) : hoursPerDayRaw) : null;
+  const breakStartMin = breakStart ? parseInt(breakStart.split(':')[0]) * 60 + parseInt(breakStart.split(':')[1]) : null;
+  const breakEndMin = breakEnd ? parseInt(breakEnd.split(':')[0]) * 60 + parseInt(breakEnd.split(':')[1]) : null;
+  const hasBreak = breakStartMin !== null && breakEndMin !== null && breakStartMin < breakEndMin;
   const slots = [];
   const now = new Date();
   const bufferMs = bufferHours * 60 * 60 * 1000;
@@ -82,11 +81,24 @@ function computeAvailableSlots(bookedSlots, serviceDurationMin, bufferHours, day
     if (!workingDays.includes(dayOfWeek)) continue;
     if (blockedDates.includes(dateStr)) continue;
     if (UK_BANK_HOLIDAYS.includes(dateStr)) continue;
+    // Per-day hours override
+    const dayKey = String(dayOfWeek);
+    const dayOverride = hoursPerDay?.[dayKey];
+    const effStart = dayOverride?.start || hoursStart;
+    const effEnd = dayOverride?.end || hoursEnd;
+    const startH = parseInt(effStart.split(':')[0]);
+    const startM = parseInt(effStart.split(':')[1]);
+    const endH = parseInt(effEnd.split(':')[0]);
+    const endM = parseInt(effEnd.split(':')[1]);
+    const endMinutes = endH * 60 + endM;
     const daySlots = [];
     for (let h = startH; h <= endH; h++) {
       for (let m = (h === startH ? startM : 0); m < 60; m += serviceDurationMin) {
-        const slotEndMinutes = h * 60 + m + serviceDurationMin;
+        const slotStartMin = h * 60 + m;
+        const slotEndMinutes = slotStartMin + serviceDurationMin;
         if (slotEndMinutes > endMinutes) break;
+        // Skip slots overlapping break
+        if (hasBreak && slotStartMin < breakEndMin && slotEndMinutes > breakStartMin) continue;
         const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         const slotStart = londonToUtc(dateStr, timeStr);
         const slotEnd = new Date(slotStart.getTime() + serviceDurationMin * 60 * 1000);
@@ -153,7 +165,7 @@ export async function onRequest(context) {
       const slotsByDuration = {};
       let anySlots = false;
       for (const dur of durations) {
-        const s = computeAvailableSlots(bookedSlots, dur, bh, 14, merchant.booking_working_days, merchant.booking_hours_start, merchant.booking_hours_end, merchant.booking_blocked_dates);
+        const s = computeAvailableSlots(bookedSlots, dur, bh, 14, merchant.booking_working_days, merchant.booking_hours_start, merchant.booking_hours_end, merchant.booking_blocked_dates, merchant.booking_break_start, merchant.booking_break_end, merchant.booking_hours_per_day);
         slotsByDuration[dur] = s;
         if (s.length > 0) anySlots = true;
       }
@@ -170,7 +182,7 @@ export async function onRequest(context) {
       const phone = body.clientPhone.replace(/[\s-]/g,'');
       if (!body.clientEmail || String(body.clientEmail).trim() === '') return json({error:'Please enter your email so we can send you a booking confirmation'},400);
       if (!UK_PHONE_REGEX.test(phone)) return json({error:'Please enter a valid UK mobile number'},400);
-      const profiles = await supabaseQuery(SU, SK, 'profiles', `?booking_slug=eq.${encodeURIComponent(slug)}&booking_enabled=eq.true&select=id,booking_buffer_hours,booking_working_days,booking_hours_start,booking_hours_end,booking_blocked_dates,payment_terms,deposit_pct,stripe_connected`);
+      const profiles = await supabaseQuery(SU, SK, 'profiles', `?booking_slug=eq.${encodeURIComponent(slug)}&booking_enabled=eq.true&select=id,booking_buffer_hours,booking_working_days,booking_hours_start,booking_hours_end,booking_blocked_dates,booking_break_start,booking_break_end,booking_hours_per_day,payment_terms,deposit_pct,stripe_connected`);
       if (!profiles||profiles.length===0) return json({error:'Booking page not found'},404);
       const merchant = profiles[0];
       const oneHrAgo = new Date(Date.now()-60*60*1000).toISOString();
@@ -202,6 +214,23 @@ export async function onRequest(context) {
       const wBlocked = merchant.booking_blocked_dates || [];
       if (wBlocked.includes(requestedDate)) return json({error:'That day is not available. Please pick another day.'},409);
       if (UK_BANK_HOLIDAYS.includes(requestedDate)) return json({error:'That day is not available. Please pick another day.'},409);
+      // Validate time within working hours (with per-day override)
+      const dayKey = String(reqDayOfWeek);
+      const hoursPerDayParsed = merchant.booking_hours_per_day ? (typeof merchant.booking_hours_per_day === 'string' ? JSON.parse(merchant.booking_hours_per_day) : merchant.booking_hours_per_day) : null;
+      const dayOverride = hoursPerDayParsed?.[dayKey];
+      const effStart = dayOverride?.start || merchant.booking_hours_start || '09:00';
+      const effEnd = dayOverride?.end || merchant.booking_hours_end || '17:00';
+      const reqMinutes = parseInt(requestedTime.split(':')[0]) * 60 + parseInt(requestedTime.split(':')[1]);
+      const startMin = parseInt(effStart.split(':')[0]) * 60 + parseInt(effStart.split(':')[1]);
+      const endMin = parseInt(effEnd.split(':')[0]) * 60 + parseInt(effEnd.split(':')[1]);
+      const serviceDur = body.serviceDuration || 60;
+      if (reqMinutes < startMin || reqMinutes + serviceDur > endMin) return json({error:'That time is outside working hours'}, 409);
+      // Validate not during break
+      if (merchant.booking_break_start && merchant.booking_break_end) {
+        const bStart = parseInt(merchant.booking_break_start.split(':')[0]) * 60 + parseInt(merchant.booking_break_start.split(':')[1]);
+        const bEnd = parseInt(merchant.booking_break_end.split(':')[0]) * 60 + parseInt(merchant.booking_break_end.split(':')[1]);
+        if (reqMinutes < bEnd && reqMinutes + serviceDur > bStart) return json({error:'That time is during a break period'}, 409);
+      }
       const result = await supabaseQuery(SU, SK, 'booking_requests', '', 'POST', {
         merchant_id: merchant.id, service_description: body.serviceDescription, service_amount: body.serviceAmount||0,
         client_name: body.clientName.trim(), client_phone: phone, client_email: body.clientEmail||null,

@@ -482,6 +482,97 @@ export default function Booking() {
               />
             </div>
 
+            {/* Lunch break */}
+            <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2 mt-4">Lunch break (optional)</span>
+            <p className="text-xs text-brand-muted mb-2">Clients can&rsquo;t book during this time</p>
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="time"
+                value={profile?.booking_break_start || ''}
+                onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_start: e.target.value || undefined }); setProfile(updated); } }}
+                className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+              <span className="text-sm text-brand-muted">to</span>
+              <input
+                type="time"
+                value={profile?.booking_break_end || ''}
+                onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_end: e.target.value || undefined }); setProfile(updated); } }}
+                className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+              />
+            </div>
+
+            {/* Per-day hours */}
+            <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2 mt-4">Custom hours per day (optional)</span>
+            <p className="text-xs text-brand-muted mb-2">Override working hours for specific days. Leave empty to use global hours.</p>
+            <div className="flex flex-col gap-3 mb-4">
+              {[
+                { day: 1, label: 'Monday' },
+                { day: 2, label: 'Tuesday' },
+                { day: 3, label: 'Wednesday' },
+                { day: 4, label: 'Thursday' },
+                { day: 5, label: 'Friday' },
+                { day: 6, label: 'Saturday' },
+                { day: 0, label: 'Sunday' },
+              ].filter(({ day }) => (profile?.booking_working_days || [1,2,3,4,5]).includes(day)).map(({ day, label }) => {
+                const dayKey = String(day);
+                const perDay = profile?.booking_hours_per_day?.[dayKey];
+                return (
+                  <div key={day} className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-brand-dark w-24 shrink-0">{label}</span>
+                    <input
+                      type="time"
+                      value={perDay?.start || ''}
+                      onChange={async (e) => {
+                        if (!userId) return;
+                        const current = profile?.booking_hours_per_day || {};
+                        const end = perDay?.end || '';
+                        if (!e.target.value && !end) {
+                          const { [dayKey]: _, ...rest } = current;
+                          const updated = await updateProfileFields(userId, { booking_hours_per_day: Object.keys(rest).length > 0 ? rest : undefined });
+                          setProfile(updated);
+                        } else {
+                          const updated = await updateProfileFields(userId, { booking_hours_per_day: { ...current, [dayKey]: { start: e.target.value, end } } });
+                          setProfile(updated);
+                        }
+                      }}
+                      className="flex-1 h-10 px-2 border border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                    />
+                    <span className="text-xs text-brand-muted">to</span>
+                    <input
+                      type="time"
+                      value={perDay?.end || ''}
+                      onChange={async (e) => {
+                        if (!userId) return;
+                        const current = profile?.booking_hours_per_day || {};
+                        const start = perDay?.start || '';
+                        if (!start && !e.target.value) {
+                          const { [dayKey]: _, ...rest } = current;
+                          const updated = await updateProfileFields(userId, { booking_hours_per_day: Object.keys(rest).length > 0 ? rest : undefined });
+                          setProfile(updated);
+                        } else {
+                          const updated = await updateProfileFields(userId, { booking_hours_per_day: { ...current, [dayKey]: { start, end: e.target.value } } });
+                          setProfile(updated);
+                        }
+                      }}
+                      className="flex-1 h-10 px-2 border border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                    />
+                    {perDay && (
+                      <button
+                        onClick={async () => {
+                          if (!userId) return;
+                          const current = profile?.booking_hours_per_day || {};
+                          const { [dayKey]: _, ...rest } = current;
+                          const updated = await updateProfileFields(userId, { booking_hours_per_day: Object.keys(rest).length > 0 ? rest : undefined });
+                          setProfile(updated);
+                        }}
+                        className="text-brand-muted cursor-pointer text-xs underline shrink-0"
+                      >Reset</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Blocked dates */}
             <span className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-2">Blocked dates (holidays)</span>
             <p className="text-xs text-brand-muted mb-2">Clients can&rsquo;t book these dates</p>

@@ -39,6 +39,9 @@ export interface Profile {
   booking_working_days?: number[];    // [1,2,3,4,5] = Mon–Fri (0=Sun, 6=Sat)
   booking_hours_start?: string;       // "09:00"
   booking_hours_end?: string;         // "17:00"
+  booking_break_start?: string;       // "12:00" — lunch break start (both must be set)
+  booking_break_end?: string;         // "13:00" — lunch break end
+  booking_hours_per_day?: Record<string, { start: string; end: string }>;  // {"6": {start:"10:00",end:"14:00"}} per-day override
   booking_blocked_dates?: string[];   // ["2026-07-15"] for holidays
   // W2-2: Stripe
   stripe_account_id?: string;
@@ -294,6 +297,7 @@ export interface RecurringJob {
   last_reminder_sent_at?: string;         // ISO timestamp of last auto-reminder
   last_reminder_status?: 'sent' | 'failed' | 'bounced';
   reminder_count?: number;                // incremented each cycle, reset on advance
+  custom_reminder_message?: string;        // per-job custom message for reminders (Sprint 3)
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
