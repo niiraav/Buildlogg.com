@@ -82,7 +82,7 @@ export async function onRequestGet(context) {
           await sendPush(env, merchant.push_subscription_endpoint, merchant.push_subscription_keys, {
             title: `Buildlogg — ${merchantJobs.length} recurring jobs due`,
             body: 'Tap to review and contact clients',
-            url: '/app/',
+            url: '/app/?tab=tasks',
           });
         }
       }
@@ -101,7 +101,7 @@ export async function onRequestGet(context) {
             await sendPush(env, job.push_subscription_endpoint, job.push_subscription_keys, {
               title: `${job.customer_name || 'Client'} — ${job.title} due`,
               body: job.customer_email ? 'Last email bounced — send WhatsApp manually' : 'No email on file — send WhatsApp manually',
-              url: '/app/',
+              url: '/app/?recurring=' + job.id,
             });
           }
           sendResult = { channel: 'push', status: 'sent' };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Phone, MapPin, Plus, Archive, ArchiveRestore, Search, GitMerge, Calendar } from 'lucide-react';
-import { db, type Customer, type Job, type Payment, type Profile } from '../../lib/db';
+import { db, type Customer, type Job, type Payment, type Profile, type RecurringJob } from '../../lib/db';
 import { getCustomerStats, getCustomerJobs, getCustomerPayments, archiveCustomer, unarchiveCustomer, mergeCustomers, type CustomerStats } from '../../lib/customers';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Button } from '../../components/Button';
@@ -20,6 +20,7 @@ export default function CustomerDetail() {
   const [stats, setStats] = useState<CustomerStats | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [recurringJobs, setRecurringJobs] = useState<RecurringJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMergeSheet, setShowMergeSheet] = useState(false);
   const [mergeQuery, setMergeQuery] = useState('');
@@ -37,12 +38,14 @@ export default function CustomerDetail() {
       getCustomerJobs(customerId),
       getCustomerPayments(customerId),
       userId ? db.profiles.get(userId) : Promise.resolve(undefined),
-    ]).then(([c, s, j, p, pr]) => {
+      db.recurring_jobs.where('customer_id').equals(customerId).toArray(),
+    ]).then(([c, s, j, p, pr, rj]) => {
       setCustomer(c || null);
       setStats(s);
       setJobs(j);
       setPayments(p);
       setProfile(pr || null);
+      setRecurringJobs(rj || []);
       setLoading(false);
       if (c) captureCustomerDetailViewed({ customerId, jobCount: j.length });
     });
@@ -298,6 +301,29 @@ export default function CustomerDetail() {
                     </span>
                   </div>
                   <span className="text-sm font-bold text-brand-black">£{p.amount.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Reminders */}
+        {recurringJobs.length > 0 && (
+          <div className="mb-4">
+            <p className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Reminders</p>
+            <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+              {recurringJobs.map((rj, i) => (
+                <div key={rj.id} className={`px-4 py-3 ${i < recurringJobs.length - 1 ? 'border-b border-brand-borderLight' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-brand-dark">{rj.title}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">
+                        {rj.status === 'cancelled' ? 'Cancelled' : rj.status === 'dormant' ? 'Dormant' : `Next: ${new Date(rj.next_due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                        {' · '}
+                        {rj.reminder_mode === 'remind_client' ? 'Auto-message' : rj.reminder_mode === 'both' ? 'Both' : 'Remind me'}
+                      </p>
+                    </div>
+                    {rj.status === 'active' && <span className="w-2 h-2 rounded-full bg-status-green shrink-0" />}
+                  </div>
                 </div>
               ))}
             </div>
