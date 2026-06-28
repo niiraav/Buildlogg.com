@@ -97,7 +97,7 @@ export default function Activity() {
   }
 
   return (
-    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
+    <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh] md:max-w-[600px] mx-auto">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-5 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
         <div className="flex items-center justify-between">

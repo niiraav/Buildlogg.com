@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -475,15 +475,11 @@ export default function Home() {
           jobTitle: j.title,
           jobNumber: j.job_number,
           tag: 'No-show',
-          amount: j.scheduled_start
-            ? new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
-            : '',
+          amount: '',
           isL2: true,
           type: 'no_show',
           timeAgo: timeAgo(noShowAge),
-          contextLine: j.scheduled_start
-            ? `Was scheduled ${new Date(j.scheduled_start).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}`
-            : 'No-show logged',
+          contextLine: c.phone || 'No-show logged',
         });
       }
 
@@ -1141,7 +1137,7 @@ export default function Home() {
       {/* Prominent empty-day header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-2xl bg-brand-borderLight flex items-center justify-center shrink-0">
-          <Calendar size={24} className="text-brand-muted" />
+          <Coffee size={24} className="text-brand-muted" />
         </div>
         <div>
           <p className="text-lg font-extrabold text-brand-black">No jobs today</p>
@@ -1157,7 +1153,7 @@ export default function Home() {
 
       {/* Section label for inline tasks */}
       {inlineTasks.length > 0 && (
-        <span className="text-micro font-bold text-brand-mid tracking-[0.7px] block mb-2">
+        <span className="text-micro font-bold text-brand-mid tracking-[0.7px] block mb-2 mt-5">
           Needs your attention
         </span>
       )}
@@ -1195,22 +1191,9 @@ export default function Home() {
           onClick={() => setActiveTab('tasks')}
           className="text-sm font-medium text-brand-dark underline underline-offset-2 cursor-pointer mb-4"
         >
-          View all {tasks.length} tasks →
+          View all tasks →
         </button>
       )}
-
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
-            + New Quote
-          </Button>
-        </div>
-        <div className="flex-1">
-          <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
-            Log Missed Call
-          </Button>
-        </div>
-      </div>
     </div>
   );
 
@@ -1279,19 +1262,6 @@ export default function Home() {
           </div>
         </button>
       )}
-
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
-            + New Quote
-          </Button>
-        </div>
-        <div className="flex-1">
-          <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
-            Log Missed Call
-          </Button>
-        </div>
-      </div>
     </div>
   );
 
@@ -1534,7 +1504,7 @@ export default function Home() {
             </span>
             <button onClick={() => { setSheet('week_view'); capture('week_view_opened', {}); }}
               className="text-sm text-brand-muted block mt-0.5 cursor-pointer hover:text-brand-dark transition-colors text-left">
-              {todayLabel} · {subLabel}
+              {todayLabel} · {subLabel} <ChevronRight size={14} className="inline -mt-0.5" />
             </button>
             {completedToday.count > 0 && (
               <span className="text-xs text-status-green font-medium block mt-1">
@@ -1691,7 +1661,7 @@ export default function Home() {
       {activeTab === 'drafts' && renderDrafts()}
 
       {/* Footer — only show when active tab has content; otherwise buttons are in empty state cards */}
-      {activeTab === 'today' && todayState !== 'all_clear' && (
+      {activeTab === 'today' && (
         <div className="mt-auto sticky bottom-0 z-40 bg-[var(--app-shell-bg)] border-t border-brand-borderLight shadow-sheet cta-above-tabbar">
           <div className="flex gap-2 px-4 py-2.5 pb-3">
             <div className="flex-1"><Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>+ New Quote</Button></div>
