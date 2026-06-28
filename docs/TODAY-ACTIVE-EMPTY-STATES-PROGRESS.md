@@ -2,7 +2,7 @@
 
 > **Branch:** codex/today-active-empty-states
 > **Date:** 2026-06-28
-> **Status:** Implemented, tsc + vite build + lint green
+> **Status:** Implemented (61c7309), tsc + vite build + lint green
 
 ---
 
