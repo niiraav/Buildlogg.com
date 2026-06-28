@@ -20,6 +20,7 @@ import { archiveSampleJobs } from '../../lib/seedSampleJob';
 import NotificationBanner from '../../components/NotificationBanner';
 import WeekView from '../../components/WeekView';
 import { SendSheet, type SendMethod } from '../../components/SendSheet';
+import { bookingPageUrl } from '../../lib/referral';
 
 /* --- helpers --- */
 import { shouldShowBanner as shouldShowNotificationBanner } from '../../lib/notificationManager';
@@ -680,6 +681,11 @@ export default function Home() {
   const l2Count = actTodayTasks.length;
   const draftsCount = draftTasks.length;
 
+  // Today tab active empty states: inline tasks + proactive CTAs
+  const quotedJobs = jobs.filter(j => j.status === 'quoted' && !j.is_sample);
+  const inlineTasks = [...actTodayTasks, ...followUpTasks].slice(0, 5);
+  const hasProactiveOpportunities = (profile?.booking_enabled && profile?.booking_slug) || quotedJobs.length > 0;
+
   // If drafts tab disappears while selected, fall back to Today
   useEffect(() => {
     if (activeTab === 'drafts' && draftsCount === 0) {
@@ -1106,25 +1112,90 @@ export default function Home() {
     );
   };
 
+  // Shared task tap handler — used by inline Today tasks (and can be reused by Tasks tab in future)
+  const handleTaskTap = (task: TaskItem) => {
+    if (task.type === 'quote_follow_up') {
+      const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
+      if (fu) { setSelectedFollowUp(fu); captureQuoteFollowUpShown({ jobId: fu.job_id, nudgeCount: fu.nudge_count }); setSheet('follow_up_actions'); }
+    } else if (task.type === 'payment_chase') {
+      const ch = dueChases.find(c => c.id === task.id.replace('chase_', ''));
+      if (ch) { setSelectedChase(ch); capturePaymentChaseShown({ jobId: ch.job_id, stage: ch.stage }); setSheet('chase_actions'); }
+    } else if (task.type === 'recurring_reminder') {
+      const rc = upcomingRecurring.find(r => r.id === task.id.replace('recurring_', ''));
+      if (rc) { setSelectedRecurring(rc); captureRecurringReminderShown({ recurringId: rc.id, daysUntilDue: Math.floor((new Date(rc.next_due_at).getTime() - Date.now()) / 86400000) }); setSheet('recurring_actions'); }
+    } else if (task.type === 'booking_request') {
+      if (task.id === 'booking_summary') {
+        setSheet('booking_list');
+        return;
+      }
+      const bookingId = task.id.replace('booking_', '');
+      const bk = pendingBookings.find(b => b.id === bookingId);
+      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
+    } else {
+      navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
+    }
+  };
+
   const renderNoJobsToday = () => (
     <div className="px-4 mt-6">
-      <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
-        <div className="w-14 h-14 rounded-full bg-brand-borderLight flex items-center justify-center mb-3 mx-auto"><Calendar size={24} className="text-brand-muted" /></div>
-          <p className="text-base font-semibold text-brand-black">No jobs today</p>
+      <div className="mb-4">
+        <p className="text-base font-semibold text-brand-black">No jobs today</p>
         <p className="text-sm text-brand-muted mt-1.5">
-          {formatShortDate(today)} · Free day
+          {inlineTasks.length > 0
+            ? `${inlineTasks.length} ${inlineTasks.length === 1 ? 'thing' : 'things'} need attention`
+            : tasks.length > 0
+            ? `${tasks.length} recurring reminder${tasks.length === 1 ? '' : 's'} due`
+            : formatShortDate(today)}
         </p>
-        <div className="flex gap-2 mt-5">
-          <div className="flex-1">
-            <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
-              + New Quote
-            </Button>
-          </div>
-          <div className="flex-1">
-            <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
-              Log Missed Call
-            </Button>
-          </div>
+      </div>
+
+      {inlineTasks.length > 0 && (
+        <div className="flex flex-col gap-3 mb-4">
+          {inlineTasks.map((task) => {
+            const j = jobs.find(x => x.id === task.jobId);
+            const c = j ? customers[j.customer_id] : undefined;
+            return (
+              <TaskCard
+                key={task.id}
+                type={task.type}
+                job={j}
+                customer={c}
+                timeAgo={task.timeAgo}
+                jobNumber={task.jobNumber}
+                amount={task.amount}
+                duration={task.duration}
+                requestedDate={task.requestedDate}
+                conflictText={task.conflictText}
+                contextLine={task.contextLine}
+                isSummary={task.id === 'booking_summary'}
+                summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
+                summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
+                onTap={() => handleTaskTap(task)}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {inlineTasks.length < tasks.length && (
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className="text-sm font-medium text-brand-dark underline underline-offset-2 cursor-pointer mb-4"
+        >
+          View all {tasks.length} tasks →
+        </button>
+      )}
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+            + New Quote
+          </Button>
+        </div>
+        <div className="flex-1">
+          <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
+            Log Missed Call
+          </Button>
         </div>
       </div>
     </div>
@@ -1132,22 +1203,75 @@ export default function Home() {
 
   const renderAllClear = () => (
     <div className="px-4 mt-6">
-      <div className="border border-dashed border-brand-border rounded-lg p-8 text-center">
-        <p className="text-base font-semibold text-brand-black">All clear</p>
-        <p className="text-sm text-brand-muted mt-1.5">
-          Nothing needs your attention today
-        </p>
-        <div className="flex gap-2 mt-5">
-          <div className="flex-1">
-            <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
-              + New Quote
-            </Button>
+      <div className="mb-4">
+        <p className="text-base font-semibold text-brand-black">Free day</p>
+        <p className="text-sm text-brand-muted mt-1.5">Nothing needs your attention</p>
+      </div>
+
+      {/* Proactive: share booking link */}
+      {profile?.booking_enabled && profile?.booking_slug && (
+        <div className="bg-brand-surface border border-brand-border rounded-xl p-4 mb-3">
+          <div className="flex items-start gap-2 mb-3">
+            <Calendar size={18} className="text-brand-dark shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-brand-black mb-1">Share your booking link</p>
+              <p className="text-xs text-brand-mid leading-relaxed">Let clients self-serve — send your booking page on WhatsApp or socials.</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
-              Log Missed Call
-            </Button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const url = bookingPageUrl(profile.booking_slug!);
+                navigator.clipboard?.writeText(url).then(() => {
+                  showToast('Booking link copied', 'success');
+                }).catch(() => {
+                  showToast('Booking link copied', 'success');
+                });
+              }}
+              className="flex-1 text-sm font-semibold text-brand-black bg-brand-surface border border-brand-border rounded-lg py-2.5 cursor-pointer hover:bg-brand-bgLight transition-colors min-h-11"
+            >
+              Copy link
+            </button>
+            <a
+              href={bookingPageUrl(profile.booking_slug!)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center text-sm font-semibold text-white bg-brand-black rounded-lg px-4 py-2.5 cursor-pointer hover:bg-brand-dark transition-colors min-h-11"
+            >
+              Open
+            </a>
           </div>
+        </div>
+      )}
+
+      {/* Proactive: quotes awaiting reply */}
+      {quotedJobs.length > 0 && (
+        <button
+          onClick={() => navigate('/jobs')}
+          className="w-full text-left bg-brand-surface border border-brand-border rounded-xl p-4 mb-3 cursor-pointer active:opacity-70"
+        >
+          <div className="flex items-center gap-2">
+            <MessageCircle size={18} className="text-brand-mid shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-brand-black">
+                {quotedJobs.length} quote{quotedJobs.length === 1 ? '' : 's'} awaiting reply
+              </p>
+              <p className="text-xs text-brand-mid mt-0.5">Sent but not yet booked — tap to follow up early</p>
+            </div>
+          </div>
+        </button>
+      )}
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Button variant="secondary" onClick={() => navigate('/quote')} fullWidth>
+            + New Quote
+          </Button>
+        </div>
+        <div className="flex-1">
+          <Button variant="secondary" onClick={() => navigate('/quote', { state: { entryPoint: 'missed_call' } })} fullWidth>
+            Log Missed Call
+          </Button>
         </div>
       </div>
     </div>
@@ -1513,12 +1637,31 @@ export default function Home() {
           {(todayState === 'next_up' || todayState === 'in_progress' || todayState === 'multi_day') &&
             renderRemainingStrip()}
 
-          {/* Recent high-level activity — hidden when today has more than 3 jobs or in all-clear state */}
+          {/* Recent activity — only when busy day with ≤3 jobs */}
           {todayState !== 'all_clear' && jobCountToday <= 3 && <RecentActivity />}
 
-          {/* No jobs today / All clear */}
-          {todayState === 'all_clear' && (
-            tasks.length > 0 ? renderNoJobsToday() : renderAllClear()
+          {/* No jobs today — show inline tasks if any */}
+          {todayState === 'all_clear' && tasks.length > 0 && renderNoJobsToday()}
+
+          {/* No jobs + no tasks — proactive CTAs */}
+          {todayState === 'all_clear' && tasks.length === 0 && hasProactiveOpportunities && renderAllClear()}
+
+          {/* No jobs + no tasks + no opportunities — RecentActivity as last-resort fallback */}
+          {todayState === 'all_clear' && tasks.length === 0 && !hasProactiveOpportunities && (
+            <>
+              {renderAllClear()}
+              <RecentActivity />
+            </>
+          )}
+
+          {/* Compact task strip when few jobs + has pending tasks */}
+          {todayState !== 'all_clear' && jobCountToday > 0 && jobCountToday <= 3 && tasks.length > 0 && (
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className="mt-4 text-xs font-medium text-brand-mid hover:text-brand-dark transition-colors cursor-pointer"
+            >
+              Also: {tasks.length} task{tasks.length === 1 ? '' : 's'} waiting →
+            </button>
           )}
         </div>
       )}
