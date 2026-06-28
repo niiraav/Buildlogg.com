@@ -117,6 +117,16 @@ export default function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
       onClose={handleClose}
       title="Send feedback"
       subtitle="Found a bug or have an idea? Let us know."
+      footer={
+        <Button
+          variant="primary"
+          fullWidth
+          disabled={!canSubmit}
+          onClick={handleSubmit}
+        >
+          {submitting ? 'Sending…' : 'Send feedback'}
+        </Button>
+      }
     >
       <div className="flex flex-col gap-4">
         {/* Type selector */}
@@ -173,16 +183,6 @@ export default function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
             </span>
           </div>
         </div>
-
-        {/* Submit button */}
-        <Button
-          variant="primary"
-          fullWidth
-          disabled={!canSubmit}
-          onClick={handleSubmit}
-        >
-          {submitting ? 'Sending…' : 'Send feedback'}
-        </Button>
       </div>
     </BottomSheet>
   );

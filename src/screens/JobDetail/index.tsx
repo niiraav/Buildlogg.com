@@ -2656,6 +2656,16 @@ export default function JobDetail() {
       onClose={() => setSheet(null)}
       title="Log expense"
       subtitle="Materials or costs for this job"
+      footer={
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleLogExpense}
+          disabled={!expenseDesc.trim() || !expenseAmount || parseFloat(expenseAmount) <= 0}
+        >
+          Log expense
+        </Button>
+      }
     >
       <div className="mb-3">
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
@@ -2669,7 +2679,7 @@ export default function JobDetail() {
           className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
         />
       </div>
-      <div className="mb-4">
+      <div>
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Amount
         </label>
@@ -2685,13 +2695,6 @@ export default function JobDetail() {
           />
         </div>
       </div>
-      <Button
-        variant="primary"
-        onClick={handleLogExpense}
-        disabled={!expenseDesc.trim() || !expenseAmount || parseFloat(expenseAmount) <= 0}
-      >
-        Log expense
-      </Button>
     </BottomSheet>
   );
 
@@ -2701,6 +2704,16 @@ export default function JobDetail() {
       onClose={() => setSheet(null)}
       title="Add a charge"
       subtitle="Added to invoice · visible to customer"
+      footer={
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleAddCharge}
+          disabled={!chargeDesc.trim() || !chargeAmount || parseFloat(chargeAmount) <= 0}
+        >
+          Add to invoice
+        </Button>
+      }
     >
       <div className="mb-3">
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
@@ -2714,7 +2727,7 @@ export default function JobDetail() {
           className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
         />
       </div>
-      <div className="mb-4">
+      <div>
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Amount
         </label>
@@ -2730,13 +2743,6 @@ export default function JobDetail() {
           />
         </div>
       </div>
-      <Button
-        variant="primary"
-        onClick={handleAddCharge}
-        disabled={!chargeDesc.trim() || !chargeAmount || parseFloat(chargeAmount) <= 0}
-      >
-        Add to invoice
-      </Button>
     </BottomSheet>
   );
 
@@ -2746,23 +2752,24 @@ export default function JobDetail() {
       onClose={() => setSheet(null)}
       title="Add a note"
       subtitle="Only visible to you"
+      footer={
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleAddNote}
+          disabled={!noteText.trim()}
+        >
+          Add note
+        </Button>
+      }
     >
-      <div className="mb-4">
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="What happened?"
-          rows={3}
-          className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black resize-none"
-        />
-      </div>
-      <Button
-        variant="primary"
-        onClick={handleAddNote}
-        disabled={!noteText.trim()}
-      >
-        Add note
-      </Button>
+      <textarea
+        value={noteText}
+        onChange={(e) => setNoteText(e.target.value)}
+        placeholder="What happened?"
+        rows={3}
+        className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black resize-none"
+      />
     </BottomSheet>
   );
 
@@ -3069,26 +3076,27 @@ export default function JobDetail() {
       onClose={() => { setSheet(null); setRescheduleDate(''); }}
       title="Reschedule job"
       subtitle={job && customer ? `${customer.name} · ${job.title}` : undefined}
+      footer={
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleReschedule}
+          disabled={!rescheduleDate}
+        >
+          Reschedule
+        </Button>
+      }
     >
-      <div className="mb-4">
-        <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
-          New date & time
-        </label>
-        <input
-          type="datetime-local"
-          value={rescheduleDate}
-          onChange={(e) => setRescheduleDate(e.target.value)}
-          onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-          className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
-        />
-      </div>
-      <Button
-        variant="primary"
-        onClick={handleReschedule}
-        disabled={!rescheduleDate}
-      >
-        Reschedule
-      </Button>
+      <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+        New date & time
+      </label>
+      <input
+        type="datetime-local"
+        value={rescheduleDate}
+        onChange={(e) => setRescheduleDate(e.target.value)}
+        onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
+        className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+      />
     </BottomSheet>
   );
 
@@ -3210,6 +3218,11 @@ export default function JobDetail() {
       onClose={() => { setSheet(null); setUpdateMessage(''); }}
       title="Edit job details"
       subtitle={customer ? `${customer.name} · ${job?.title}` : undefined}
+      footer={
+        <Button variant="primary" fullWidth onClick={handleEditDetails}>
+          Save changes
+        </Button>
+      }
     >
       <div className="mb-3">
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
@@ -3292,23 +3305,18 @@ export default function JobDetail() {
           </div>
         )}
       </div>
-      <div className="mb-4">
+      <div>
         <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
           Notes (private)
         </label>
-        <div className="relative">
-          <textarea
-            value={editNotes}
-            onChange={(e) => setEditNotes(e.target.value)}
-            placeholder="Any notes about this job..."
-            rows={3}
-            className="w-full px-3.5 py-3 pr-12 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black resize-none"
-          />
-        </div>
+        <textarea
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          placeholder="Any notes about this job..."
+          rows={3}
+          className="w-full px-3.5 py-3 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black resize-none"
+        />
       </div>
-      <Button variant="primary" onClick={handleEditDetails}>
-        Save changes
-      </Button>
     </BottomSheet>
   );
 
@@ -3407,59 +3415,58 @@ export default function JobDetail() {
             ? `${interceptData.oldCustomerName} · ${interceptData.oldJob.title} — started ${interceptData.oldJob.actual_start ? formatStaleElapsed(interceptData.oldJob.actual_start) : 'earlier'} ago`
             : undefined
         }
-      >
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (!interceptData) return;
-              captureNewJobInterceptMarkDone({ oldJobId: interceptData.oldJob.id });
-              setSheet(null);
-              navigate(`/jobs/${interceptData.oldJob.id}`, {
-                state: {
-                  autoOpenMarkDone: true,
-                  returnToStartJob: { jobId: interceptData.newJobId, from: 'jobDetail' },
-                },
-              });
-            }}
-            fullWidth
-          >
-            <Check size={18} className="mr-2" />
-            Mark as done
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              if (!interceptData) return;
-              captureNewJobInterceptLeaveInProgress({ oldJobId: interceptData.oldJob.id });
-              setSheet(null);
-              // Start the new job directly
-              const n = now();
-              await db.jobs.update(interceptData.newJobId, {
-                status: 'in_progress',
-                actual_start: n,
-                updated_at: n,
-                _sync_status: 'pending',
-              });
-              await db.work_log.add({
-                id: crypto.randomUUID(),
-                job_id: interceptData.newJobId,
-                type: 'status_change',
-                description: 'Job started',
-                created_at: n,
-                _sync_status: 'pending',
-              });
-              await addToSyncQueue('jobs', interceptData.newJobId, { status: 'in_progress', actual_start: n, updated_at: n });
-              refresh();
-            }}
-            fullWidth
-          >
-            Leave in progress
-          </Button>
-        </div>
-      </BottomSheet>
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!interceptData) return;
+                captureNewJobInterceptMarkDone({ oldJobId: interceptData.oldJob.id });
+                setSheet(null);
+                navigate(`/jobs/${interceptData.oldJob.id}`, {
+                  state: {
+                    autoOpenMarkDone: true,
+                    returnToStartJob: { jobId: interceptData.newJobId, from: 'jobDetail' },
+                  },
+                });
+              }}
+              fullWidth
+            >
+              <Check size={18} className="mr-2" />
+              Mark done
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!interceptData) return;
+                captureNewJobInterceptLeaveInProgress({ oldJobId: interceptData.oldJob.id });
+                setSheet(null);
+                const n = now();
+                await db.jobs.update(interceptData.newJobId, {
+                  status: 'in_progress',
+                  actual_start: n,
+                  updated_at: n,
+                  _sync_status: 'pending',
+                });
+                await db.work_log.add({
+                  id: crypto.randomUUID(),
+                  job_id: interceptData.newJobId,
+                  type: 'status_change',
+                  description: 'Job started',
+                  created_at: n,
+                  _sync_status: 'pending',
+                });
+                await addToSyncQueue('jobs', interceptData.newJobId, { status: 'in_progress', actual_start: n, updated_at: n });
+                refresh();
+              }}
+              fullWidth
+            >
+              Leave running
+            </Button>
+          </div>
+        }
+      />
 
-            {/* SendSheet — used by reminder and other send flows */}
       <SendSheet
         isOpen={!!sendSheetConfig}
         onClose={() => { setSendSheetConfig(null); setSheet(null); }}

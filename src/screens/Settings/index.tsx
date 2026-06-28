@@ -5,7 +5,7 @@ import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
 import { supabase } from '../../lib/supabase';
-import { BottomSheet, SheetRow } from '../../components/BottomSheet';
+import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { InlineEditRow } from '../../components/InlineEditRow';
 import SyncIndicator from '../../components/SyncIndicator';
@@ -70,9 +70,6 @@ export default function Settings() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
-  const [tradeOtherMode, setTradeOtherMode] = useState(false);
-  const [tradeOtherInput, setTradeOtherInput] = useState('');
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [nudgeDismissed] = useState(false);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
@@ -86,6 +83,8 @@ export default function Settings() {
   const [editFullName, setEditFullName] = useState('');
   const [editBusinessName, setEditBusinessName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editTrade, setEditTrade] = useState<Profile['trade'] | null>(null);
+  const [editTradeOther, setEditTradeOther] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   
@@ -154,8 +153,9 @@ export default function Settings() {
     setEditFullName(fullName);
     setEditBusinessName(businessName);
     setEditPhone(phone);
+    setEditTrade(trade);
+    setEditTradeOther(profile?.trade_other || '');
     setPhoneError(null);
-    setTradeOtherMode(false);
     setShowProfileSheet(true);
   };
 
@@ -166,6 +166,12 @@ export default function Settings() {
     saveField('full_name', editFullName);
     saveField('business_name', editBusinessName);
     saveField('phone', normalizeUKPhone(editPhone));
+    if (editTrade) {
+      saveField('trade', editTrade);
+      if (editTrade === 'other' && editTradeOther.trim()) {
+        saveField('trade_other', editTradeOther.trim());
+      }
+    }
     setShowProfileSheet(false);
   };
 
@@ -846,57 +852,6 @@ export default function Settings() {
         />
       )}
 
-      {/* Trade BottomSheet */}
-      <BottomSheet isOpen={tradeSheetOpen} onClose={() => { setTradeSheetOpen(false); setTradeOtherMode(false); setTradeOtherInput(''); }} title="Select trade">
-        <div className="flex flex-col">
-          {TRADE_OPTIONS.map((opt, idx) => (
-            <SheetRow
-              key={opt.value}
-              label={opt.label}
-              onTap={() => {
-                if (opt.value === 'other') {
-                  setTradeOtherMode(true);
-                  setTradeOtherInput(profile?.trade_other || '');
-                } else {
-                  saveField('trade', opt.value!);
-                  setTradeSheetOpen(false);
-                }
-              }}
-              isLast={idx === TRADE_OPTIONS.length - 1}
-            />
-          ))}
-          {tradeOtherMode && (
-            <div className="mt-4 pt-4 border-t border-brand-borderLight">
-              <label className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 block">
-                Your trade
-              </label>
-              <input
-                type="text"
-                value={tradeOtherInput}
-                onChange={(e) => setTradeOtherInput(e.target.value)}
-                placeholder="Your trade, e.g. Roofer"
-                className="w-full h-12 px-4 text-base font-medium text-brand-black border border-brand-border rounded-xl outline-none focus:border-brand-black bg-white"
-                autoFocus
-              />
-              <button
-                onClick={() => {
-                  if (tradeOtherInput.trim()) {
-                    saveField('trade', 'other');
-                    saveField('trade_other', tradeOtherInput.trim());
-                  }
-                  setTradeSheetOpen(false);
-                  setTradeOtherMode(false);
-                  setTradeOtherInput('');
-                }}
-                className="mt-3 w-full h-13 bg-brand-black text-brand-surface rounded-xl text-base font-semibold cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          )}
-        </div>
-      </BottomSheet>
-
       {/* Payment terms BottomSheet */}
       <BottomSheet
         isOpen={paymentSheetOpen}
@@ -1006,6 +961,11 @@ export default function Settings() {
         isOpen={showProfileSheet}
         onClose={() => setShowProfileSheet(false)}
         title="Edit profile"
+        footer={
+          <Button variant="primary" fullWidth onClick={handleSaveProfile}>
+            Save
+          </Button>
+        }
       >
         <div className="flex flex-col gap-4">
           {/* Logo */}
@@ -1093,59 +1053,46 @@ export default function Settings() {
             {phoneError && <p className="text-label text-status-red mt-1">{phoneError}</p>}
           </div>
 
-          {/* Trade — inline selection */}
+          {/* Trade — horizontal chips with selected state */}
           <div>
             <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-2">
               Trade
             </label>
-            <div className="flex flex-col gap-1">
-              {TRADE_OPTIONS.map((opt, idx) => (
-                <SheetRow
-                  key={opt.value}
-                  label={opt.label}
-                  onTap={() => {
-                    if (opt.value === 'other') {
-                      setTradeOtherMode(true);
-                      setTradeOtherInput(profile?.trade_other || '');
-                    } else {
-                      saveField('trade', opt.value!);
-                      setTradeOtherMode(false);
-                    }
-                  }}
-                  isLast={idx === TRADE_OPTIONS.length - 1}
-                />
-              ))}
-              {tradeOtherMode && (
-                <div className="mt-2 pt-2 border-t border-brand-borderLight">
-                  <input
-                    type="text"
-                    value={tradeOtherInput}
-                    onChange={(e) => setTradeOtherInput(e.target.value)}
-                    placeholder="Your trade, e.g. Roofer"
-                    className="w-full h-12 px-4 text-base font-medium text-brand-black border border-brand-border rounded-xl outline-none focus:border-brand-black bg-white"
-                    autoFocus
-                  />
+            <div className="flex flex-wrap gap-2">
+              {TRADE_OPTIONS.map((opt) => {
+                const isSelected = editTrade === opt.value;
+                return (
                   <button
+                    key={opt.value}
+                    type="button"
                     onClick={() => {
-                      if (tradeOtherInput.trim()) {
-                        saveField('trade', 'other');
-                        saveField('trade_other', tradeOtherInput.trim());
-                      }
-                      setTradeOtherMode(false);
+                      setEditTrade(opt.value);
+                      if (opt.value !== 'other') setEditTradeOther('');
                     }}
-                    className="mt-2 w-full h-13 bg-brand-black text-brand-surface rounded-xl text-base font-semibold cursor-pointer"
+                    className={`flex items-center gap-1.5 px-4 h-11 rounded-full border-2 text-sm font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-brand-black bg-brand-black text-brand-surface'
+                        : 'border-brand-border bg-white text-brand-dark'
+                    }`}
                   >
-                    Done
+                    {isSelected && <Check size={14} />}
+                    {opt.label}
                   </button>
-                </div>
-              )}
+                );
+              })}
             </div>
+            {/* "Other" text input — shown when Other is selected */}
+            {editTrade === 'other' && (
+              <input
+                type="text"
+                value={editTradeOther}
+                onChange={(e) => setEditTradeOther(e.target.value)}
+                placeholder="Your trade, e.g. Roofer"
+                className="w-full h-12 mt-3 px-4 text-base font-medium text-brand-black border-2 border-brand-border rounded-lg outline-none focus:border-brand-black bg-white"
+                autoFocus
+              />
+            )}
           </div>
-
-          {/* Save */}
-          <Button variant="primary" fullWidth onClick={handleSaveProfile}>
-            Save
-          </Button>
         </div>
       </BottomSheet>
 

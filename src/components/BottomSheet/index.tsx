@@ -9,7 +9,7 @@ export interface BottomSheetProps {
   title?: string;
   titleIcon?: React.ReactNode;
   subtitle?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** Sticky footer rendered below the scrollable area — always visible. Use for CTA buttons (max 2). */
   footer?: React.ReactNode;
 }
