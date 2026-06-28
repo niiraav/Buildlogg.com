@@ -354,3 +354,9 @@ export function captureInsightCtaTapped(data: { type: string }) {
 export function captureInsightDismissed(data: { type: string }) {
   capture('insight_dismissed', data);
 }
+
+/* ─── Sprint 3: Custom reminder message ─── */
+
+export function captureCustomMessageSet(data: { recurringId: string }) {
+  capture('custom_reminder_message_set', data);
+}

@@ -27,7 +27,7 @@ import { shouldShowBanner as shouldShowNotificationBanner } from '../../lib/noti
 import { createPaymentChases, resolveChases, getDuePaymentChases } from '../../lib/paymentChase';
 import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollowUp, incrementNudge } from '../../lib/quoteFollowUp';
 import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
-import { advanceRecurrence, cancelRecurrence, incrementContactAttempt, setReminderMode, updateReminderLeadDays } from '../../lib/recurringJobs';
+import { advanceRecurrence, cancelRecurrence, incrementContactAttempt, setReminderMode, updateReminderLeadDays, updateCustomMessage } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
 import { createCheckoutSession } from '../../lib/stripe';
@@ -40,6 +40,7 @@ import { capture,
   capturePaymentChaseShown, capturePaymentChaseSent, capturePaymentChasePaused, capturePaymentChaseResumed,
   captureRecurringReminderShown, captureRecurringReminderActed,
   captureReminderModeChanged, captureReminderLeadDaysChanged,
+  captureCustomMessageSet,
 } from '../../lib/analytics';
 import {
   captureStaleJobNudgeTapped,
@@ -173,6 +174,7 @@ type SheetState =
   | 'zero_value_warning'
   | 'reminder_mode_edit'
   | 'reminder_lead_edit'
+  | 'custom_message_edit'
 
 type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder' | 'booking_request';
 
@@ -227,6 +229,7 @@ export default function Home() {
 
   /* UI state */
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [customMsgText, setCustomMsgText] = useState('');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [lateMsg, setLateMsg] = useState('');
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
@@ -2343,7 +2346,7 @@ export default function Home() {
           const c = customerFor(selectedRecurring.customer_id);
           const businessName = profile?.business_name || profile?.full_name || 'Your business';
           const firstName = c?.name?.split(' ')[0] || 'there';
-          const reminderMsg = `Hi ${firstName}, your ${selectedRecurring.title} is due soon. Want to book? — ${businessName}`;
+          const reminderMsg = selectedRecurring.custom_reminder_message?.trim() || `Hi ${firstName}, your ${selectedRecurring.title} is due soon. Want to book? — ${businessName}`;
           const intervalLabels: Record<string, string> = { monthly: 'Monthly', quarterly: 'Quarterly', six_monthly: '6-monthly', annual: 'Annual' };
           const nextDue = new Date(selectedRecurring.next_due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
           return (
@@ -2384,8 +2387,17 @@ export default function Home() {
                   )}
                 </div>
               </div>
+              {(selectedRecurring.status === 'dormant' || (selectedRecurring.reminder_count ?? 0) >= 3 || (selectedRecurring.contact_attempts ?? 0) >= 3) && (
+                <div className="bg-status-amberBg border border-amber-200 rounded-lg p-3 mb-2 flex items-start gap-2">
+                  <AlertTriangle size={16} className="text-status-amber shrink-0 mt-0.5" />
+                  <p className="text-xs text-status-amber leading-relaxed">
+                    No response after {Math.max(selectedRecurring.reminder_count ?? 0, selectedRecurring.contact_attempts ?? 0)} attempts — we recommend calling {firstName}.
+                  </p>
+                </div>
+              )}
               <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_mode_edit')}>Change reminder mode</Button>
               <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_lead_edit')}>Edit timing ({selectedRecurring.reminder_lead_days} days before)</Button>
+              <Button variant="secondary" fullWidth onClick={() => { setCustomMsgText(selectedRecurring.custom_reminder_message || ''); setSheet('custom_message_edit'); }}>{selectedRecurring.custom_reminder_message ? 'Edit custom message' : 'Add custom message'}</Button>
               <Button variant="secondary" fullWidth onClick={async () => { if (c?.phone) window.open(`tel:${c.phone}`, '_self'); await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'call' }); setSheet(null); setSelectedRecurring(null); refresh(); }}>Call customer</Button>
               {c?.phone ? (
               <Button variant="primary" fullWidth onClick={async () => {
@@ -2672,6 +2684,29 @@ export default function Home() {
           ))}
           <Button variant="ghost" fullWidth onClick={() => setSheet('recurring_actions')}>Cancel</Button>
         </div>
+      </BottomSheet>
+
+      {/* Sprint 3: Custom message edit sheet */}
+      <BottomSheet
+        isOpen={sheet === 'custom_message_edit'}
+        onClose={() => { setSheet('recurring_actions'); }}
+        title="Custom reminder message"
+        subtitle="Override the default message for this recurring job"
+      >
+        {selectedRecurring && (
+          <div className="flex flex-col gap-3">
+            <textarea
+              value={customMsgText}
+              onChange={(e) => setCustomMsgText(e.target.value)}
+              placeholder="Hi {firstName}, your {title} is due soon. Want to book?"
+              rows={4}
+              className="w-full px-4 py-3 text-base font-medium text-brand-black border border-brand-border rounded-xl outline-none focus:border-brand-black bg-white resize-none"
+            />
+            <p className="text-xs text-brand-muted">Leave empty to use the default message. Used for both manual WhatsApp sends and automatic email reminders.</p>
+            <Button variant="primary" fullWidth onClick={async () => { if (selectedRecurring) { await updateCustomMessage(selectedRecurring.id, customMsgText); captureCustomMessageSet({ recurringId: selectedRecurring.id }); setSheet('recurring_actions'); showToast('Custom message saved'); } }}>Save message</Button>
+            <Button variant="ghost" fullWidth onClick={() => setSheet('recurring_actions')}>Cancel</Button>
+          </div>
+        )}
       </BottomSheet>
 
 

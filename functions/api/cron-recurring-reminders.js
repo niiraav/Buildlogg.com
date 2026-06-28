@@ -234,9 +234,14 @@ async function sendReminderEmail(env, job) {
     : '';
 
   // Build body text — custom message overrides default template
-  let body = `Hi ${firstName}, your ${job.title} is due soon.`;
-  if (bookingLink) body += ` Book your next appointment: ${bookingLink}`;
-  body += ` — ${businessName}`;
+  let body;
+  if (job.custom_reminder_message && job.custom_reminder_message.trim()) {
+    body = job.custom_reminder_message.trim();
+  } else {
+    body = `Hi ${firstName}, your ${job.title} is due soon.`;
+    if (bookingLink) body += ` Book your next appointment: ${bookingLink}`;
+    body += ` — ${businessName}`;
+  }
 
   const subject = `${job.title} reminder from ${businessName}`;
 

@@ -252,6 +252,18 @@ export async function updateReminderLeadDays(id: string, days: number): Promise<
   }, 'update');
 }
 
+export async function updateCustomMessage(id: string, message: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db.recurring_jobs.update(id, {
+    custom_reminder_message: message.trim() || undefined,
+    updated_at: now,
+    _sync_status: 'pending',
+  });
+  await addToSyncQueue('recurring_jobs', id, {
+    custom_reminder_message: message.trim() || null, updated_at: now,
+  }, 'update');
+}
+
 export async function getReminderHistory(id: string, limit = 5): Promise<ReminderLog[]> {
   try {
     return await db.reminder_log
