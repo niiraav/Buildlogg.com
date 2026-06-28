@@ -19,6 +19,7 @@ export type Feature =
   | 'google_reviews'       // Post-payment review prompts
   | 'scheduling_conflicts' // Conflict detection on booking
   | 'custom_item_library'  // Saved line items + trade templates
+  | 'business_insights'    // Dashboard coaching insights (W3-3)
 
 export const PRO_FEATURES: Feature[] = [
   'remove_signature',
@@ -34,6 +35,7 @@ export const PRO_FEATURES: Feature[] = [
   'google_reviews',
   'scheduling_conflicts',
   'custom_item_library',
+  'business_insights',
 ]
 
 export function isProFeature(feature: Feature): boolean {
