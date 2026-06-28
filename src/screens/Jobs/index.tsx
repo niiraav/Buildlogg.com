@@ -7,9 +7,10 @@ import WeekView from '../../components/WeekView';
 import { CompactWeekStrip } from '../../components/CompactWeekStrip';
 import { useScrollHide } from '../../hooks/useScrollHide';
 import { capture } from '../../lib/analytics';
-import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
+import { db, type Job, type Customer, type LineItem, type JobStatus, type Payment } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
+import { paymentSummary } from '../../lib/paymentHelpers';
 import SyncIndicator from '../../components/SyncIndicator';
 import { Button } from '../../components/Button';
 import { SkeletonAppScreen } from '../../components/Skeleton';
@@ -49,6 +50,7 @@ type Filter = 'all' | 'active' | 'unpaid';
 
 interface JobWithTotal extends Job {
   total: number;
+  amountDue: number;
   customer: Customer;
 }
 
@@ -134,6 +136,7 @@ export default function Jobs() {
   const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
   const rawCustomers = useLiveQuery(() => userId ? db.customers.where('user_id').equals(userId).toArray() : [], [userId]);
   const rawLineItems = useLiveQuery(() => db.line_items.toArray(), []);
+  const rawPayments = useLiveQuery(() => db.payments.toArray(), []);
 
   const loading = rawJobs === undefined || rawCustomers === undefined;
 
@@ -156,18 +159,24 @@ export default function Jobs() {
   const jobs = useMemo<Job[]>(() => rawJobs || [], [rawJobs]);
   const lineItems = useMemo<LineItem[]>(() => rawLineItems || [], [rawLineItems]);
   const lineItemsMap = useMemo<Record<string, LineItem[]>>(() => { const m: Record<string, LineItem[]> = {}; lineItems.forEach(li => { if (!m[li.job_id]) m[li.job_id] = []; m[li.job_id].push(li); }); return m; }, [lineItems]);
+  const paymentsMap = useMemo<Record<string, Payment[]>>(() => { const m: Record<string, Payment[]> = {}; (rawPayments || []).forEach(p => { if (!m[p.job_id]) m[p.job_id] = []; m[p.job_id].push(p); }); return m; }, [rawPayments]);
 
   /* derived */
   const jobsWithData = useMemo<JobWithTotal[]>(() => {
     return jobs
       .filter((j) => j.user_id === userId)
-      .map((j) => ({
-        ...j,
-        total: jobTotal(lineItems, j.id),
-        customer: customers[j.customer_id],
-      }))
+      .map((j) => {
+        const total = jobTotal(lineItems, j.id);
+        const summary = paymentSummary(j, paymentsMap[j.id] || [], total);
+        return {
+          ...j,
+          total,
+          amountDue: summary.amountDue,
+          customer: customers[j.customer_id],
+        };
+      })
       .filter((j) => j.customer) as JobWithTotal[];
-  }, [jobs, customers, lineItems, userId]);
+  }, [jobs, customers, lineItems, paymentsMap, userId]);
 
   const searchFilteredJobs = useMemo<JobWithTotal[]>(() => {
     if (!searchQuery.trim()) return jobsWithData;
@@ -237,17 +246,29 @@ export default function Jobs() {
 
     if (s === 'in_progress') {
       return (
-        <span>
+        <span className="flex items-center gap-1.5 flex-wrap">
           {formatShortDate(now())} · {elapsedStr(job.actual_start || job.created_at)}
+          {job.payment_terms === 'deposit' && job.deposit_status === 'paid' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-green-200 bg-status-greenBg text-status-green">Deposit paid</span>
+          )}
+          {job.payment_terms === 'deposit' && job.deposit_status === 'requested' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-amber-200 bg-status-amberBg text-status-amber">Deposit due</span>
+          )}
         </span>
       );
     }
     if (s === 'booked') {
       return (
-        <span>
+        <span className="flex items-center gap-1.5 flex-wrap">
           {job.scheduled_start
             ? `${formatShortDate(new Date(job.scheduled_start))} · ${formatTime(new Date(job.scheduled_start))}`
             : 'No date set'}
+          {job.payment_terms === 'deposit' && job.deposit_status === 'paid' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-green-200 bg-status-greenBg text-status-green">Deposit paid</span>
+          )}
+          {job.payment_terms === 'deposit' && job.deposit_status === 'requested' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-amber-200 bg-status-amberBg text-status-amber">Deposit due</span>
+          )}
         </span>
       );
     }
@@ -270,6 +291,9 @@ export default function Jobs() {
             <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-amber-200 bg-status-amberBg text-status-amber">
               Chase · {days}d
             </span>
+          )}
+          {job.amountDue > 0 && (
+            <span className="text-status-red font-semibold">· £{job.amountDue.toFixed(2)} due</span>
           )}
         </span>
       );
