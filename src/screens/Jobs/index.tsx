@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, ClipboardList, Search, X, CalendarDays } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
 import WeekView from '../../components/WeekView';
 import { CompactWeekStrip } from '../../components/CompactWeekStrip';
@@ -484,21 +484,19 @@ export default function Jobs() {
             onDayTap={(date) => {
               const dateStr = date.toISOString().split('T')[0];
               const params = new URLSearchParams(searchParams);
-              params.set('date', dateStr);
+              if (dateFilter === dateStr) {
+                params.delete('date');
+              } else {
+                params.set('date', dateStr);
+              }
               setSearchParams(params);
-              capture('week_strip_day_tapped', { date: dateStr });
-            }}
-            onExpand={() => { setShowWeekSheet(true); capture('week_strip_expanded', {}); }}
-            onClearDate={() => {
-              const params = new URLSearchParams(searchParams);
-              params.delete('date');
-              setSearchParams(params);
+              capture('week_strip_day_tapped', { date: dateStr, action: dateFilter === dateStr ? 'clear' : 'select' });
             }}
           />
         </div>
 
         {/* Filter chips with counts */}
-        <div className="px-4 pb-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="px-4 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {filters.map((f) => {
             const isActive = filter === f.key;
             const count = filterCounts[f.key];
@@ -529,6 +527,18 @@ export default function Jobs() {
               </button>
             );
           })}
+
+        {/* Calendar icon — opens WeekView BottomSheet */}
+        <button
+          onClick={() => { setShowWeekSheet(true); capture('week_view_opened', { source: 'jobs_calendar_icon' }); }}
+          className={`relative shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl border-2 cursor-pointer transition-colors ${
+            dateFilter ? 'bg-brand-black text-brand-surface border-brand-black' : 'bg-white text-brand-mid border-brand-border'
+          }`}
+          aria-label="Open week view"
+        >
+          <CalendarDays size={18} />
+          {dateFilter && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-status-blue" />}
+        </button>
         </div>
 
         {/* Search bar */}
