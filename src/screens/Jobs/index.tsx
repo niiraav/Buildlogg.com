@@ -477,7 +477,7 @@ export default function Jobs() {
         </div>
 
         {/* Compact week strip — scroll-to-hide */}
-        <div style={{ maxHeight: weekStripVisible ? '68px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
+        <div style={{ maxHeight: weekStripVisible ? '72px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
           <CompactWeekStrip
             jobs={jobs}
             selectedDate={dateFilter || undefined}
@@ -496,7 +496,7 @@ export default function Jobs() {
         </div>
 
         {/* Filter chips with counts */}
-        <div className="px-4 pt-1 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="px-4 pt-3 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {filters.map((f) => {
             const isActive = filter === f.key;
             const count = filterCounts[f.key];
@@ -544,7 +544,7 @@ export default function Jobs() {
         {/* Search bar — scroll-to-hide (shy) */}
         {hasAnyJobs && (
           <div style={{ maxHeight: weekStripVisible ? '60px' : '0px', opacity: weekStripVisible ? 1 : 0, overflow: 'hidden', transition: 'max-height 0.2s ease-out, opacity 0.2s ease-out' }}>
-            <div className="px-4 pt-1 pb-3">
+            <div className="px-4 pt-3 pb-4">
               <div className="relative flex items-center">
                 <div className="absolute left-3.5 z-10 pointer-events-none"><Search size={16} className="text-brand-muted" /></div>
                 <input id="jobs-search-input"

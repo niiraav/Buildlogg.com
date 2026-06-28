@@ -42,7 +42,7 @@ export function CompactWeekStrip({ jobs, selectedDate, onDayTap }: CompactWeekSt
   const todayStr = new Date().toDateString();
 
   return (
-    <div className="flex items-center gap-1.5 px-4 pb-1">
+    <div className="flex items-center gap-1.5 px-4 pb-2">
       {weekDays.map((date, i) => {
         const isToday = date.toDateString() === todayStr;
         const dateStr = date.toISOString().split('T')[0];
