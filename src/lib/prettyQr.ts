@@ -29,7 +29,7 @@ export function createPrettyQR(url: string, logoDataUrl?: string): QRCodeStyling
       type: 'dot', // Rounded corner dots
       color: '#111827',
     },
-    image: logoDataUrl || '/brand/icon-transparent-square-v2.png', // Image: on, embedded
+    image: logoDataUrl === undefined ? '/brand/icon-transparent-square-v2.png' : (logoDataUrl || undefined), // undefined=brand icon, null=no image, string=custom
     imageOptions: {
       crossOrigin: 'anonymous',
       hideBackgroundDots: true, // Clean area behind logo
@@ -37,4 +37,20 @@ export function createPrettyQR(url: string, logoDataUrl?: string): QRCodeStyling
       margin: 4,
     },
   });
+}
+
+export async function qrToDataUrl(url: string, logoDataUrl?: string | null): Promise<string | null> {
+  try {
+    const qr = createPrettyQR(url, logoDataUrl ?? undefined);
+    const blob = await qr.getRawData('png');
+    if (!blob) return null;
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob as Blob);
+    });
+  } catch {
+    return null;
+  }
 }

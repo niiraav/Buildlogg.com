@@ -5,6 +5,8 @@
 import type { Profile, Customer, Job, LineItem, Payment } from './db';
 import type { jsPDF } from 'jspdf';
 import { formatAmount } from './paymentHelpers';
+import { qrToDataUrl } from './prettyQr';
+import { bookingPageUrl } from './referral';
 
 interface QuotePDFData {
   profile: Profile;
@@ -107,8 +109,43 @@ function buildCustomerBlock(doc: jsPDF, customer: Customer, startY: number): num
   return y + 4;
 }
 
-function buildFooter(doc: jsPDF, profile: Profile): void {
+async function buildFooter(doc: jsPDF, profile: Profile, job?: Job): Promise<void> {
   const pageHeight = doc.internal.pageSize.height;
+
+  // QR codes in footer — "Scan to pay" + "Scan to book"
+  const qrSize = 18;
+  const qrY = pageHeight - 48;
+  let qrX = 14;
+
+  // Pay by card QR (only on invoices with an active Stripe checkout URL)
+  if (job?.deposit_stripe_url && job?.deposit_status === 'requested') {
+    const payDataUrl = await qrToDataUrl(job.deposit_stripe_url, profile.logo_data_url ?? null);
+    if (payDataUrl) {
+      try {
+        doc.addImage(payDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+        doc.text('Scan to pay', qrX, qrY + qrSize + 3);
+        qrX += qrSize + 10;
+      } catch { /* QR render failed — skip */ }
+    }
+  }
+
+  // Book again QR (if booking is enabled)
+  if (profile?.booking_enabled && profile?.booking_slug) {
+    const bookDataUrl = await qrToDataUrl(bookingPageUrl(profile.booking_slug), profile.logo_data_url ?? null);
+    if (bookDataUrl) {
+      try {
+        doc.addImage(bookDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+        doc.text('Scan to book', qrX, qrY + qrSize + 3);
+      } catch { /* QR render failed — skip */ }
+    }
+  }
+
   doc.setDrawColor(...HAIRLINE);
   doc.line(14, pageHeight - 24, 196, pageHeight - 24);
 
@@ -203,7 +240,7 @@ export async function generateQuotePDF(data: QuotePDFData): Promise<Blob> {
     : 'Payment: Due on completion';
   doc.text(termsLabel, 14, termsY);
 
-  buildFooter(doc, profile);
+  await buildFooter(doc, profile);
   return doc.output('blob');
 }
 
@@ -237,7 +274,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
     bodyStyles: { fontSize: 9, textColor: INK },
     alternateRowStyles: { fillColor: BRAND_BG },
     columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42, halign: 'right' } },
-    margin: { left: 14, right: 14, bottom: 30 },
+    margin: { left: 14, right: 14, bottom: 55 },
     showHead: 'everyPage',
   });
 
@@ -258,7 +295,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
       headStyles: { fillColor: BRAND_BG, textColor: MUTED, fontSize: 8, fontStyle: 'bold' },
       bodyStyles: { fontSize: 9, textColor: INK },
       columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42, halign: 'right' } },
-      margin: { left: 14, right: 14, bottom: 30 },
+      margin: { left: 14, right: 14, bottom: 55 },
     });
     // @ts-expect-error
     afterTableY = doc.lastAutoTable.finalY + 4;
@@ -271,7 +308,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
     theme: 'plain',
     bodyStyles: { fontSize: 12, textColor: INK, fontStyle: 'bold' },
     columnStyles: { 0: { cellWidth: 140, halign: 'right' }, 1: { cellWidth: 42, halign: 'right' } },
-    margin: { left: 14, right: 14, bottom: 30 },
+    margin: { left: 14, right: 14, bottom: 55 },
   });
 
   // Bank details
@@ -293,6 +330,6 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<Blob> {
     if (profile.bank_account_number) { doc.text(`Account no: ${profile.bank_account_number}`, 14, by); by += 5; }
   }
 
-  buildFooter(doc, profile);
+  await buildFooter(doc, profile, job);
   return doc.output('blob');
 }
