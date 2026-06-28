@@ -451,9 +451,9 @@ export const templates: Record<string, EmailTemplate> = {
       const company = lead.company || 'your business';
       return `Hi ${firstName(lead.name)},
 
-${company} — most ${trade} businesses we talk to are still doing quotes and invoices from the sofa at 9pm.
+${company} — "I'll send you a quote tonight." Then tonight becomes tomorrow. Tomorrow becomes next week. And by then, they've booked someone else.
 
-We built Buildlogg to fix that. It's live now — send a professional quote from your phone in about a minute. Customer approves, books the slot, pays. No laptop, no spreadsheet, no chasing.
+Buildlogg lets you send a professional quote from their driveway, before you've packed the toolbox. Customer sees it on WhatsApp, approves, books the slot, pays a deposit. Done before you start the van.
 
 If that sounds useful: https://buildlogg.com
 
@@ -469,15 +469,16 @@ Buildlogg`;
       { label: 'B', subject: 'The quote-to-payment flow' },
     ],
     body: (lead: Lead) => {
+      const company = lead.company || 'your business';
       return `Hi ${firstName(lead.name)},
 
-Following up on my last email — quick question.
+Following up on my last email about ${company} — quick question.
 
-When a customer asks for a quote, what does that actually look like for you? Word doc? WhatsApp? A text with a number?
+When you tell a customer "I'll send you a quote tonight," how often does "tonight" become tomorrow? Or next week?
 
-Buildlogg does it from your phone in about a minute — quote, booking, payment, all in one flow. No laptop, no spreadsheet, no chasing.
+Every day you wait, they're getting quotes from someone else. Buildlogg lets you build and send the quote from their driveway via WhatsApp — before you've packed the toolbox. They approve on their phone, book the slot, pay a deposit. All while you're driving to the next job.
 
-Here's what it looks like in practice: https://buildlogg.com/#how
+If that sounds useful: https://buildlogg.com
 
 James
 Buildlogg`;
@@ -495,11 +496,11 @@ Buildlogg`;
 
 I get it — you've probably already got a system. Most tradespeople I talk to use a mix of WhatsApp, a notebook, and a spreadsheet (or three).
 
-The thing is, those systems work fine until you're juggling five jobs and someone's chasing an invoice you forgot to send.
+Those work fine until you finish a job, forget to send the invoice, and three weeks later you can't remember who owes you what. You can't chase what you can't see.
 
-Buildlogg just puts it all in one place on your phone. Quotes, scheduling, invoices, payments — even offline if you're in a basement with no signal.
+Buildlogg tracks every quote, every job, every payment — and pings you when an invoice is overdue. One tap sends a card payment link via WhatsApp. They pay, you get notified. Even works offline if you're in a basement with no signal.
 
-Here's what it looks like: https://buildlogg.com/#how
+Here's what it looks like: https://buildlogg.com
 
 James
 Buildlogg`;

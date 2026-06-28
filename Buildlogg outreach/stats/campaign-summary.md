@@ -27,7 +27,8 @@ This is the first sign-up from cold outreach in the entire campaign. It came fro
 | 2026-06-25 | beauty | 1 | v1 | 100 | 5 | 0 | 0 | 1 | Non-clickable CTA links |
 | 2026-06-26 | beauty | 1 | v1 | 100 | 1 | TBD | TBD | 0 | 54 deferred + 46 fresh |
 | 2026-06-27 | beauty | 1 | v11+hero | 100 | 7 | TBD | 1→signup | 0 | **First v11 production batch + hero image** |
-| **Total** | | | | **500** | **13** | **1+TBD** | **2** | **10** | |
+| 2026-06-28 | trades | 2 | v11+hero | 100 | 0 | TBD | TBD | 0 | Step 2 follow-ups — rewritten pain-driven copy |
+| **Total** | | | | **600** | **13** | **1+TBD** | **2+TBD** | **10** | |
 
 ## Design Version Sent to Leads
 

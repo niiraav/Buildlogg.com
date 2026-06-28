@@ -203,7 +203,7 @@ export function buildBeautyEmail1(lead: Lead): EmailContent {
   return {
     badgeText: 'For beauty salons',
     heroImage: {
-      url: 'https://buildlogg.com/assets/beauty-app-preview.jpg?v=2',
+      url: 'https://buildlogg.com/img/beauty-preview.jpg',
       alt: 'A beauty salon owner managing bookings and deposits on Buildlogg',
       width: 540,
     },
@@ -260,9 +260,14 @@ export function buildTradesEmail1(lead: Lead): EmailContent {
   const company = lead.company || 'your business';
   return {
     badgeText: 'For trades',
+    heroImage: {
+      url: 'https://buildlogg.com/img/trade-preview.jpg',
+      alt: 'A tradesperson sending a quote and managing bookings on Buildlogg',
+      width: 540,
+    },
     paragraphs: [
-      { body: `<strong style="color:${C.ink};">${company}</strong> &mdash; most ${trade} businesses we talk to are still doing quotes and invoices from the sofa at 9pm.` },
-      { body: `Buildlogg fixes that. Send a professional quote from your phone in about a minute. Customer approves, books the slot, pays. No laptop, no spreadsheet, no chasing.` },
+      { body: `<strong style="color:${C.ink};">${company}</strong> &mdash; "I'll send you a quote tonight." Then tonight becomes tomorrow. Tomorrow becomes next week. And by then, they've booked someone else.` },
+      { body: `Buildlogg lets you send a professional quote from their driveway, before you've packed the toolbox. Customer sees it on WhatsApp, approves, books the slot, pays a deposit. Done before you start the van.` },
     ],
     ctaText: 'See how it works',
     ctaUrl: 'https://buildlogg.com',
@@ -270,15 +275,22 @@ export function buildTradesEmail1(lead: Lead): EmailContent {
 }
 
 export function buildTradesEmail2(lead: Lead): EmailContent {
+  const trade = tradeLabel(lead.subcategory);
+  const company = lead.company || 'your business';
   return {
     badgeText: 'For trades',
+    heroImage: {
+      url: 'https://buildlogg.com/img/trade-preview.jpg',
+      alt: 'A tradesperson sending a quote and managing bookings on Buildlogg',
+      width: 540,
+    },
     paragraphs: [
-      { body: `Following up on my last email &mdash; quick question.` },
-      { body: `When a customer asks for a quote, what does that actually look like? Word doc? WhatsApp? A text with a number?` },
-      { body: `Buildlogg does it from your phone in about a minute &mdash; quote, booking, payment, all in one flow.` },
+      { body: `Following up on my last email about <strong style="color:${C.ink};">${company}</strong> &mdash; quick question.` },
+      { body: `When you tell a customer "I'll send you a quote tonight," how often does "tonight" become tomorrow? Or next week?` },
+      { body: `Every day you wait, they're getting quotes from someone else. Buildlogg lets you build and send the quote from their driveway via WhatsApp &mdash; before you've packed the toolbox. They approve on their phone, book the slot, pay a deposit. All while you're driving to the next job.` },
     ],
     ctaText: 'See how it works',
-    ctaUrl: 'https://buildlogg.com/#how',
+    ctaUrl: 'https://buildlogg.com',
   };
 }
 
@@ -287,11 +299,11 @@ export function buildTradesEmail3(lead: Lead): EmailContent {
     badgeText: 'For trades',
     paragraphs: [
       { body: `I get it &mdash; you've probably already got a system. Most tradespeople use a mix of WhatsApp, a notebook, and a spreadsheet.` },
-      { body: `Those work fine until you're juggling five jobs and someone's chasing an invoice you forgot to send.` },
-      { body: `Buildlogg puts it all in one place on your phone. Quotes, scheduling, invoices, payments &mdash; even offline if you're in a basement with no signal.` },
+      { body: `Those work fine until you finish a job, forget to send the invoice, and three weeks later you can't remember who owes you what. You can't chase what you can't see.` },
+      { body: `Buildlogg tracks every quote, every job, every payment &mdash; and pings you when an invoice is overdue. One tap sends a card payment link via WhatsApp. They pay, you get notified. Even works offline if you're in a basement with no signal.` },
     ],
     ctaText: 'See how it works',
-    ctaUrl: 'https://buildlogg.com/#how',
+    ctaUrl: 'https://buildlogg.com',
   };
 }
 
