@@ -334,6 +334,25 @@ export default function Home() {
     })();
   }, [userId]);
 
+  /* W3-1: Deep-link from push notification — open recurring task card */
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const recurringId = params.get('recurring');
+    const tab = params.get('tab');
+    if (tab === 'tasks') setActiveTab('tasks');
+    if (recurringId) {
+      const rj = upcomingRecurring.find(r => r.id === recurringId) || allRecurring.find(r => r.id === recurringId);
+      if (rj) {
+        setSelectedRecurring(rj);
+        setSheet('recurring_actions');
+      } else {
+        db.recurring_jobs.get(recurringId).then((job) => {
+          if (job) { setSelectedRecurring(job as any); setSheet('recurring_actions'); }
+        }).catch(() => {});
+      }
+    }
+  }, [location.search, upcomingRecurring, allRecurring]);
+
   /* tick for elapsed timer */
 
   useEffect(() => {
@@ -2350,22 +2369,40 @@ export default function Home() {
                       <span className="text-xs font-medium text-brand-dark">{selectedRecurring.reminder_count}x</span>
                     </div>
                   )}
+                  {selectedRecurring.last_reminder_status === 'bounced' && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <AlertTriangle size={12} className="text-status-red" />
+                      <span className="text-xs text-status-red">Email bounced</span>
+                      <button onClick={() => { setSheet(null); setSelectedRecurring(null); navigate(`/customers/${selectedRecurring.customer_id}`); }} className="text-xs font-semibold text-status-red underline ml-1 cursor-pointer">Fix email →</button>
+                    </div>
+                  )}
+                  {selectedRecurring.last_reminder_status === 'failed' && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <AlertTriangle size={12} className="text-status-amber" />
+                      <span className="text-xs text-status-amber">Last reminder failed — will retry</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_mode_edit')}>Change reminder mode</Button>
               <Button variant="secondary" fullWidth onClick={() => setSheet('reminder_lead_edit')}>Edit timing ({selectedRecurring.reminder_lead_days} days before)</Button>
               <Button variant="secondary" fullWidth onClick={async () => { if (c?.phone) window.open(`tel:${c.phone}`, '_self'); await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Call customer about ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'call' }); setSheet(null); setSelectedRecurring(null); refresh(); }}>Call customer</Button>
-              <Button variant="primary" fullWidth onClick={() => {
+              {c?.phone ? (
+              <Button variant="primary" fullWidth onClick={async () => {
+                const j = jobs.find(x => x.id === selectedRecurring.original_job_id) || await db.jobs.get(selectedRecurring.original_job_id);
+                const filledMsg = j && c && profile && userId
+                  ? await getFilledTemplateMessage(userId, 'recurring_reminder', j, c, profile, 0, reminderMsg)
+                  : reminderMsg;
                 setSendSheetConfig({
                   title: `Send to ${c?.name || 'customer'}?`,
                   customerPhone: c?.phone || '',
-                  messageText: reminderMsg,
+                  messageText: filledMsg,
                   onSend: async (method) => {
                     await incrementContactAttempt(selectedRecurring.id);
                     const n = new Date().toISOString();
                     const logId = crypto.randomUUID();
-                    await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${reminderMsg}`, created_at: n, _sync_status: 'pending' });
-                    await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${reminderMsg}`, created_at: n }, 'insert');
+                    await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${filledMsg}`, created_at: n, _sync_status: 'pending' });
+                    await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring reminder sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${filledMsg}`, created_at: n }, 'insert');
                     captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'whatsapp' });
                     setSheet(null); setSelectedRecurring(null); refresh();
                   },
@@ -2374,6 +2411,11 @@ export default function Home() {
                 <MessageCircle size={18} className="mr-2" />
                 Send WhatsApp
               </Button>
+              ) : (
+                <div className="bg-brand-surface border border-brand-border rounded-lg p-3 text-center">
+                  <p className="text-xs text-brand-muted">No phone number on file for this customer</p>
+                </div>
+              )}
               <Button variant="secondary" fullWidth onClick={async () => { await advanceRecurrence(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring job completed — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_sent', description: `[Recurring job completed — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'done' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Marked as done — next cycle set'); }}>Mark as done</Button>
               <Button variant="secondary" fullWidth onClick={async () => { await incrementContactAttempt(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_no_response', description: `[No response — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_reminder_no_response', description: `[No response — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'no_response' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Recorded no response'); }}>No response</Button>
               <Button variant="ghost" fullWidth onClick={async () => { await cancelRecurrence(selectedRecurring.id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_job_cancelled', description: `[Recurring job cancelled — ${selectedRecurring.title}]`, created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedRecurring.original_job_id, type: 'recurring_job_cancelled', description: `[Recurring job cancelled — ${selectedRecurring.title}]`, created_at: n }, 'insert'); captureRecurringReminderActed({ recurringId: selectedRecurring.id, action: 'cancel' }); setSheet(null); setSelectedRecurring(null); refresh(); showToast('Recurrence cancelled'); }}>Cancel recurrence</Button>
