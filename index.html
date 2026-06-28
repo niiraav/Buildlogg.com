@@ -68,15 +68,11 @@
 <!-- ============================================================ NAV -->
 <header class="nav" id="nav">
   <div class="container nav-inner">
-      <div class="scroll-progress" id="scroll-progress"></div>
     <a class="brand" href="#top"><img src="/assets/icon-black-square.png" alt="" class="brand-icon" width="34" height="34" style="display:block"> Buildlogg</a>
     <nav class="nav-links">
-      <div class="nav-pill-group" id="nav-pill-group">
-        <div class="nav-pill-slider" id="nav-pill-slider"></div>
-        <a class="nav-link active" href="#how" data-section="how">How it works</a>
-        <a class="nav-link" href="#features" data-section="features">Features</a>
-        <a class="nav-link" href="#pricing" data-section="pricing">Pricing</a>
-      </div>
+      <a class="nav-link" href="#how">How it works</a>
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
     </nav>
     <div class="nav-cta">
       <a class="nav-signin" href="/app/auth?action=signin">Log in</a>
@@ -103,7 +99,7 @@
       <h1 class="display d-hero">Quote, book and<br />get paid — from<br />your van.</h1>
       <p class="lead">Buildlogg turns the admin you do at 9pm into a few taps between jobs. Send quotes, run the day, chase what you're owed and take payment - all from your phone.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg magnetic" href="/app/auth?action=signup">Start free <i data-lucide="arrow-right" class="lucide"></i></a>
+        <a class="btn btn-primary btn-lg" href="/app/auth?action=signup">Start free <i data-lucide="arrow-right" class="lucide"></i></a>
         <a class="btn btn-secondary btn-lg" href="#how">See how it works</a>
       </div>
       <div class="hero-trust">
@@ -125,7 +121,7 @@
           <div class="app">
             <div class="greet-row" style="padding:6px 18px 12px">
               <div class="greet"><div class="hi" style="font-size:18px">Evening, Dave</div><div class="day" style="font-size:12px">Sunday · 1 job today</div></div>
-              <div class="owed"><div class="amt" style="font-size:18px">£<span class="counter" data-target="1840">0</span></div><div class="lbl">owed to you</div></div>
+              <div class="owed"><div class="amt" style="font-size:18px">£1,840</div><div class="lbl">owed to you</div></div>
             </div>
             <div class="app-tabs" style="padding:0 18px;gap:20px">
               <div class="app-tab active">Today</div>
@@ -359,12 +355,12 @@
       <p class="lead">All the small admin that eats your evenings, done quietly in the background.</p>
     </div>
     <div class="fgrid">
-      <div class="fcard fcard-lg reveal"><span class="ic"><i data-lucide="message-circle" class="lucide"></i></span><h3>Quotes via WhatsApp <span class="fcard-arrow">&rarr;</span></h3><p>Build a professional quote and send it straight to the customer via WhatsApp. Done before you've started the van.</p></div>
-      <div class="fcard reveal d1"><span class="ic"><i data-lucide="layout-list" class="lucide"></i></span><h3>Jobs, sorted by status <span class="fcard-arrow">&rarr;</span></h3><p>Quoted, booked, in progress, paid. Every job in the right pile so you always know what needs doing next.</p></div>
-      <div class="fcard reveal d2"><span class="ic"><i data-lucide="wallet" class="lucide"></i></span><h3>Money owed, always visible <span class="fcard-arrow">&rarr;</span></h3><p>The total that runs your business, top-right on every screen. Always know your position at a glance.</p></div>
-      <div class="fcard reveal"><span class="ic"><i data-lucide="map-pin" class="lucide"></i></span><h3>One tap to navigate <span class="fcard-arrow">&rarr;</span></h3><p>Every booked job has the address loaded. Tap Navigate and Google Maps opens with the destination already set.</p></div>
-      <div class="fcard reveal d1"><span class="ic"><i data-lucide="wifi-off" class="lucide"></i></span><h3>Works offline <span class="fcard-arrow">&rarr;</span></h3><p>In a basement, a dead zone or a rural farm — Buildlogg keeps working. Jobs and quotes sync when you’re back online.</p></div>
-      <div class="fcard reveal d2"><span class="ic"><i data-lucide="hand" class="lucide"></i></span><h3>Gloves-on design <span class="fcard-arrow">&rarr;</span></h3><p>Big targets, calm screens, one job at a time. Usable with mucky hands in bad light, between tasks.</p></div>
+      <div class="fcard reveal"><span class="ic"><i data-lucide="message-circle" class="lucide"></i></span><h3>Quotes via WhatsApp</h3><p>Build a professional quote and send it straight to the customer via WhatsApp. Done before you've started the van.</p></div>
+      <div class="fcard reveal d1"><span class="ic"><i data-lucide="layout-list" class="lucide"></i></span><h3>Jobs, sorted by status</h3><p>Quoted, booked, in progress, paid. Every job in the right pile so you always know what needs doing next.</p></div>
+      <div class="fcard reveal d2"><span class="ic"><i data-lucide="wallet" class="lucide"></i></span><h3>Money owed, always visible</h3><p>The total that runs your business, top-right on every screen. Always know your position at a glance.</p></div>
+      <div class="fcard reveal"><span class="ic"><i data-lucide="map-pin" class="lucide"></i></span><h3>One tap to navigate</h3><p>Every booked job has the address loaded. Tap Navigate and Google Maps opens with the destination already set.</p></div>
+      <div class="fcard reveal d1"><span class="ic"><i data-lucide="wifi-off" class="lucide"></i></span><h3>Works offline</h3><p>In a basement, a dead zone or a rural farm — Buildlogg keeps working. Jobs and quotes sync when you’re back online.</p></div>
+      <div class="fcard reveal d2"><span class="ic"><i data-lucide="hand" class="lucide"></i></span><h3>Gloves-on design</h3><p>Big targets, calm screens, one job at a time. Usable with mucky hands in bad light, between tasks.</p></div>
     </div>
   </div>
 </section>
@@ -483,96 +479,11 @@
 <script>
   lucide.createIcons();
 
-  // ─── Magnetic CTA button (desktop only) ───
-  if (window.matchMedia('(hover: hover)').matches) {
-    const magneticBtn = document.querySelector('.btn-primary.btn-lg.magnetic');
-    if (magneticBtn) {
-      magneticBtn.addEventListener('mousemove', (e) => {
-        const rect = magneticBtn.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
-        magneticBtn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
-      });
-      magneticBtn.addEventListener('mouseleave', () => {
-        magneticBtn.style.transform = 'translate(0, 0)';
-      });
-    }
-  }
-
-  // ─── Animated counter (£0 → £1,840) ───
-  function animateCounter(el) {
-    const target = parseInt(el.dataset.target, 10);
-    const duration = 1200;
-    const start = performance.now();
-    function tick(now) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      el.textContent = Math.floor(eased * target).toLocaleString('en-GB');
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-  const counterEl = document.querySelector('.counter');
-  if (counterEl) {
-    const counterIO = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) { animateCounter(e.target); counterIO.unobserve(e.target); }
-      });
-    }, { threshold: 0.5 });
-    counterIO.observe(counterEl);
-  }
-
   // sticky nav shadow
   const nav = document.getElementById('nav');
   const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
-
-  // ─── Scroll progress bar ───
-  const scrollProgress = document.getElementById('scroll-progress');
-  if (scrollProgress) {
-    const updateProgress = () => {
-      const max = document.body.scrollHeight - window.innerHeight;
-      scrollProgress.style.width = max > 0 ? (window.scrollY / max) * 100 + '%' : '0%';
-    };
-    updateProgress();
-    window.addEventListener('scroll', updateProgress, { passive: true });
-  }
-
-  // ─── Nav pill switcher ───
-  const pillSlider = document.getElementById('nav-pill-slider');
-  const pillLinks = document.querySelectorAll('.nav-pill-group .nav-link');
-  if (pillSlider && pillLinks.length > 0) {
-    function moveSlider(link) {
-      const groupRect = link.parentElement.getBoundingClientRect();
-      const linkRect = link.getBoundingClientRect();
-      pillSlider.style.transform = `translateX(${linkRect.left - groupRect.left - 4}px)`;
-      pillSlider.style.width = linkRect.width + 'px';
-      pillLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-    }
-    // Initial position
-    requestAnimationFrame(() => moveSlider(pillLinks[0]));
-    // Click handler
-    pillLinks.forEach(link => {
-      link.addEventListener('click', () => moveSlider(link));
-    });
-    // Scroll-spy: update active pill based on visible section
-    const sections = ['how', 'features', 'pricing'].map(id => document.getElementById(id)).filter(Boolean);
-    if (sections.length > 0) {
-      const navIO = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            const link = document.querySelector(`.nav-pill-group .nav-link[data-section="${e.target.id}"]`);
-            if (link) moveSlider(link);
-          }
-        });
-      }, { threshold: 0.3, rootMargin: '-20% 0px -60% 0px' });
-      sections.forEach(s => navIO.observe(s));
-    }
-  }
-
 
   // mobile menu toggle
   const burger = document.querySelector('.nav-burger');
