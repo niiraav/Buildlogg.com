@@ -20,6 +20,7 @@ export default function Reminders() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [emailStats, setEmailStats] = useState({ total: 0, withEmail: 0 });
   const [pushLoading, setPushLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -28,6 +29,9 @@ export default function Reminders() {
     setProfile(p || null);
     const sub = await getPushSubscription();
     setPushEnabled(!!sub);
+    // Email coverage stat
+    const all = await db.customers.where('user_id').equals(userId).filter(c => !c.is_archived).toArray();
+    setEmailStats({ total: all.length, withEmail: all.filter(c => c.email).length });
     setLoading(false);
   }, [userId]);
 
@@ -166,6 +170,31 @@ export default function Reminders() {
             <p className="text-xs text-brand-muted mt-2 px-0.5">You'll receive push notifications when recurring jobs are due, even if the app is closed.</p>
           )}
         </div>
+
+        {/* Email coverage stat */}
+        {emailStats.total > 0 && (
+          <div className="mb-6">
+            <div className="bg-brand-surface border border-brand-border rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-brand-dark">Client email coverage</span>
+                <span className="text-sm font-bold text-brand-black">{emailStats.withEmail}/{emailStats.total}</span>
+              </div>
+              <div className="h-2 bg-brand-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-status-blue rounded-full transition-all"
+                  style={{ width: `${Math.round((emailStats.withEmail / emailStats.total) * 100)}%` }}
+                />
+              </div>
+              {emailStats.withEmail === 0 ? (
+                <p className="text-xs text-brand-muted mt-2">No clients have email yet — add emails when creating quotes to enable auto-messaging.</p>
+              ) : emailStats.withEmail < emailStats.total / 2 ? (
+                <p className="text-xs text-brand-muted mt-2">Only {emailStats.withEmail} of {emailStats.total} clients have email — add more to get the most from auto-messaging.</p>
+              ) : (
+                <p className="text-xs text-brand-muted mt-2">{emailStats.withEmail} of {emailStats.total} clients can receive auto-reminders.</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* How it works */}
         <div className="bg-brand-surface border border-brand-border rounded-xl p-4">

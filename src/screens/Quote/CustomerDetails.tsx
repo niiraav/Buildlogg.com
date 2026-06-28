@@ -51,7 +51,7 @@ function formatUkPhoneInput(raw: string): string {
 
 interface CustomerDetailsProps {
   customerId?: string;
-  onComplete: (customer: { id: string; name: string; phone: string; address?: string }) => void;
+  onComplete: (customer: { id: string; name: string; phone: string; address?: string; email?: string }) => void;
   onCancel: () => void;
 }
 
@@ -59,6 +59,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(!!customerId);
   const [phoneError, setPhoneError] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
@@ -68,6 +69,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   const userId = useAppStore((s) => s.userId);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [addressFocused, setAddressFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
 
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
@@ -80,6 +82,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
         setName(c.name === 'Unknown' ? '' : c.name);
         setPhone(c.phone);
         setAddress(c.address || '');
+        setEmail(c.email || '');
       }
       setLoading(false);
     });
@@ -107,6 +110,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     setName(c.name === 'Unknown' ? '' : c.name);
     setPhone(c.phone || '');
     setAddress(c.address || '');
+    setEmail(c.email || '');
     setAutocompleteResults([]);
   };
 
@@ -131,6 +135,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     setName(c.name === 'Unknown' ? '' : c.name);
     setPhone(c.phone || '');
     setAddress(c.address || '');
+    setEmail(c.email || '');
     setDuplicateWarning(null);
     // Navigate using the existing customer — set customerId in state
     // The form will use the filled data — the parent component handles customer creation/lookup
@@ -150,6 +155,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       name: name.trim(),
       phone: normalisePhone(phone),
       address: address.trim() || undefined,
+      email: email.trim() || undefined,
     });
   };
 
@@ -293,6 +299,23 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               placeholder="e.g. 14 Birch Lane, Holmfirth"
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none ${
                 addressFocused ? 'border-brand-black' : 'border-brand-border'
+              }`}
+            />
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-label font-semibold text-brand-dark tracking-[0.3px] mb-1">
+              Email <span className="text-label text-brand-dark font-normal normal-case tracking-0 ml-1">(optional · for reminders)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              placeholder="e.g. sarah@example.com"
+              className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none ${
+                emailFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
             />
           </div>

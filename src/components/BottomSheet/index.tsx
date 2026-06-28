@@ -21,25 +21,51 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
 }) => {
   const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const isDragging = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enterRafRef = useRef<number[]>([]);
+  const reducedMotion = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
 
-  // Controlled mount/unmount with exit animation
+  // Controlled mount/unmount with enter + exit animation
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
       setIsAnimatingOut(false);
+      setIsVisible(false);
+      // Double rAF ensures the browser paints the initial "hidden" state
+      // before flipping to visible, so the CSS transition fires.
+      // Single rAF fails in Chrome's batched rendering.
+      if (reducedMotion.current) {
+        setIsVisible(true);
+      } else {
+        const outerRaf = requestAnimationFrame(() => {
+          const innerRaf = requestAnimationFrame(() => {
+            setIsVisible(true);
+            enterRafRef.current = [];
+          });
+          enterRafRef.current = [outerRaf, innerRaf];
+        });
+        enterRafRef.current = [outerRaf];
+      }
     } else if (shouldRender) {
+      // Cancel any pending enter rAF (rapid toggle: opened then closed before enter fired)
+      enterRafRef.current.forEach((id) => cancelAnimationFrame(id));
+      enterRafRef.current = [];
       setIsAnimatingOut(true);
+      setIsVisible(false);
       // Fallback timeout in case onTransitionEnd doesn't fire
+      const timeout = reducedMotion.current ? 0 : 320;
       closeTimer.current = setTimeout(() => {
         setShouldRender(false);
         setIsAnimatingOut(false);
-      }, 350);
+      }, timeout);
     }
     return () => {
       if (closeTimer.current) {
@@ -64,7 +90,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     };
   }, [shouldRender]);
 
-  const handleTransitionEnd = useCallback(() => {
+  // Only the sheet's own transition end triggers unmount — not the backdrop's
+  // (backdrop finishes at 250ms, sheet at 300ms; backdrop would unmount too early)
+  const handleTransitionEnd = useCallback((e: React.TransitionEvent) => {
+    if (e.target !== sheetRef.current) return;
     if (isAnimatingOut) {
       setShouldRender(false);
       setIsAnimatingOut(false);
@@ -106,6 +135,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   if (!shouldRender) return null;
 
+  // Hidden state: either animating out or not yet visible (enter hasn't triggered)
+  const isHidden = isAnimatingOut || !isVisible;
+
   return createPortal(
     <div className="fixed inset-0 z-[55] flex flex-col justify-end md:items-end md:justify-end md:inset-y-0 md:right-0 md:left-[40%]">
       {/* Backdrop */}
@@ -114,18 +146,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         onClick={() => { haptic('light'); onClose(); }}
         className="absolute inset-0 bg-black/25 dark:bg-black/60"
         style={{
-          opacity: isAnimatingOut ? 0 : 1,
-          transition: 'opacity 0.2s ease-out',
+          opacity: isHidden ? 0 : 1,
+          transition: 'opacity 250ms ease-out',
         }}
-        onTransitionEnd={handleTransitionEnd}
       />
       {/* Sheet */}
       <div
         ref={sheetRef}
         className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] md:max-w-md md:mx-auto md:w-full"
         style={{
-          transform: isAnimatingOut ? 'translateY(100%)' : 'translateY(0)',
-          transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
+          transform: isHidden ? 'translateY(100%)' : 'translateY(0)',
+          transition: 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
         }}
         onTransitionEnd={handleTransitionEnd}
       >
