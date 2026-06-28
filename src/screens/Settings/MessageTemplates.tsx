@@ -207,33 +207,7 @@ export default function MessageTemplates() {
               const isExpanded = expandedCategories.has(category);
               const defaultTmpl = catTemplates.find((t) => t.is_default);
 
-              // Single template — show with category label header
-              if (catTemplates.length === 1) {
-                const tmpl = catTemplates[0];
-                return (
-                  <div key={category}>
-                    <div className="flex items-center justify-between mb-2 px-0.5">
-                      <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">{CATEGORY_LABELS[category]}</span>
-                    </div>
-                    <div
-                      onClick={() => setEditing(tmpl)}
-                      className="bg-white border border-brand-border rounded-lg p-4 cursor-pointer active:scale-[0.98] transition-transform"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-semibold text-brand-black">{tmpl.name || 'Untitled'}</span>
-                        {tmpl.is_default && (
-                          <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-brand-dark line-clamp-2 leading-relaxed">{tmpl.body || '(empty — tap to edit)'}</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Multiple templates — collapsible section
+              // Collapsible section for all categories (1 or more templates)
               return (
                 <div key={category}>
                   <button
