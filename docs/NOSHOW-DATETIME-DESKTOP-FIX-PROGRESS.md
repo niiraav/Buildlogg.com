@@ -1,6 +1,6 @@
 # No-show Detail + Date/Time Picker + Desktop Context Fix — Progress Log
 
-> **Commit:** (this commit)
+> **Commit:** (8a9d4c2)
 > **Date:** 2026-06-28
 > **Status:** All items implemented, tsc + vite build + lint green
 
@@ -10,11 +10,11 @@
 
 | # | Fix | File | Status | Commit |
 |---|-----|------|--------|--------|
-| 1 | No-show job detail: expanded body with location, schedule, quote items | `src/screens/JobDetail/index.tsx` | ✅ Done | (this commit) |
-| 2a | Date/time picker: removed CSS hiding native picker indicator | `src/styles/globals.css` | ✅ Done | (this commit) |
-| 2b | Date/time picker: removed appearance-none + decorative icons from JobDetail | `src/screens/JobDetail/index.tsx` | ✅ Done | (this commit) |
-| 2c | Date/time picker: removed appearance-none + decorative icons from QuoteBuilder | `src/screens/Quote/QuoteBuilder.tsx` | ✅ Done | (this commit) |
-| 3 | Desktop context: filter sample jobs from active count | `src/components/AppDesktopContext/index.tsx` | ✅ Done | (this commit) |
+| 1 | No-show job detail: expanded body with location, schedule, quote items | `src/screens/JobDetail/index.tsx` | ✅ Done | (8a9d4c2) |
+| 2a | Date/time picker: removed CSS hiding native picker indicator | `src/styles/globals.css` | ✅ Done | (8a9d4c2) |
+| 2b | Date/time picker: removed appearance-none + decorative icons from JobDetail | `src/screens/JobDetail/index.tsx` | ✅ Done | (8a9d4c2) |
+| 2c | Date/time picker: removed appearance-none + decorative icons from QuoteBuilder | `src/screens/Quote/QuoteBuilder.tsx` | ✅ Done | (8a9d4c2) |
+| 3 | Desktop context: filter sample jobs from active count | `src/components/AppDesktopContext/index.tsx` | ✅ Done | (8a9d4c2) |
 
 ---
 
