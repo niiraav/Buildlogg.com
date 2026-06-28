@@ -12,7 +12,7 @@
 |---|---------|-------|--------|--------|
 | BR-1 | Quick Requote from JobDetail | QuoteBuilder.tsx, Quote/index.tsx, JobDetail/index.tsx | ✅ Done | (6b14619) |
 | BR-2 | Outstanding balance on Jobs list | Jobs/index.tsx | ✅ Done | (6b14619) |
-| BR-5 | Deposit status badge on Jobs list | Jobs/index.tsx | ✅ Done | (6b14619) |
+| BR-5 | Deposit status badge on Jobs list | Jobs/index.tsx | ✅ Done | (6b14619, fe3e847) |
 
 ---
 
