@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CreditCard, Star, FileText, X } from 'lucide-react';
+import { Check, CreditCard, Star, FileText, X, Calendar, ExternalLink } from 'lucide-react';
 import { db, type Job, type Customer, type Profile } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { SkeletonInline } from '../../components/Skeleton';
+import { bookingPageUrl } from '../../lib/referral';
+import { showSuccess } from '../../components/Toast/store';
 
 /* ─── helpers ─── */
 
@@ -127,6 +129,49 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
             When {customerFirstName} confirms, open the job and tap <strong className="text-brand-black">Mark as Booked</strong> to move it forward.
           </div>
         </div>
+
+        {/* Online booking link — let the customer self-serve */}
+        {profile?.booking_enabled && profile?.booking_slug && (() => {
+          const url = bookingPageUrl(profile.booking_slug);
+          const shortUrl = url.replace(/^https?:\/\//, "");
+          return (
+            <div className="w-full bg-brand-surface border border-brand-border rounded-lg p-4 mb-4 text-left">
+              <div className="flex items-start gap-2 mb-3">
+                <Calendar size={18} className="text-brand-dark shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-brand-black mb-1">Let them book online</p>
+                  <p className="text-xs text-brand-mid leading-relaxed">
+                    Share your booking page so {customerFirstName} can pick a slot themselves — no phone tag.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(url).then(() => {
+                      showSuccess("Booking link copied");
+                    }).catch(() => {
+                      showSuccess("Booking link copied");
+                    });
+                  }}
+                  className="flex-1 text-sm font-semibold text-brand-black bg-brand-surface border border-brand-border rounded-lg py-2.5 cursor-pointer hover:bg-brand-bgLight transition-colors min-h-11"
+                >
+                  Copy booking link
+                </button>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-brand-black rounded-lg px-4 py-2.5 cursor-pointer hover:bg-brand-dark transition-colors min-h-11"
+                >
+                  <ExternalLink size={15} />
+                  Open
+                </a>
+              </div>
+              <p className="text-micro text-brand-muted mt-2 break-all">{shortUrl}</p>
+            </div>
+          );
+        })()}
 
         {/* Feature discovery tip */}
         {activeTip && (

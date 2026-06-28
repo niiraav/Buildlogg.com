@@ -217,6 +217,9 @@ export default function CustomerDetail() {
             <div className="bg-white border border-brand-border rounded-lg p-3 text-center">
               <p className="text-lg font-extrabold text-brand-black">£{stats.totalSpent.toFixed(0)}</p>
               <p className="text-xs text-brand-muted">Total spent</p>
+              {stats.jobCount > 0 && (
+                <p className="text-xs text-brand-muted mt-0.5">avg £{(stats.totalSpent / stats.jobCount).toFixed(0)}/job</p>
+              )}
             </div>
             <div className="bg-white border border-brand-border rounded-lg p-3 text-center">
               <p className="text-lg font-extrabold text-brand-black">{stats.jobCount}</p>

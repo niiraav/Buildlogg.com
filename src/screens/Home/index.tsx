@@ -287,6 +287,13 @@ export default function Home() {
   }, [rawWorkLog]);
   const profile = rawProfile ?? null;
 
+  // Jobs completed today (paid + actual_end is today) — mini stat for the greeting header
+  const completedToday = useMemo(() => {
+    const done = jobs.filter(j => j.status === 'paid' && j.actual_end && isToday(j.actual_end));
+    const total = done.reduce((sum, j) => sum + (lineItems[j.id] || []).reduce((s, i) => s + i.amount, 0), 0);
+    return { count: done.length, total };
+  }, [jobs, lineItems]);
+
   // No-op refresh — data is now reactive via useLiveQuery.
   // 24+ call sites kept for compatibility; they're harmless empty functions.
   const refresh = useCallback(() => {}, []);
@@ -1383,6 +1390,11 @@ export default function Home() {
               className="text-sm text-brand-muted block mt-0.5 cursor-pointer hover:text-brand-dark transition-colors text-left">
               {todayLabel} · {subLabel}
             </button>
+            {completedToday.count > 0 && (
+              <span className="text-xs text-status-green font-medium block mt-1">
+                {completedToday.count} job{completedToday.count !== 1 ? 's' : ''} · £{completedToday.total.toFixed(0)} completed today
+              </span>
+            )}
           </div>
           {totalOwed > 0 && (
             <div

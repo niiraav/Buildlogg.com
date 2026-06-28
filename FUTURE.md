@@ -300,3 +300,284 @@ Also consider: per-day hours (e.g., Saturday 10am–2pm instead of full 9–5).
 Currently all working days use the same hours. Per-day hours would need a
 JSON field like `booking_hours_per_day: {"0": "10:00-14:00", "1": "09:00-17:00", ...}`.
 Added: 2026-06-28
+
+---
+
+## Cross-Utilization Audit (2026-06-28)
+
+> **Method:** Audited every built feature against every screen/flow to find
+> engines that work but are wired to only one touchpoint. The highest-leverage
+> improvements aren't new features — they're connecting existing engines to
+> the moments where the user actually needs them.
+
+### Booking Engine — Underutilized Touchpoints
+
+The booking engine (`functions/book/[[slug]].js` + `src/lib/booking.ts`) is
+fully functional but the booking link is **trapped in Settings**. It's never
+surfaced at the moments where sharing it would have the most impact.
+
+#### BU-1. Booking link on QuoteSent screen
+**Problem:** Customer just received a quote. The "What happens next" card says
+"open the job and tap Mark as Booked" — but doesn't offer the self-serve
+booking page. The customer is already engaged; making them phone-tag to book
+is friction.
+**Solution:** If `booking_enabled && booking_slug`, show a "Or let them book
+online" section on QuoteSent with a one-tap "Share booking link" button that
+copies/opens `bookingPageUrl(slug)`.
+**Leverages:** `bookingPageUrl()` in `referral.ts`, QuoteSent screen.
+**Effort:** S
+
+#### BU-2. Booking link in quote message text
+**Problem:** The WhatsApp/SMS message the customer receives has no booking
+link. If the customer says "yes, when can you do it?", Dave has to manually
+share his booking link in a separate message.
+**Solution:** If `booking_enabled`, append `"\n\nBook online: buildlogg.com/book/{slug}"`
+to the quote message in `QuotePreview.tsx` `defaultMessage` and the
+`templateEngine` quote template.
+**Leverages:** `bookingPageUrl()`, `QuotePreview.defaultMessage`, `templateEngine.ts`.
+**Effort:** S
+
+#### BU-3. Booking link on CustomerDetail
+**Problem:** When a merchant views a repeat customer, there's no "Share booking
+link" button. Sophie's client Emma needs a lash infill — Sophie should be able
+to send the booking page from the customer profile in one tap.
+**Solution:** Add a "Send booking link" button on CustomerDetail that opens
+WhatsApp with a pre-filled message: "Hi {firstName}, book your next appointment
+online: {bookingUrl}".
+**Leverages:** `bookingPageUrl()`, CustomerDetail screen, existing WhatsApp
+deep-link pattern.
+**Effort:** S
+
+#### BU-4. Booking link in post-payment rebook prompt
+**Problem:** When a job is marked paid, the Google Review prompt fires — but
+there's no "Book your next appointment" link. For Sophie (recurring 4-week
+appointments), the post-payment moment is when the client is happiest and
+most likely to rebook.
+**Solution:** If `booking_enabled`, show a "Rebook" button next to the review
+prompt on the paid job detail screen. Tapping it sends the booking link via
+WhatsApp.
+**Leverages:** `bookingPageUrl()`, existing review prompt pattern in JobDetail,
+SendSheet.
+**Effort:** S
+
+#### BU-5. Deposit collection on the booking page
+**Problem:** The booking function creates a `booking_request` with
+`service_amount` but there's no payment step. Sophie's #1 pain is no-shows.
+If the booking page offered "Pay £10 deposit to secure your slot" via the
+existing Stripe checkout, the booking engine would directly solve her
+biggest problem.
+**Solution:** Add an optional deposit step to the booking page POST handler.
+If the merchant's `payment_terms === 'deposit'`, after the booking request is
+created, call `createCheckoutSession` with `type: 'deposit'` and redirect the
+client to the Stripe Checkout URL. On webhook payment, link the payment to the
+accepted job.
+**Leverages:** `createCheckoutSession` Function, `stripe-webhook` handler,
+`booking_requests` table, `Profile.payment_terms`.
+**Effort:** M
+
+#### BU-6. Booking accept flow with deposit link
+**Problem:** When Dave taps "Accept booking", it creates a job and opens a
+SendSheet with a confirmation message. But if the job's payment terms are
+`deposit`, there's no option to attach a Stripe deposit link. Dave has to
+separately go into the job → menu → Request card payment → send another
+message. 4 extra steps for the most common post-booking action.
+**Solution:** In the booking accept flow (`acceptBookingRequest`), if
+`profile.payment_terms === 'deposit'` and `stripe_connected`, auto-generate a
+Stripe deposit link and include it in the confirmation message.
+**Leverages:** `acceptBookingRequest()` in `booking.ts`,
+`createCheckoutSession()`, SendSheet.
+**Effort:** S-M
+
+#### BU-7. Merchant logo on the booking page
+**Problem:** The booking page renders a plain text header with the business
+name. `Profile.logo_data_url` exists and is used in PDF generation. The
+booking page is the customer's first impression — it should show the logo.
+**Solution:** In `renderBookingPage`, if `merchant.logo_data_url`, render an
+`<img>` tag in the header. The logo is stored in Supabase (or as a data URL
+on the profile).
+**Leverages:** `Profile.logo_data_url`, `renderBookingPage` in the booking
+Function.
+**Effort:** S
+
+### Card Payment Links — Underutilized Touchpoints
+
+The Stripe integration (`createCheckoutSession` + webhook + `stripe.ts`) works
+end-to-end but the payment link is **buried in the job menu** and never offered
+at the moments where collecting payment is most natural.
+
+#### CU-1. Payment link in the job completion sheet
+**Problem:** When Dave taps "Complete & take payment", he gets a sheet with
+cash/bank transfer/other. The Stripe "Request card payment" option is in the
+separate "More" menu. The card payment option should be in the completion
+sheet itself — that's the moment Dave is collecting payment.
+**Solution:** In the `mark_done` sheet (or `mark_paid` sheet), if
+`stripe_connected`, add a "Send card payment link (£X)" option as a primary
+button alongside cash/bank transfer. Tapping it calls
+`handleRequestStripePayment('full')`.
+**Leverages:** `handleRequestStripePayment()`, `mark_done` / `mark_paid`
+sheets in JobDetail.
+**Effort:** S
+
+#### CU-2. Auto-generated Stripe link in payment chase messages
+**Problem:** The payment chase engine creates a 4-stage escalation ladder
+(7d → 14d → 30d → 60d). But chase messages are plain text reminders. If
+Stripe is connected, the chase message should include a payment link so the
+customer can pay immediately.
+**Solution:** When generating a chase message (in the task card action), if
+`stripe_connected`, call `createCheckoutSession` for the outstanding amount
+and embed the URL in the pre-filled WhatsApp message.
+**Leverages:** `paymentChase.ts` engine, `createCheckoutSession()`, task card
+send action.
+**Effort:** S-M
+
+#### CU-3. "Pay online" QR code on invoice PDFs
+**Problem:** `pdfGenerator.ts` generates branded PDFs with line items and bank
+details. But if Stripe is connected, the PDF should include a QR code linking
+to the Stripe checkout so the customer can pay without calling Dave.
+**Solution:** In `pdfGenerator.ts`, if `stripe_connected` and a checkout URL
+exists for the job, render a QR code (using `prettyQr.ts`) in the invoice
+footer: "Scan to pay by card".
+**Leverages:** `prettyQr.ts` QR generation, `pdfGenerator.ts`,
+`Job.deposit_stripe_url` or a fresh `createCheckoutSession` call.
+**Effort:** S-M
+
+#### CU-4. Card payment upsell at the chase moment
+**Problem:** When Dave's payment is 7 days overdue and he's chasing it, that's
+the moment he feels the pain of not having card payments. But there's no
+contextual nudge to enable it.
+**Solution:** On the payment chase task card, if `!stripe_connected`, show a
+subtle nudge: "Tired of chasing? Enable card payments to let customers pay
+online →" linking to Settings.
+**Leverages:** Payment chase task cards on Home, `stripe_connected` flag.
+**Effort:** S
+
+### Existing Features — Cross-Utilization Opportunities
+
+#### XU-1. Trade templates as "Quick Start" in QuoteBuilder
+**Problem:** `tradeTemplates.ts` has 10+ pre-filled line items per trade
+(plumber, electrician, builder). But they're only used during onboarding
+seeding. Dave can't tap "Boiler install template" in the QuoteBuilder to
+pre-fill all items.
+**Solution:** Add a "Start from template" button in the QuoteBuilder items
+section. Tapping it opens a sheet showing trade-specific templates. Selecting
+one fills the items list with all template line items.
+**Leverages:** `TRADE_TEMPLATES` in `tradeTemplates.ts`, QuoteBuilder items
+section, BottomSheet.
+**Effort:** S
+
+#### XU-2. Pricing history on Dashboard and CustomerDetail
+**Problem:** `pricingHistory.ts` queries past line items to show price ranges.
+But it's only used in the QuoteBuilder. The Dashboard should show "your
+average boiler install is £485 across 5 jobs" and CustomerDetail should show
+"you've charged this customer £1,240 across 4 jobs".
+**Solution:** Add a "Pricing insights" card on the Dashboard using
+`getJobTitlePricing`. On CustomerDetail, show total spent + job count (already
+computed by `getCustomerStats` but not prominently displayed).
+**Leverages:** `pricingHistory.ts`, `getCustomerStats()` in `customers.ts`,
+Dashboard screen, CustomerDetail screen.
+**Effort:** S
+
+#### XU-3. Recurring jobs on CustomerDetail and Dashboard
+**Problem:** Recurring jobs are only surfaced as task cards on Home when a
+reminder is due. There's no way to see all recurring jobs for a specific
+customer, or a summary on the Dashboard.
+**Solution:** On CustomerDetail, show "Next service: boiler service due in 3
+weeks" with a "Send reminder" button. On Dashboard, show "£1,600 in recurring
+revenue tracked" as a stat card.
+**Leverages:** `recurringJobs.ts` engine, `RecurringJob` table,
+CustomerDetail, Dashboard.
+**Effort:** S-M
+
+#### Xu-4. Customer notes banner on JobDetail
+**Problem:** `customer.notes` is editable on CustomerDetail but invisible when
+Dave is actually doing the job. If the note says "Key under the flowerpot",
+Dave doesn't see it when he opens the job.
+**Solution:** On JobDetail, if the customer has notes, show a banner at the
+top: a yellow/amber card with the notes text and an "⚠ Important" icon.
+**Leverages:** `Customer.notes` field (already exists), JobDetail screen,
+existing banner pattern (amber-50 style from Settings).
+**Effort:** S
+
+#### XU-5. QR codes on invoice PDFs (payment + booking)
+**Problem:** `prettyQr.ts` generates beautiful QR codes but is only used for
+the booking page link in Settings. Invoice PDFs and quote PDFs could include
+QR codes for payment (Stripe link) and rebooking (booking page URL).
+**Solution:** In `pdfGenerator.ts`, add a QR code section to the invoice
+footer: if Stripe is connected, a "Pay by card" QR; if booking is enabled, a
+"Book again" QR.
+**Leverages:** `prettyQr.ts`, `pdfGenerator.ts`, `bookingPageUrl()`.
+**Effort:** S-M
+
+#### XU-6. Mini stat on Home screen
+**Problem:** Dashboard computes earnings, outstanding, win rate — but the Home
+screen shows no financial summary. Dave opens the app and sees tasks but no
+"£340 earned today" feedback.
+**Solution:** Add a compact stat strip on the Home screen header (below the
+greeting): "Today: 2 jobs · £340" or "This month: £2,340 · 3 awaiting
+payment". Uses the existing `getDashboardStats` computation, scoped to today.
+**Leverages:** `getDashboardStats()` in `dashboard.ts`, Home screen header.
+**Effort:** S
+
+#### XU-7. Message templates in booking confirmation + payment chase
+**Problem:** `templateEngine.ts` fills `{placeholders}` in saved templates.
+But the booking confirmation message (in `booking.ts`) and the payment chase
+messages are hardcoded strings, not template-driven. If Dave edits his
+"Booking confirmation" template, the booking accept flow ignores it.
+**Solution:** In `acceptBookingRequest`, use the user's "booking" category
+template (filled by `templateEngine`) instead of the hardcoded
+`confirmationMessage`. In payment chase task actions, use the "follow_up" or
+"invoice" template.
+**Leverages:** `templateEngine.ts` `fillTemplate()`, `seedMessageTemplates`
+"booking" category, `booking.ts` confirmation, `paymentChase.ts`.
+**Effort:** S-M
+
+#### XU-8. Scheduling conflicts in booking accept flow
+**Problem:** `scheduling.ts` detects overlapping jobs, back-to-back gaps, and
+travel time. But the booking accept flow only does a basic overlap check
+(`checkBookingConflict`), not the full conflict engine with travel time and
+back-to-back warnings.
+**Solution:** In the booking request sheet on Home, use the full
+`detectConflicts` from `scheduling.ts` to warn about travel time and
+back-to-back gaps, not just direct overlaps.
+**Leverages:** `scheduling.ts` `detectConflicts()`, booking request sheet on
+Home.
+**Effort:** S
+
+#### XU-9. Voice input on expense entry + customer notes
+**Problem:** Voice input (`voiceInput.ts`) is wired into QuoteBuilder item
+descriptions and JobDetail notes. But not into expense entry, customer notes,
+or booking request notes.
+**Solution:** Add `VoiceInputButton` to the expense entry form in JobDetail,
+the customer notes editor in CustomerDetail, and the booking notes field.
+**Leverages:** `VoiceInputButton` component, existing fields.
+**Effort:** S
+
+#### XU-10. Calendar ICS export for all upcoming jobs + recurring reminders
+**Problem:** The "Add to calendar" button exists on individual booked jobs.
+But there's no "Export all upcoming jobs" or auto-add-to-calendar when a
+recurring reminder fires.
+**Solution:** Add a "Export calendar" button on the Dashboard or Jobs screen
+that generates an ICS file with all booked/in-progress jobs. When a recurring
+reminder fires, offer "Add to calendar" on the task card.
+**Leverages:** `calendar.ts` `generateICS()`, Dashboard/Jobs screen,
+recurring job task cards.
+**Effort:** S-M
+
+### Priority Ranking — Cross-Utilization
+
+| # | Feature | Impact | Effort | Serves | Status |
+|---|---------|--------|--------|--------|--------|
+| 1 | CU-1: Payment link in completion sheet | HIGH — payment moment | S | Both | ✅ Shipped (cf4c652) |
+| 2 | BU-2: Booking link in quote message | HIGH — reduces phone tag | S | Both | ✅ Shipped (cf4c652) |
+| 3 | XU-1: Trade templates in QuoteBuilder | HIGH — saves 5 min per quote | S | Both | ✅ Shipped (cf4c652) |
+| 4 | XU-4: Customer notes banner on JobDetail | HIGH — prevents site visit problems | S | Both | ✅ Already built |
+| 5 | BU-1: Booking link on QuoteSent | MED-HIGH — self-serve booking | S | Both | ⬜ Next |
+| 6 | CU-2: Stripe link in chase messages | HIGH — gets overdue money | S-M | Both | ⬜ |
+| 7 | BU-4: Rebook link post-payment | MED — recurring revenue | S | Sophie core | ⬜ |
+| 8 | XU-7: Templates in booking + chase | MED — consistency | S-M | Both | ⬜ |
+| 9 | BU-5: Deposits on booking page | HIGH — reduces no-shows | M | Sophie core | ⬜ |
+| 10 | XU-6: Mini stat on Home | MED — daily feedback | S | Both | ⬜ |
+
+*Audit date: 2026-06-28*
+*Updated: 2026-06-28 — CU-1, BU-2, XU-1, XU-4 marked as shipped*
+*Author: Codex*
