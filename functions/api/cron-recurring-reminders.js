@@ -42,6 +42,7 @@ export async function onRequestGet(context) {
     const dueJobs = await supabaseFetch(supabaseUrl, supabaseKey, `
       SELECT rj.*, p.full_name, p.business_name, p.booking_slug, p.booking_enabled,
              p.push_subscription_endpoint, p.push_subscription_keys,
+             p.logo_data_url, p.subscription_status,
              c.name as customer_name, c.email as customer_email, c.phone as customer_phone
       FROM recurring_jobs rj
       LEFT JOIN profiles p ON rj.user_id = p.id
@@ -232,12 +233,30 @@ async function sendReminderEmail(env, job) {
     ? `https://buildlogg.com/book/${job.booking_slug}`
     : '';
 
-  // Try to get the user's recurring_reminder template, fallback to hardcoded
+  // Build body text — custom message overrides default template
   let body = `Hi ${firstName}, your ${job.title} is due soon.`;
   if (bookingLink) body += ` Book your next appointment: ${bookingLink}`;
   body += ` — ${businessName}`;
 
   const subject = `${job.title} reminder from ${businessName}`;
+
+  // Branded HTML for Pro merchants (beta: subscription_status undefined = Pro)
+  const isPro = !job.subscription_status || job.subscription_status === 'active' || job.subscription_status === 'trialing';
+  const hasLogo = isPro && job.logo_data_url;
+  const emailBody = hasLogo
+    ? JSON.stringify({
+        from: 'Buildlogg <noreply@mail.buildlogg.com>',
+        to: [job.customer_email],
+        subject,
+        text: body,
+        html: `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"><tr><td style="text-align:center;padding:24px 0 16px"><img src="${job.logo_data_url}" alt="${businessName}" style="width:64px;height:64px;border-radius:50%;object-fit:cover"/></td></tr><tr><td style="padding:0 24px 24px;font-size:16px;line-height:1.6;color:#111827">${body.replace(/\n/g, '<br>')}</td></tr><tr><td style="padding:0 24px 24px;font-size:13px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:16px">Sent via Buildlogg</td></tr></table>`,
+      })
+    : JSON.stringify({
+        from: 'Buildlogg <noreply@mail.buildlogg.com>',
+        to: [job.customer_email],
+        subject,
+        text: body,
+      });
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -246,12 +265,7 @@ async function sendReminderEmail(env, job) {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'Buildlogg <noreply@mail.buildlogg.com>',
-        to: [job.customer_email],
-        subject,
-        text: body,
-      }),
+      body: emailBody,
     });
 
     if (!res.ok) {

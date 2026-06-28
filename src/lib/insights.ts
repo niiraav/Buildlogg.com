@@ -26,7 +26,8 @@ export type InsightType =
   | 'revenue_day'
   | 'stale_quote_cost'
   | 'avg_job_value_up'
-  | 'slow_payer';
+  | 'slow_payer'
+  | 'reminder_effectiveness';
 
 export interface Insight {
   id: string;
@@ -318,6 +319,45 @@ async function checkSlowPayer(userId: string, ref: Date): Promise<Insight | null
   };
 }
 
+/**
+ * 7. Reminder effectiveness — analyzes reminder_log delivery success rate.
+ */
+async function checkReminderEffectiveness(userId: string, ref: Date): Promise<Insight | null> {
+  const allLogs = await db.reminder_log.where('user_id').equals(userId).toArray();
+  const thirtyDaysAgo = new Date(ref.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const recent = allLogs.filter((log) => new Date(log.sent_at) >= thirtyDaysAgo);
+
+  if (recent.length < 3) return null;
+
+  const sent = recent.filter((log) => log.status === 'sent').length;
+  const failed = recent.filter((log) => log.status === 'failed' || log.status === 'bounced').length;
+  const failureRate = failed / recent.length;
+
+  if (failureRate > 0.2) {
+    return {
+      id: `reminder_effectiveness_${monthSuffix(ref)}`,
+      type: 'reminder_effectiveness',
+      severity: 'warning',
+      title: 'Reminders not delivering',
+      body: `${failed} of ${recent.length} reminders failed to deliver in the last 30 days. Check if client emails are correct.`,
+      priority: 35,
+    };
+  }
+
+  if (failureRate <= 0.1) {
+    return {
+      id: `reminder_effectiveness_${monthSuffix(ref)}`,
+      type: 'reminder_effectiveness',
+      severity: 'positive',
+      title: 'Reminders working well',
+      body: `${recent.length} reminders sent, ${sent} delivered successfully in the last 30 days.`,
+      priority: 55,
+    };
+  }
+
+  return null; // Between 10-20% failure — not notable enough
+}
+
 /* ─── Main entry point ─── */
 
 export async function generateInsights(
@@ -338,6 +378,7 @@ export async function generateInsights(
     () => checkStaleQuoteCost(userId, ref).catch(() => null),
     () => checkAvgJobValueUp(userId, stats, ref).catch(() => null),
     () => checkSlowPayer(userId, ref).catch(() => null),
+    () => checkReminderEffectiveness(userId, ref).catch(() => null),
   ];
 
   for (const gen of generators) {
