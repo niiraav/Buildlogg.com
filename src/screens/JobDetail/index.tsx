@@ -1996,9 +1996,9 @@ export default function JobDetail() {
               <div className="text-sm text-brand-mid mt-0.5">{customer.name}</div>
             </div>
             <div className="border-b border-brand-borderLight">
-              <div className="flex justify-between items-center px-4 py-2.5 border-b border-brand-surface">
-                <span className="text-sm text-brand-muted">Date &amp; time</span>
-                <span className="text-sm font-medium text-brand-black text-right">
+              <div className="flex justify-between items-start gap-3 px-4 py-2.5 border-b border-brand-surface">
+                <span className="text-sm text-brand-muted shrink-0">Date &amp; time</span>
+                <span className="text-sm font-medium text-brand-black text-right break-words">
                   {formatDateTimeRange(job.scheduled_start, job.scheduled_end)}
                 </span>
               </div>
