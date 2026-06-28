@@ -76,17 +76,31 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lock body scroll when sheet is open — iOS-safe position:fixed pattern
+  // Also lock #app-shell (the real scroll container in this PWA) so background
+  // doesn't scroll when the user touches non-scrollable parts of the sheet.
   useEffect(() => {
     if (!shouldRender) return;
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
+
+    const appShell = document.getElementById('app-shell');
+    let shellScrollTop = 0;
+    if (appShell) {
+      shellScrollTop = appShell.scrollTop;
+      appShell.style.overflowY = 'hidden';
+    }
+
     return () => {
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
       window.scrollTo(0, scrollY);
+      if (appShell) {
+        appShell.style.overflowY = '';
+        appShell.scrollTop = shellScrollTop;
+      }
     };
   }, [shouldRender]);
 
@@ -139,7 +153,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const isHidden = isAnimatingOut || !isVisible;
 
   return createPortal(
-    <div className="fixed inset-0 z-[55] flex flex-col justify-end md:items-end md:justify-end md:inset-y-0 md:right-0 md:left-[40%]">
+    <div className="fixed inset-0 z-[55] flex flex-col justify-end overscroll-contain md:items-end md:justify-end md:inset-y-0 md:right-0 md:left-[40%]">
       {/* Backdrop */}
       <div
         ref={backdropRef}
