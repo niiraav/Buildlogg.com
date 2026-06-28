@@ -167,6 +167,7 @@ type SheetState =
   | 'booking_list'
   | 'eod_review'
   | 'week_view'
+  | 'zero_value_warning'
 
 type TaskType = 'missed_call' | 'no_show' | 'urgent_new' | 'draft_quote' | 'quote_follow_up' | 'payment_chase' | 'recurring_reminder' | 'booking_request';
 
@@ -727,6 +728,33 @@ export default function Home() {
 
   /* --- actions --- */
 
+  const doStartJob = async (jobId: string) => {
+    const n = now();
+    await db.jobs.update(jobId, {
+      status: 'in_progress',
+      actual_start: n,
+      updated_at: n,
+      _sync_status: 'pending',
+    });
+    await db.work_log.add({
+      id: crypto.randomUUID(),
+      job_id: jobId,
+      type: 'status_change',
+      description: 'Job started',
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await db.sync_queue.add({
+      operation: 'update',
+      table_name: 'jobs',
+      record_id: jobId,
+      payload: { status: 'in_progress', actual_start: n, updated_at: n },
+      created_at: n,
+      retry_count: 0,
+    });
+    refresh();
+  };
+
   const handleImHere = async () => {
     if (!nextUpJob || !userId) return;
 
@@ -756,30 +784,15 @@ export default function Home() {
       return;
     }
 
-    const n = now();
-    await db.jobs.update(nextUpJob.id, {
-      status: 'in_progress',
-      actual_start: n,
-      updated_at: n,
-      _sync_status: 'pending',
-    });
-    await db.work_log.add({
-      id: crypto.randomUUID(),
-      job_id: nextUpJob.id,
-      type: 'status_change',
-      description: 'Job started',
-      created_at: n,
-      _sync_status: 'pending',
-    });
-    await db.sync_queue.add({
-      operation: 'update',
-      table_name: 'jobs',
-      record_id: nextUpJob.id,
-      payload: { status: 'in_progress', actual_start: n, updated_at: n },
-      created_at: n,
-      retry_count: 0,
-    });
-    refresh();
+    // £0.00 warning: job has no priced items yet
+    if (totalFor(nextUpJob.id) === 0) {
+      setSelectedJobId(nextUpJob.id);
+      setSheet('zero_value_warning');
+      capture('zero_value_job_warning_shown', { source: 'home' });
+      return;
+    }
+
+    doStartJob(nextUpJob.id);
   };
 
   const handleRunningLate = () => {
@@ -2288,6 +2301,35 @@ export default function Home() {
         {eodReviewJobIds.length === 0 && (
           <p className="text-sm text-brand-muted text-center py-4">All caught up</p>
         )}
+      </BottomSheet>
+
+      {/* £0.00 job warning — no priced items yet */}
+      <BottomSheet
+        isOpen={sheet === 'zero_value_warning'}
+        onClose={() => setSheet(null)}
+        title="No price set for this job"
+      >
+        <p className="text-sm text-brand-dark mb-5">
+          You haven't added any priced items yet. Add them now or start the job and add charges as you go.
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button variant="primary" fullWidth onClick={() => {
+            const j = jobs.find(x => x.id === selectedJobId);
+            setSheet(null);
+            capture('zero_value_job_add_items', { source: 'home' });
+            navigate('/quote', { state: { jobId: selectedJobId, customerId: j?.customer_id, entryPoint: 'revise' } });
+          }}>
+            Add items
+          </Button>
+          <Button variant="secondary" fullWidth onClick={() => {
+            setSheet(null);
+            capture('zero_value_job_start_anyway', { source: 'home' });
+            if (selectedJobId) doStartJob(selectedJobId);
+          }}>
+            Start anyway
+          </Button>
+          <Button variant="ghost" onClick={() => setSheet(null)}>Cancel</Button>
+        </div>
       </BottomSheet>
 
       {/* P2-A: SendSheet for task card sends */}
