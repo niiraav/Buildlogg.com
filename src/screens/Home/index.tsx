@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile } from '../../lib/db';
+import { db, type Job, type Customer, type LineItem, type WorkLogEntry } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
 import { JobCard } from '../../components/JobCard';
 import { ActiveBar } from '../../components/ActiveBar';
@@ -28,9 +29,8 @@ import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseBy
 import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
-import type { BookingRequest } from '../../lib/db';
-import type { PaymentChase, QuoteFollowUp, RecurringJob } from '../../lib/db';
-import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, type StaleJob } from '../../lib/jobStaleness';
+import type { PaymentChase, QuoteFollowUp, RecurringJob, BookingRequest } from '../../lib/db';
+import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
 import { capture,
   captureQuoteFollowUpShown, captureQuoteFollowUpSent, captureQuoteFollowUpSnoozed, captureQuoteFollowUpResponded,
@@ -38,7 +38,6 @@ import { capture,
   captureRecurringReminderShown, captureRecurringReminderActed,
 } from '../../lib/analytics';
 import {
-  captureStaleJobNudgeShown,
   captureStaleJobNudgeTapped,
   captureStaleJobNudgeDismissed,
   captureOvernightAutoComplete,
@@ -203,29 +202,34 @@ export default function Home() {
   const routeState = (location.state as { initialTab?: Tab } | null) || {};
   const [activeTab, setActiveTab] = useState<Tab>(routeState.initialTab || 'today');
   const [tick, setTick] = useState(0); // forces recompute of timeAgo strings
+  const [dismissedVersion, setDismissedVersion] = useState(0); // forces re-filter of stale jobs after dismissal
 
-  /* data */
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [customers, setCustomers] = useState<Record<string, Customer>>({});
-  const [lineItems, setLineItems] = useState<Record<string, LineItem[]>>({});
-  const [workLog, setWorkLog] = useState<Record<string, WorkLogEntry[]>>({});
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  /* data — reactive via useLiveQuery */
+  const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
+  const rawCustomers = useLiveQuery(() => userId ? db.customers.where('user_id').equals(userId).toArray() : [], [userId]);
+  const rawLineItems = useLiveQuery(() => db.line_items.toArray(), []);
+  const rawWorkLog = useLiveQuery(() => db.work_log.toArray(), []);
+  const rawProfile = useLiveQuery(() => userId ? db.profiles.get(userId) : undefined, [userId]);
+  const staleJobs = useLiveQuery(() => userId ? getStaleInProgressJobs(userId) : [], [userId], []);
+  const dueFollowUps = useLiveQuery(() => userId ? getDueQuoteFollowUps(userId) : [], [userId], []);
+  const dueChases = useLiveQuery(() => userId ? getDuePaymentChases(userId) : [], [userId], []);
+  const upcomingRecurring = useLiveQuery(() => userId ? getUpcomingRecurringJobs(userId, 14) : [], [userId], []);
+  const allRecurring = useLiveQuery(() => userId ? getUpcomingRecurringJobs(userId, 90) : [], [userId], []);
+  const pendingBookings = useLiveQuery(() => userId ? getPendingBookingRequests(userId) : [], [userId], []);
+
+  const loading = rawJobs === undefined || rawCustomers === undefined || rawProfile === undefined;
 
   /* UI state */
   const [sheet, setSheet] = useState<SheetState>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [lateMsg, setLateMsg] = useState('');
   const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
-  const [staleJobs, setStaleJobs] = useState<StaleJob[]>([]);
-  const [dueFollowUps, setDueFollowUps] = useState<Array<QuoteFollowUp & { job?: import('../../lib/db').Job }>>([]);
-  const [dueChases, setDueChases] = useState<Array<PaymentChase & { job?: import('../../lib/db').Job }>>([]);
-  const [upcomingRecurring, setUpcomingRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
+
   const [sampleExplored, setSampleExplored] = useState(() => localStorage.getItem('buildlogg_sample_explored') === 'true');
   const [selectedFollowUp, setSelectedFollowUp] = useState<(QuoteFollowUp & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedChase, setSelectedChase] = useState<(PaymentChase & { job?: import('../../lib/db').Job }) | null>(null);
   const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
-  const [pendingBookings, setPendingBookings] = useState<BookingRequest[]>([]);
+
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
   const [bookingConflict, setBookingConflict] = useState<ConflictJobInfo | null>(null);
   const summaryBookingStats = useRef<{ count: number; urgent: number }>({ count: 0, urgent: 0 });
@@ -235,7 +239,7 @@ export default function Home() {
     messageText: string;
     onSend: (method: SendMethod, pdfShared: boolean) => void;
   } | null>(null);
-  const [allRecurring, setAllRecurring] = useState<Array<RecurringJob & { job?: import('../../lib/db').Job }>>([]);
+
   const [recurringListExpanded, setRecurringListExpanded] = useState(false);
   const [showEodReview, setShowEodReview] = useState(false);
   const [eodReviewJobIds, setEodReviewJobIds] = useState<string[]>([]);
@@ -258,97 +262,60 @@ export default function Home() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* --- fetch data --- */
-  const refresh = useCallback(async () => {
+  /* --- derived data from useLiveQuery --- */
+  const jobs = useMemo<Job[]>(() => rawJobs || [], [rawJobs]);
+  const customers = useMemo<Record<string, Customer>>(() => {
+    const map: Record<string, Customer> = {};
+    if (rawCustomers) rawCustomers.forEach((c) => { map[c.id] = c; });
+    return map;
+  }, [rawCustomers]);
+  const lineItems = useMemo<Record<string, LineItem[]>>(() => {
+    const map: Record<string, LineItem[]> = {};
+    if (rawLineItems) rawLineItems.forEach((i) => {
+      if (!map[i.job_id]) map[i.job_id] = [];
+      map[i.job_id].push(i);
+    });
+    return map;
+  }, [rawLineItems]);
+  const workLog = useMemo<Record<string, WorkLogEntry[]>>(() => {
+    const map: Record<string, WorkLogEntry[]> = {};
+    if (rawWorkLog) rawWorkLog.forEach((w) => {
+      if (!map[w.job_id]) map[w.job_id] = [];
+      map[w.job_id].push(w);
+    });
+    return map;
+  }, [rawWorkLog]);
+  const profile = rawProfile ?? null;
+
+  // No-op refresh — data is now reactive via useLiveQuery.
+  // 24+ call sites kept for compatibility; they're harmless empty functions.
+  const refresh = useCallback(() => {}, []);
+
+  // Backfill missing job numbers (side effect — can't be in useLiveQuery)
+  useEffect(() => {
+    if (!userId || !rawJobs) return;
+    const needsNumbers = rawJobs.filter((j) => !j.job_number);
+    if (needsNumbers.length === 0) return;
+    Promise.all(needsNumbers.map((j) => ensureJobNumber(j, userId))).catch(() => {});
+  }, [userId, rawJobs]);
+
+  // Overnight auto-complete + stale job detection (fixed: was dead code after return)
+  useEffect(() => {
     if (!userId) return;
-    const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
-    const jobsWithNumbers: Job[] = [];
-    for (const j of allJobs) {
-      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
-    }
-    const allCustomers = await db.customers.where('user_id').equals(userId).toArray();
-    const allItems = await db.line_items.toArray();
-    const allWorkLog = await db.work_log.toArray();
-    const prof = await db.profiles.get(userId);
-
-    const custMap: Record<string, Customer> = {};
-    allCustomers.forEach((c) => { custMap[c.id] = c; });
-
-    const itemsMap: Record<string, LineItem[]> = {};
-    allItems.forEach((i) => {
-      if (!itemsMap[i.job_id]) itemsMap[i.job_id] = [];
-      itemsMap[i.job_id].push(i);
-    });
-
-    const logMap: Record<string, WorkLogEntry[]> = {};
-    allWorkLog.forEach((w) => {
-      if (!logMap[w.job_id]) logMap[w.job_id] = [];
-      logMap[w.job_id].push(w);
-    });
-
-    setJobs(jobsWithNumbers);
-    setCustomers(custMap);
-    setLineItems(itemsMap);
-    setWorkLog(logMap);
-    setProfile(prof || null);
-
-    // Fetch pending booking requests from local Dexie (synced from Supabase)
-    getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
-
-    setLoading(false);
+    (async () => {
+      const overnightJobs = await getOvernightAutoCompletableJobs(userId);
+      if (overnightJobs.length > 0) {
+        for (const j of overnightJobs) {
+          await autoCompleteJob(j);
+        }
+        captureOvernightAutoComplete({ count: overnightJobs.length });
+        showToast(
+          `${overnightJobs.length} job${overnightJobs.length > 1 ? "s" : ""} auto-completed — review and record payment`,
+          "info"
+        );
+      }
+    })();
   }, [userId]);
-
-
-  useEffect(() => {
-    refresh();
-
-    // Re-fetch booking requests after a delay to give initialSync time to complete
-    // initialSync runs asynchronously in App.tsx and may not have finished
-    // when refresh() runs above. This ensures booking request task cards appear
-    // without requiring a manual page reload.
-    const bookingRetryTimer = setTimeout(() => {
-      if (userId) getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
-    }, 3000);
-
-    return () => clearTimeout(bookingRetryTimer);
-
-    // Anti-forgetting: fetch stale in-progress jobs + run overnight auto-complete
-    if (userId) {
-      (async () => {
-        // 1. Overnight auto-complete (same-day only)
-        const overnightJobs = await getOvernightAutoCompletableJobs(userId!);
-        if (overnightJobs.length > 0) {
-          for (const j of overnightJobs) {
-            await autoCompleteJob(j);
-          }
-          captureOvernightAutoComplete({ count: overnightJobs.length });
-          showToast(
-            `${overnightJobs.length} job${overnightJobs.length > 1 ? "s" : ""} auto-completed — review and record payment`,
-            "info"
-          );
-        }
-
-        // 2. Fetch stale jobs for the banner
-        const stale = await getStaleInProgressJobs(userId!);
-        setStaleJobs(stale);
-        if (stale.length > 0 && stale[0].actual_start) {
-          const elapsedH = Math.floor((Date.now() - new Date(stale[0].actual_start).getTime()) / (1000 * 60 * 60));
-          captureStaleJobNudgeShown({ jobId: stale[0].id, staleType: stale[0].staleType, elapsedHours: elapsedH });
-        }
-      })();
-    }
-  }, [refresh, userId]);
-
-  /* Recompute stale-job banner whenever the job list changes */
-  useEffect(() => {
-    if (!userId) return;
-    getStaleInProgressJobs(userId).then(setStaleJobs);
-    getDueQuoteFollowUps(userId).then(setDueFollowUps).catch(() => {});
-    getDuePaymentChases(userId).then(setDueChases).catch(() => {});
-    getUpcomingRecurringJobs(userId, 14).then(setUpcomingRecurring).catch(() => {});
-    getUpcomingRecurringJobs(userId, 90).then(setAllRecurring).catch(() => {});
-    getPendingBookingRequests(userId).then(setPendingBookings).catch(() => {});
-  }, [jobs, userId]);
 
   /* tick for elapsed timer */
 
@@ -463,7 +430,7 @@ export default function Home() {
 
 
   /* Stale jobs — filtered by dismissed set for this session */
-  const visibleStaleJobs = useMemo(() => staleJobs.filter((j) => !dismissedStaleJobs.has(j.id)), [staleJobs, tick]);
+  const visibleStaleJobs = useMemo(() => staleJobs ? staleJobs.filter((j) => !dismissedStaleJobs.has(j.id)) : [], [staleJobs, dismissedVersion, tick]);
 
 
   const totalOwed = useMemo(() => {
@@ -1002,7 +969,7 @@ export default function Home() {
       }
       dismissedStaleJobs.add(job.id);
       saveDismissedStaleJob(job.id);
-      setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
+      setDismissedVersion((v) => v + 1);
     };
 
     const handleMultiDay = async () => {
@@ -1010,7 +977,7 @@ export default function Home() {
       captureStaleJobNudgeDismissed({ jobId: job.id, staleType: job.staleType, multiDaySet: true });
       dismissedStaleJobs.add(job.id);
       saveDismissedStaleJob(job.id);
-      setStaleJobs((prev) => prev.filter((j) => !dismissedStaleJobs.has(j.id)));
+      setDismissedVersion((v) => v + 1);
     };
 
     let subtitle: string;
