@@ -1,6 +1,6 @@
 # Utilization Fixes — Push Warning + Booking Conflict Gate + Calendar on In-Progress + General Expenses
 
-> **Commit:** (this commit)
+> **Commit:** (f42d8f0)
 > **Date:** 2026-06-28
 > **Status:** All items implemented, tsc + vite build + lint green
 
@@ -10,10 +10,10 @@
 
 | # | Fix | Files | Status | Commit |
 |---|-----|-------|--------|--------|
-| 1 | Push "not fully active" warning | `src/screens/Settings/Reminders.tsx` | ✅ Done | (this commit) |
-| 2 | Booking accept conflict gate (two-tap) | `src/screens/Home/index.tsx` | ✅ Done | (this commit) |
-| 3 | Calendar on in-progress jobs | `src/screens/JobDetail/index.tsx` | ✅ Done | (this commit) |
-| 4 | General (non-job) expense logging | `src/lib/db.ts`, `src/lib/dashboard.ts`, `src/lib/activityFilter.ts`, `src/screens/Dashboard/index.tsx` | ✅ Done | (this commit) |
+| 1 | Push "not fully active" warning | `src/screens/Settings/Reminders.tsx` | ✅ Done | (f42d8f0) |
+| 2 | Booking accept conflict gate (two-tap) | `src/screens/Home/index.tsx` | ✅ Done | (f42d8f0) |
+| 3 | Calendar on in-progress jobs | `src/screens/JobDetail/index.tsx` | ✅ Done | (f42d8f0) |
+| 4 | General (non-job) expense logging | `src/lib/db.ts`, `src/lib/dashboard.ts`, `src/lib/activityFilter.ts`, `src/screens/Dashboard/index.tsx` | ✅ Done | (f42d8f0) |
 
 ---
 
