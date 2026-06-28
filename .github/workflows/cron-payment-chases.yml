@@ -1,0 +1,28 @@
+# Sprint 4: Payment chase email cron
+# Runs daily at 08:15 UTC (09:15 BST) — staggered 15 min after quote follow-ups.
+
+name: Payment Chase Cron
+
+on:
+  schedule:
+    - cron: '15 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-chases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron endpoint
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://buildlogg.com/api/cron-payment-chases")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Cron endpoint returned $HTTP_CODE"
+            exit 1
+          fi
+          echo "::notice::Payment chases processed successfully"

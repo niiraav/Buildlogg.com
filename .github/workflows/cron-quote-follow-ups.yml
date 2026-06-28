@@ -1,0 +1,28 @@
+# Sprint 4: Quote follow-up email cron
+# Runs daily at 08:00 UTC (09:00 BST) — processes due quote follow-ups.
+
+name: Quote Follow-Up Cron
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-follow-ups:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron endpoint
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://buildlogg.com/api/cron-quote-follow-ups")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Cron endpoint returned $HTTP_CODE"
+            exit 1
+          fi
+          echo "::notice::Quote follow-ups processed successfully"

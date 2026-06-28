@@ -314,7 +314,7 @@ export interface PaymentChase {
   sent_at?: string;
   status: 'pending' | 'sent' | 'paused' | 'resolved';
   pause_reason?: string;
-  message_method?: 'whatsapp' | 'sms';
+  message_method?: 'whatsapp' | 'sms' | 'email';
   created_at: string;
   updated_at: string;
   _sync_status: SyncStatus;
