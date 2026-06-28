@@ -254,6 +254,9 @@ export default function Jobs() {
           {job.payment_terms === 'deposit' && job.deposit_status === 'requested' && (
             <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-amber-200 bg-status-amberBg text-status-amber">Deposit due</span>
           )}
+          {job.payment_terms === 'deposit' && job.deposit_status !== 'paid' && job.deposit_status !== 'requested' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-brand-border bg-brand-borderLight text-brand-muted">No deposit</span>
+          )}
         </span>
       );
     }
@@ -268,6 +271,9 @@ export default function Jobs() {
           )}
           {job.payment_terms === 'deposit' && job.deposit_status === 'requested' && (
             <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-amber-200 bg-status-amberBg text-status-amber">Deposit due</span>
+          )}
+          {job.payment_terms === 'deposit' && job.deposit_status !== 'paid' && job.deposit_status !== 'requested' && (
+            <span className="inline-flex items-center px-1.5 py-[1px] rounded-xs text-xs font-bold tracking-wide border border-brand-border bg-brand-borderLight text-brand-muted">No deposit</span>
           )}
         </span>
       );
