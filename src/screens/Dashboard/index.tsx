@@ -5,12 +5,14 @@ import { useAppStore } from '../../store/useAppStore';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
 import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
+import { getJobTitlePricingHistory, type JobTitlePricing } from '../../lib/pricingHistory';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pricing, setPricing] = useState<JobTitlePricing | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -20,6 +22,14 @@ export default function Dashboard() {
     });
     captureDashboardViewed();
   }, [userId]);
+
+  // Fetch pricing history for the top job type once stats are available
+  useEffect(() => {
+    if (!userId || !stats?.topJobType) return;
+    getJobTitlePricingHistory(userId, stats.topJobType.title)
+      .then(setPricing)
+      .catch(() => {});
+  }, [userId, stats?.topJobType]);
 
   useEffect(() => {
     if (stats?.referral && stats.referral.total > 0) {
@@ -146,6 +156,21 @@ export default function Dashboard() {
               <span className="text-sm font-bold text-brand-black">£{stats.topJobType.earnings.toFixed(0)}</span>
             </div>
             <p className="text-xs text-brand-muted mt-1">{stats.topJobType.count} job{stats.topJobType.count !== 1 ? 's' : ''}</p>
+          </div>
+        )}
+
+        {/* Pricing insights — actual price range for top job type */}
+        {pricing && pricing.count >= 2 && (
+          <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+            <p className="text-xs font-semibold text-brand-mid mb-2">Pricing insights</p>
+            <p className="text-sm text-brand-dark leading-relaxed">
+              You've quoted {stats.topJobType!.title} {pricing.count}× — £{pricing.min.toFixed(0)} to £{pricing.max.toFixed(0)}, avg £{pricing.avg.toFixed(0)}
+            </p>
+            {pricing.highVariance && pricing.count >= 3 && (
+              <p className="text-xs text-status-amber mt-2 flex items-center gap-1">
+                <AlertCircle size={13} /> High price variance — consider standardising your pricing
+              </p>
+            )}
           </div>
         )}
 
