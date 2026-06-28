@@ -86,6 +86,12 @@ export async function seedMessageTemplates(userId: string): Promise<number> {
  * to include {reviewLink} on a separate line if the old version is found.
  */
 export async function seedMissingTemplates(userId: string): Promise<number> {
+  // Guard: only run once per user per device. The race condition between
+  // this function and initialSync caused exponential template duplication.
+  // Once templates exist (either from seeding or from Supabase sync), don't seed again.
+  const flagKey = `buildlogg_templates_seeded_${userId}`;
+  if (localStorage.getItem(flagKey) === 'true') return 0;
+
   let inserted = 0;
   const now = new Date().toISOString();
 
@@ -127,6 +133,11 @@ export async function seedMissingTemplates(userId: string): Promise<number> {
 
   // Deduplicate is_default flags — ensure exactly one default per category
   await deduplicateDefaults(userId);
+
+  // Mark as seeded so we don't run again (prevents race-condition duplicates)
+  if (inserted > 0) {
+    localStorage.setItem(flagKey, 'true');
+  }
 
   return inserted;
 }
@@ -172,4 +183,39 @@ export async function deduplicateDefaults(userId: string): Promise<void> {
       await addToSyncQueue('message_templates', tmpl.id, { is_default: true, updated_at: now }, 'update');
     }
   }
+}
+
+/**
+ * Remove duplicate templates per category — keeps the default (or first by sort_order),
+ * deletes the rest. Also cleans up the sync queue for deleted templates.
+ * This fixes the bug where seedMissingTemplates + initialSync race condition
+ * caused exponential duplication of templates across app sessions.
+ */
+export async function deduplicateTemplates(userId: string): Promise<number> {
+  const categories: MessageTemplate['category'][] = [
+    'booking', 'reminder', 'invoice', 'follow_up', 'review', 'receipt', 'update', 'custom'
+  ];
+  let deleted = 0;
+
+  for (const category of categories) {
+    const templates = await db.message_templates
+      .where('user_id')
+      .equals(userId)
+      .filter((t) => t.category === category)
+      .sortBy('sort_order');
+
+    if (templates.length <= 1) continue;
+
+    // Keep the default template (or first if no default), delete the rest
+    const keep = templates.find((t) => t.is_default) || templates[0];
+    const toDelete = templates.filter((t) => t.id !== keep.id);
+
+    for (const tmpl of toDelete) {
+      await db.message_templates.delete(tmpl.id);
+      await addToSyncQueue('message_templates', tmpl.id, {}, 'delete');
+      deleted++;
+    }
+  }
+
+  return deleted;
 }

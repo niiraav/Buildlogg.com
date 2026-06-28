@@ -10,7 +10,7 @@ import {
 } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { db, type Profile } from './lib/db';
-import { seedMissingTemplates } from './lib/seedMessageTemplates';
+import { seedMissingTemplates, deduplicateTemplates } from './lib/seedMessageTemplates';
 import { useAppStore } from './store/useAppStore';
 import { syncWorker } from './lib/sync';
 import { identifyUser, capture, initAnalytics } from './lib/analytics';
@@ -155,7 +155,11 @@ function AuthGuard() {
       }
 
       // Ensure existing users get new default templates (receipt, update, etc.)
-      if (resolvedUserId) seedMissingTemplates(resolvedUserId).catch(() => {});
+      if (resolvedUserId) {
+        seedMissingTemplates(resolvedUserId).catch(() => {});
+        // Fix: remove duplicate templates caused by the seed/sync race condition
+        deduplicateTemplates(resolvedUserId).catch(() => {});
+      }
       initialCheckDone.current = true;
       setChecking(false);
      } catch (err) {
