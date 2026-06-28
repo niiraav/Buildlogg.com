@@ -1137,20 +1137,33 @@ export default function Home() {
   };
 
   const renderNoJobsToday = () => (
-    <div className="px-4 mt-6">
-      <div className="mb-4">
-        <p className="text-base font-semibold text-brand-black">No jobs today</p>
-        <p className="text-sm text-brand-muted mt-1.5">
-          {inlineTasks.length > 0
-            ? `${inlineTasks.length} ${inlineTasks.length === 1 ? 'thing' : 'things'} need attention`
-            : tasks.length > 0
-            ? `${tasks.length} recurring reminder${tasks.length === 1 ? '' : 's'} due`
-            : formatShortDate(today)}
-        </p>
+    <div className="px-4 mt-4">
+      {/* Prominent empty-day header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-brand-borderLight flex items-center justify-center shrink-0">
+          <Calendar size={24} className="text-brand-muted" />
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-brand-black">No jobs today</p>
+          <p className="text-sm text-brand-muted">
+            {inlineTasks.length > 0
+              ? `${inlineTasks.length} ${inlineTasks.length === 1 ? 'thing' : 'things'} need attention`
+              : tasks.length > 0
+              ? `${tasks.length} recurring reminder${tasks.length === 1 ? '' : 's'} due`
+              : formatShortDate(today)}
+          </p>
+        </div>
       </div>
 
+      {/* Section label for inline tasks */}
       {inlineTasks.length > 0 && (
-        <div className="flex flex-col gap-3 mb-4">
+        <span className="text-micro font-bold text-brand-mid tracking-[0.7px] block mb-2">
+          Needs your attention
+        </span>
+      )}
+
+      {inlineTasks.length > 0 && (
+        <div className="flex flex-col gap-2 mb-3">
           {inlineTasks.map((task) => {
             const j = jobs.find(x => x.id === task.jobId);
             const c = j ? customers[j.customer_id] : undefined;
@@ -1202,10 +1215,15 @@ export default function Home() {
   );
 
   const renderAllClear = () => (
-    <div className="px-4 mt-6">
-      <div className="mb-4">
-        <p className="text-base font-semibold text-brand-black">Free day</p>
-        <p className="text-sm text-brand-muted mt-1.5">Nothing needs your attention</p>
+    <div className="px-4 mt-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-status-greenBg flex items-center justify-center shrink-0">
+          <CheckCircle size={24} className="text-status-green" />
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-brand-black">Free day</p>
+          <p className="text-sm text-brand-muted">Nothing needs your attention</p>
+        </div>
       </div>
 
       {/* Proactive: share booking link */}

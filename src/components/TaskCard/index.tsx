@@ -36,6 +36,12 @@ const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgen
   booking_request: { icon: <Calendar size={16} />, label: 'Booking request', urgency: 'high' },
 };
 
+const urgencyChip: Record<'high' | 'medium' | 'low', { label: string; bg: string; text: string }> = {
+  high: { label: 'Urgent', bg: 'bg-status-redBg', text: 'text-status-red' },
+  medium: { label: 'Follow up', bg: 'bg-status-amberBg', text: 'text-status-amber' },
+  low: { label: 'Later', bg: 'bg-brand-borderLight', text: 'text-brand-mid' },
+};
+
 function getDaysUntil(dateString?: string): number | null {
   if (!dateString) return null;
   const [y, m, d] = dateString.split('-').map(Number);
@@ -68,7 +74,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     return (
       <div
         onClick={() => { haptic('light'); onTap(); }}
-        className="bg-white border border-status-amber rounded-2xl overflow-hidden mb-3 cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150"
+        className="bg-white border border-status-amber rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150"
       >
         <div className="px-4 py-3.5">
           <div className="flex items-center justify-between">
@@ -112,15 +118,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div
       onClick={() => { haptic('light'); onTap(); }}
-      className={`bg-white border border-brand-border rounded-2xl overflow-hidden mb-3 cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 border-l-4 ${urgencyBorder}`}
+      className={`bg-white border border-brand-border rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] active:bg-brand-borderLight/50 transition-all duration-150 border-l-4 ${urgencyBorder}`}
     >
-      {/* Header row: icon + name, time + chevron */}
+      {/* Header row: icon + name, urgency chip, time + chevron */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-brand-mid flex-shrink-0">{config.icon}</span>
           <h3 className="text-base font-bold text-brand-black truncate">{title}</h3>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-micro ${urgencyChip[config.urgency].bg} ${urgencyChip[config.urgency].text}`}>
+            {urgencyChip[config.urgency].label}
+          </span>
           {timeAgo && (
             <span className="text-sm font-medium text-brand-mid">{timeAgo}</span>
           )}
