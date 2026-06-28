@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, type Customer, type WorkLogEntry } from '../../lib/db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Customer } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { DaySummaryCard } from '../../components/ActivityCard';
 import SyncIndicator from '../../components/SyncIndicator';
 import { captureActivityViewed } from '../../lib/analytics';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import { filterEvents, groupByDay, type ActivityEvent, type DaySummary } from '../../lib/activityFilter';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonInline } from '../../components/Skeleton';
 
 interface EnrichedJob {
   id: string;
@@ -20,55 +21,38 @@ interface EnrichedJob {
 export default function Activity() {
   const navigate = useNavigate();
   const userId = useAppStore((s) => s.userId);
-  const [days, setDays] = useState<DaySummary[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Reactive data via useLiveQuery
+  const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
+  const rawWorkLog = useLiveQuery(() => db.work_log.toArray(), []);
+  const rawCustomers = useLiveQuery(() => userId ? db.customers.where('user_id').equals(userId).toArray() : [], [userId]);
+
+  const loading = rawJobs === undefined || rawWorkLog === undefined || rawCustomers === undefined;
 
   useEffect(() => {
     captureActivityViewed();
   }, []);
 
-  const load = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+  // Backfill missing job numbers (side effect — can't be in useLiveQuery)
+  useEffect(() => {
+    if (!userId || !rawJobs) return;
+    const needsNumbers = rawJobs.filter((j) => !j.job_number);
+    if (needsNumbers.length === 0) return;
+    Promise.all(needsNumbers.map((j) => ensureJobNumber(j, userId))).catch(() => {});
+  }, [userId, rawJobs]);
 
-    // Fetch all jobs for this user and backfill missing job numbers
-    const allJobs = await db.jobs.where('user_id').equals(userId).toArray().then(jobs => jobs);
-    const jobsWithNumbers: typeof allJobs = [];
-    for (const j of allJobs) {
-      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
-    }
-    const jobIds = jobsWithNumbers.map((j) => j.id);
+  // Derive activity days from raw data
+  const days: DaySummary[] = useMemo(() => {
+    if (!rawJobs || !rawWorkLog || !rawCustomers) return [];
+    if (rawJobs.length === 0) return [];
 
-    if (jobIds.length === 0) {
-      setDays([]);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch work logs for all jobs (chuncked to avoid Dexie limits)
-    const CHUNK = 200;
-    let allLogs: WorkLogEntry[] = [];
-    for (let i = 0; i < jobIds.length; i += CHUNK) {
-      const chunk = jobIds.slice(i, i + CHUNK);
-      const logs = await db.work_log.where('job_id').anyOf(chunk).toArray();
-      allLogs = allLogs.concat(logs);
-    }
-
-    // Sort by created_at descending (newest first)
-    allLogs.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    // Build job map with customer info
-    const customerIds = [...new Set(allJobs.map((j) => j.customer_id))];
-    const customers = await db.customers.bulkGet(customerIds);
+    // Build customer map
     const customerMap = new Map<string, Customer>();
-    customers.filter(Boolean).forEach((c) => customerMap.set(c!.id, c!));
+    rawCustomers.forEach((c) => customerMap.set(c.id, c));
 
+    // Build job map
     const jobMap = new Map<string, EnrichedJob>();
-    jobsWithNumbers.forEach((j) => {
+    rawJobs.forEach((j) => {
       const customer = customerMap.get(j.customer_id);
       jobMap.set(j.id, {
         id: j.id,
@@ -79,17 +63,15 @@ export default function Activity() {
       });
     });
 
+    // Sort work logs by created_at descending
+    const sortedLogs = [...rawWorkLog].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
     // Filter and enrich
-    const events = filterEvents(allLogs, jobMap, 30); // 30-day window
-    const grouped = groupByDay(events);
-
-    setDays(grouped);
-    setLoading(false);
-  }, [userId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+    const events = filterEvents(sortedLogs, jobMap, 30);
+    return groupByDay(events);
+  }, [rawJobs, rawWorkLog, rawCustomers]);
 
   const handleEventTap = useCallback(
     (event: ActivityEvent) => {
@@ -105,7 +87,13 @@ export default function Activity() {
   const totalJobs = days.reduce((sum, d) => sum + d.jobsCompleted, 0);
 
   if (loading) {
-    return <BrandedLoader fullscreen />;
+    return (
+      <div className="bg-[var(--app-shell-bg)] min-h-[100dvh]">
+        <div className="px-4 pt-5 pb-3 border-b border-brand-borderLight">
+          <SkeletonInline />
+        </div>
+      </div>
+    );
   }
 
   return (

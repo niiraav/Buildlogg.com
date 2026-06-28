@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ClipboardList, Search, X } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type JobStatus } from '../../lib/db';
@@ -6,7 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { ensureJobNumber } from '../../lib/jobNumbers';
 import SyncIndicator from '../../components/SyncIndicator';
 import { Button } from '../../components/Button';
-import BrandedLoader from '../../components/BrandedLoader';
+import { SkeletonAppScreen } from '../../components/Skeleton';
 
 /* ─── helpers ─── */
 
@@ -120,35 +121,33 @@ export default function Jobs() {
       setExpanded(new Set(['enquiry', 'in_progress', 'booked', 'quoted', 'awaiting_payment', 'no_show', 'paid', 'cancelled', 'written_off']));
     }
   }, [dateFilter]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [customers, setCustomers] = useState<Record<string, Customer>>({});
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  /* load data */
-  const refresh = useCallback(async () => {
-    if (!userId) return;
-    const allJobs = await db.jobs.where('user_id').equals(userId).toArray();
-    const allCustomers = await db.customers.where('user_id').equals(userId).toArray();
-    const allItems = await db.line_items.toArray();
+  /* --- reactive data (useLiveQuery) --- */
+  const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
+  const rawCustomers = useLiveQuery(() => userId ? db.customers.where('user_id').equals(userId).toArray() : [], [userId]);
+  const rawLineItems = useLiveQuery(() => db.line_items.toArray(), []);
 
-    const jobsWithNumbers: Job[] = [];
-    for (const j of allJobs) {
-      jobsWithNumbers.push(j.job_number ? j : await ensureJobNumber(j, userId));
-    }
+  const loading = rawJobs === undefined || rawCustomers === undefined;
 
-    const custMap: Record<string, Customer> = {};
-    allCustomers.forEach((c) => { custMap[c.id] = c; });
+  // Backfill missing job numbers (side effect)
+  useEffect(() => {
+    if (!userId || !rawJobs) return;
+    const needsNumbers = rawJobs.filter((j) => !j.job_number);
+    if (needsNumbers.length === 0) return;
+    Promise.all(needsNumbers.map((j) => ensureJobNumber(j, userId))).catch(() => {});
+  }, [userId, rawJobs]);
 
-    setJobs(jobsWithNumbers);
-    setCustomers(custMap);
-    setLineItems(allItems);
-    setLoading(false);
-  }, [userId]);
+  // Build customer map from raw data
+  const customers = useMemo<Record<string, Customer>>(() => {
+    const map: Record<string, Customer> = {};
+    if (rawCustomers) rawCustomers.forEach((c) => { map[c.id] = c; });
+    return map;
+  }, [rawCustomers]);
 
-  useEffect(() => { refresh(); }, [refresh]);
-  useEffect(() => { refresh(); }, [dateFilter]);
+  // Jobs with job numbers (from raw, already backfilled via useEffect)
+  const jobs = useMemo<Job[]>(() => rawJobs || [], [rawJobs]);
+  const lineItems = useMemo<LineItem[]>(() => rawLineItems || [], [rawLineItems]);
 
   /* derived */
   const jobsWithData = useMemo<JobWithTotal[]>(() => {
@@ -434,7 +433,7 @@ export default function Jobs() {
 
   /* ─── main render ─── */
   if (loading) {
-    return <BrandedLoader fullscreen />;
+    return <SkeletonAppScreen />;
   }
 
   return (
