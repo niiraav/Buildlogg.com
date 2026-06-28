@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check, X } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -245,6 +245,16 @@ export default function Settings() {
                   : 'Continue where you left off'}
               </p>
             </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('buildlogg_redirected_from_quote');
+                setDraftInfo(null);
+              }}
+              className="shrink-0 w-7 h-7 flex items-center justify-center text-amber-700 cursor-pointer"
+              aria-label="Dismiss"
+            >
+              <X size={16} />
+            </button>
             <button
               onClick={() => {
                 localStorage.removeItem('buildlogg_redirected_from_quote');

@@ -125,19 +125,29 @@ export function SendSheet({
     haptic('light');
     const phone = customerPhone.replace(/\D/g, '');
     const encoded = encodeURIComponent(fullSendText);
+    const waUrl = `https://wa.me/${phone}?text=${encoded}`;
+
     if (attachPDF && pdfBlob) {
+      // Try to share both text and PDF in one navigator.share call
       if (canShareFiles) {
-        setShowSharePdfToast(true);
-        toastTimerRef.current = setTimeout(() => setShowSharePdfToast(false), 15000);
-        onSend('whatsapp_pdf', false);
+        const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
+        navigator.share({ files: [file], text: fullSendText })
+          .then(() => { onSend('whatsapp_pdf', true); })
+          .catch(() => {
+            // User cancelled share — fall back to text-only WhatsApp
+            onSend('whatsapp', false);
+            window.location.href = waUrl;
+          });
       } else {
+        // Can't share files — show PDF preview first, then open WhatsApp
         setShowPdfPreview(true);
         onSend('whatsapp_pdf', false);
+        window.location.href = waUrl;
       }
     } else {
       onSend('whatsapp', false);
+      window.location.href = waUrl;
     }
-    window.location.href = `https://wa.me/${phone}?text=${encoded}`;
   };
 
   const handleSharePdfFromToast = async () => {

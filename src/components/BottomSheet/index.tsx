@@ -147,7 +147,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         className="absolute inset-0 bg-black/25 dark:bg-black/60"
         style={{
           opacity: isHidden ? 0 : 1,
-          transition: 'opacity 250ms ease-out',
+          transition: 'opacity 300ms ease-in-out',
         }}
       />
       {/* Sheet */}
@@ -156,7 +156,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         className="relative z-[56] bg-white dark:bg-[var(--app-shell-bg)] rounded-t-2xl shadow-sheet max-h-[85dvh] md:max-w-md md:mx-auto md:w-full"
         style={{
           transform: isHidden ? 'translateY(100%)' : 'translateY(0)',
-          transition: 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
+          transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
         onTransitionEnd={handleTransitionEnd}
       >

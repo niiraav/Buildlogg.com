@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CreditCard, Star, FileText, X, Calendar, ExternalLink } from 'lucide-react';
+import { Check, CreditCard, Star, FileText, X, Calendar, Copy } from 'lucide-react';
 import { db, type Job, type Customer, type Profile } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
@@ -141,34 +141,39 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-brand-black mb-1">Let them book online</p>
                   <p className="text-xs text-brand-mid leading-relaxed">
-                    Share your booking page so {customerFirstName} can pick a slot themselves — no phone tag.
+                    Share your booking page so {customerFirstName} can pick a slot themselves.
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  value={shortUrl}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(url).then(() => {
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
+                    }).catch(() => {
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
+                    });
+                  }}
+                  className="w-full text-sm text-brand-dark bg-white border border-brand-border rounded-lg py-2.5 pl-3 pr-10 cursor-pointer outline-none focus:border-brand-black truncate"
+                  placeholder={shortUrl}
+                />
                 <button
                   onClick={() => {
                     navigator.clipboard?.writeText(url).then(() => {
-                      showSuccess("Booking link copied");
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
                     }).catch(() => {
-                      showSuccess("Booking link copied");
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
                     });
                   }}
-                  className="flex-1 text-sm font-semibold text-brand-black bg-brand-surface border border-brand-border rounded-lg py-2.5 cursor-pointer hover:bg-brand-bgLight transition-colors min-h-11"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-brand-mid cursor-pointer"
+                  aria-label="Copy link"
                 >
-                  Copy booking link
+                  <Copy size={15} />
                 </button>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-brand-black rounded-lg px-4 py-2.5 cursor-pointer hover:bg-brand-dark transition-colors min-h-11"
-                >
-                  <ExternalLink size={15} />
-                  Open
-                </a>
               </div>
-              <p className="text-micro text-brand-muted mt-2 break-all">{shortUrl}</p>
             </div>
           );
         })()}

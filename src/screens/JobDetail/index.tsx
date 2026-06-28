@@ -972,7 +972,7 @@ export default function JobDetail() {
     setBookingMessage(msg);
     const tplMsg = await getFilledTemplateMessage(userId!, 'booking', job, customer, profile!, total, msg);
     setSendSheetConfig({
-      title: `Send confirmation to ${customer?.name || 'customer'}?`,
+      title: `Send confirmation to ${customer?.name?.split(' ')[0] || 'customer'}?`,
       messageText: tplMsg,
       onSend: (method, pdfShared) => handleSendBookingConfirmation(method, pdfShared),
     });
@@ -1001,7 +1001,7 @@ export default function JobDetail() {
     hapticSuccess();
     showToast('Job started', 'success');
     captureJobStarted();
-    refresh();
+    navigate('/', { replace: true });
   };
 
   const handleStartJob = async () => {
