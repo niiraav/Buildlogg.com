@@ -241,6 +241,30 @@ export async function acceptBookingRequest(
     created_at: n, retry_count: 0,
   });
 
+  // ─── 2b. Create line item from booking service amount (if priced) ───
+  if (booking.service_amount && booking.service_amount > 0) {
+    const itemId = crypto.randomUUID();
+    await db.line_items.add({
+      id: itemId,
+      job_id: jobId,
+      description: booking.service_description,
+      amount: booking.service_amount,
+      sort_order: 0,
+      added_on_site: false,
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await db.sync_queue.add({
+      operation: 'insert', table_name: 'line_items', record_id: itemId,
+      payload: {
+        id: itemId, job_id: jobId, description: booking.service_description,
+        amount: booking.service_amount, sort_order: 0, added_on_site: false,
+        created_at: n,
+      },
+      created_at: n, retry_count: 0,
+    });
+  }
+
   // ─── 3. Update the booking request ───
   await db.booking_requests.update(bookingId, {
     status: 'accepted',

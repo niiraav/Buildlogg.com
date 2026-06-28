@@ -150,7 +150,8 @@ type SheetState =
   | 'write_off'
   | 'confirm_not_home'
   | 'review_prompt'
-  | 'recurring_prompt';
+  | 'recurring_prompt'
+  | 'zero_value_warning';
 
 /* ─── component ─── */
 
@@ -277,7 +278,7 @@ export default function JobDetail() {
       setSheet('mark_done');
     }
     if (routeState.autoStart && job.status === 'booked') {
-      handleStartJob();
+      doStartJob();
     }
   }, [job, location.state]);
 
@@ -930,6 +931,32 @@ export default function JobDetail() {
     });
   };
 
+  const doStartJob = async () => {
+    if (!job) return;
+    const n = now();
+    await db.jobs.update(job.id, {
+      status: 'in_progress',
+      actual_start: n,
+      updated_at: n,
+      _sync_status: 'pending',
+    });
+    const logId = crypto.randomUUID();
+    await db.work_log.add({
+      id: logId,
+      job_id: job.id,
+      type: 'status_change',
+      description: 'Job started',
+      created_at: n,
+      _sync_status: 'pending',
+    });
+    await addToSyncQueue('jobs', job.id, { status: 'in_progress', actual_start: n, updated_at: n }, 'update');
+    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job started', created_at: n }, 'insert');
+    hapticSuccess();
+    showToast('Job started', 'success');
+    captureJobStarted();
+    refresh();
+  };
+
   const handleStartJob = async () => {
     if (!job) return;
 
@@ -960,28 +987,14 @@ export default function JobDetail() {
       }
     }
 
-    const n = now();
-    await db.jobs.update(job.id, {
-      status: 'in_progress',
-      actual_start: n,
-      updated_at: n,
-      _sync_status: 'pending',
-    });
-    const logId = crypto.randomUUID();
-    await db.work_log.add({
-      id: logId,
-      job_id: job.id,
-      type: 'status_change',
-      description: 'Job started',
-      created_at: n,
-      _sync_status: 'pending',
-    });
-    await addToSyncQueue('jobs', job.id, { status: 'in_progress', actual_start: n, updated_at: n }, 'update');
-    await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job started', created_at: n }, 'insert');
-    hapticSuccess();
-    showToast('Job started', 'success');
-    captureJobStarted();
-    refresh();
+    // £0.00 warning: job has no priced items yet
+    if (total === 0 && !job.is_sample) {
+      setSheet('zero_value_warning');
+      capture('zero_value_job_warning_shown', { source: 'job_detail' });
+      return;
+    }
+
+    doStartJob();
   };
 
   const handleReschedule = async () => {
@@ -3431,6 +3444,34 @@ export default function JobDetail() {
               </Button>
             </>
           )}
+        </div>
+      </BottomSheet>
+
+      {/* £0.00 job warning — no priced items yet */}
+      <BottomSheet
+        isOpen={sheet === 'zero_value_warning'}
+        onClose={() => setSheet(null)}
+        title="No price set for this job"
+      >
+        <p className="text-sm text-brand-dark mb-5">
+          You haven't added any priced items yet. Add them now or start the job and add charges as you go.
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button variant="primary" fullWidth onClick={() => {
+            setSheet(null);
+            capture('zero_value_job_add_items', { source: 'job_detail' });
+            if (job) navigate('/quote', { state: { jobId: job.id, customerId: job.customer_id, entryPoint: 'revise' } });
+          }}>
+            Add items
+          </Button>
+          <Button variant="secondary" fullWidth onClick={() => {
+            setSheet(null);
+            capture('zero_value_job_start_anyway', { source: 'job_detail' });
+            doStartJob();
+          }}>
+            Start anyway
+          </Button>
+          <Button variant="ghost" onClick={() => setSheet(null)}>Cancel</Button>
         </div>
       </BottomSheet>
 

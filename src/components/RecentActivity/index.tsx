@@ -84,7 +84,7 @@ export default function RecentActivity() {
 
   if (loading) {
     return (
-      <div className="px-4 mt-5">
+      <div className="mt-5">
         <div className="h-24 rounded-xl border border-brand-border bg-brand-surface animate-pulse" />
       </div>
     );
@@ -94,7 +94,7 @@ export default function RecentActivity() {
 
   return (
     <div className="mt-5">
-      <div className="px-4 flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-bold text-brand-black tracking-tight">Recent</h2>
         <button
           type="button"
@@ -106,7 +106,7 @@ export default function RecentActivity() {
         </button>
       </div>
 
-      <div className="px-4">
+      <div>
         <div className="rounded-xl border border-brand-border bg-[var(--app-shell-bg)] overflow-hidden">
           {events.map((event, index) => {
             const config = TYPE_CONFIG[event.type];
