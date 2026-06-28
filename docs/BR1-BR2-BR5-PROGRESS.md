@@ -1,6 +1,6 @@
 # BR-1 + BR-2 + BR-5 — Quick Requote, Outstanding Balance, Deposit Badge
 
-> **Commit:** (this commit)
+> **Commit:** (6b14619)
 > **Date:** 2026-06-28
 > **Status:** All items implemented, tsc + vite build + lint green
 
@@ -10,9 +10,9 @@
 
 | # | Feature | Files | Status | Commit |
 |---|---------|-------|--------|--------|
-| BR-1 | Quick Requote from JobDetail | QuoteBuilder.tsx, Quote/index.tsx, JobDetail/index.tsx | ✅ Done | (this commit) |
-| BR-2 | Outstanding balance on Jobs list | Jobs/index.tsx | ✅ Done | (this commit) |
-| BR-5 | Deposit status badge on Jobs list | Jobs/index.tsx | ✅ Done | (this commit) |
+| BR-1 | Quick Requote from JobDetail | QuoteBuilder.tsx, Quote/index.tsx, JobDetail/index.tsx | ✅ Done | (6b14619) |
+| BR-2 | Outstanding balance on Jobs list | Jobs/index.tsx | ✅ Done | (6b14619) |
+| BR-5 | Deposit status badge on Jobs list | Jobs/index.tsx | ✅ Done | (6b14619) |
 
 ---
 
