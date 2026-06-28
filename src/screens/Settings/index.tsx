@@ -724,7 +724,7 @@ export default function Settings() {
                     updateProfile({ bank_sort_code: formatted || undefined });
                   }}
                   placeholder="12-34-56"
-                  className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                  className="flex-1 min-w-0 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
                 />
                 <input
                   type="text"
@@ -738,7 +738,7 @@ export default function Settings() {
                     updateProfile({ bank_account_number: formatted || undefined });
                   }}
                   placeholder="1234 5678"
-                  className="flex-1 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
+                  className="flex-1 min-w-0 h-10 px-3 text-sm font-medium text-brand-black bg-brand-surface border border-brand-border rounded-lg outline-none focus:border-brand-black"
                 />
               </div>
             </div>

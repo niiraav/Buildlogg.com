@@ -210,7 +210,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Scrollable content — flex-1 so it takes available space between header and footer */}
-        <div className="overflow-y-auto overscroll-contain flex-1 px-4 pt-2 pb-4">
+        <div className="overflow-y-auto overflow-x-hidden overscroll-contain flex-1 px-4 pt-2 pb-4">
           {children}
         </div>
 
