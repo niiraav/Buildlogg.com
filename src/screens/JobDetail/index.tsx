@@ -1947,6 +1947,28 @@ export default function JobDetail() {
           <InvoiceTotalRow total={total} />
         </div>
         {renderPhotosAndMaterials(true)}
+
+        {job.scheduled_start && (
+          <button
+            onClick={() => {
+              addToCalendar({
+                jobId: job.id,
+                title: job.title,
+                scheduled_start: job.scheduled_start,
+                scheduled_end: job.scheduled_end,
+                customerName: customer.name,
+                customerPhone: customer.phone,
+                address: customer.address,
+                notes: job.notes,
+              });
+              showToast('Calendar event ready to add', 'info', 3000);
+            }}
+            className="w-full h-11 mt-2 flex items-center justify-center gap-2 text-sm font-medium text-brand-black border border-brand-border rounded-xl bg-white active:bg-brand-surface transition-colors cursor-pointer"
+          >
+            <CalendarPlus size={16} className="text-brand-mid" />
+            Add to calendar
+          </button>
+        )}
       </div>
     );
   };

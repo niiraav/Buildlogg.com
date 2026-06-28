@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Mail, MessageSquare, Zap, ChevronLeft } from 'lucide-react';
+import { Bell, Mail, MessageSquare, Zap, ChevronLeft, AlertCircle } from 'lucide-react';
 import { db, type Profile, type ReminderMode } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { updateProfileFields } from '../../lib/profile';
@@ -167,7 +167,10 @@ export default function Reminders() {
             </div>
           </div>
           {pushSupported && pushEnabled && (
-            <p className="text-xs text-brand-muted mt-2 px-0.5">You'll receive push notifications when recurring jobs are due, even if the app is closed.</p>
+            <div className="flex items-start gap-2 bg-status-amberBg border border-amber-200 rounded-lg p-3 mt-2">
+              <AlertCircle size={16} className="text-status-amber shrink-0 mt-0.5" />
+              <p className="text-xs text-status-amber leading-relaxed">Push is subscribed, but automated sending isn't active yet. You'll still get in-app task cards for all reminders.</p>
+            </div>
           )}
         </div>
 

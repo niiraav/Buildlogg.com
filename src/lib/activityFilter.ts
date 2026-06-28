@@ -12,7 +12,7 @@ export interface ActivityEvent {
   jobNumber?: string;
   amount: number;
   timestamp: Date;
-  jobId: string;
+  jobId: string | null;
 }
 
 export interface DaySummary {
@@ -134,7 +134,7 @@ export function filterEvents(
     .filter((log) => isActivityEvent(log))
     .filter((log) => new Date(log.created_at) >= cutoff)
     .map((log) => {
-      const job = jobMap.get(log.job_id);
+      const job = log.job_id ? jobMap.get(log.job_id) : undefined;
       const activityType = getActivityType(log)!;
 
       let amount = log.amount ?? 0;

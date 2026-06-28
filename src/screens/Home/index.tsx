@@ -243,6 +243,7 @@ export default function Home() {
 
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
   const [bookingConflict, setBookingConflict] = useState<{ overlap: ConflictJobInfo | null; soft: SchedulingConflict[] }>({ overlap: null, soft: [] });
+  const [acceptConfirmed, setAcceptConfirmed] = useState(false);
   const summaryBookingStats = useRef<{ count: number; urgent: number }>({ count: 0, urgent: 0 });
   const [sendSheetConfig, setSendSheetConfig] = useState<{
     title: string;
@@ -294,8 +295,9 @@ export default function Home() {
   const workLog = useMemo<Record<string, WorkLogEntry[]>>(() => {
     const map: Record<string, WorkLogEntry[]> = {};
     if (rawWorkLog) rawWorkLog.forEach((w) => {
-      if (!map[w.job_id]) map[w.job_id] = [];
-      map[w.job_id].push(w);
+      const key = w.job_id || '_general';
+      if (!map[key]) map[key] = [];
+      map[key].push(w);
     });
     return map;
   }, [rawWorkLog]);
@@ -1154,7 +1156,7 @@ export default function Home() {
       }
       const bookingId = task.id.replace('booking_', '');
       const bk = pendingBookings.find(b => b.id === bookingId);
-      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
+      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setAcceptConfirmed(false); setSheet('booking_request'); }
     } else {
       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
     }
@@ -1342,7 +1344,7 @@ export default function Home() {
                       }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setAcceptConfirmed(false); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -1400,7 +1402,7 @@ export default function Home() {
                       }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setAcceptConfirmed(false); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -2449,7 +2451,7 @@ export default function Home() {
           {pendingBookings.map((b) => (
             <div
               key={b.id}
-              onClick={() => { setSelectedBooking(b); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }}
+              onClick={() => { setSelectedBooking(b); setBookingConflict({ overlap: null, soft: [] }); setAcceptConfirmed(false); setSheet('booking_request'); }}
               className="bg-white border border-brand-border rounded-lg p-3 cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="flex items-center justify-between mb-1">
@@ -2468,7 +2470,7 @@ export default function Home() {
       {/* W2-1: Booking request sheet */}
       <BottomSheet
         isOpen={sheet === 'booking_request'}
-        onClose={() => { setSheet(null); setSelectedBooking(null); }}
+        onClose={() => { setSheet(null); setSelectedBooking(null); setAcceptConfirmed(false); }}
         title="Booking request"
         subtitle={selectedBooking ? `${selectedBooking.requested_date} at ${selectedBooking.requested_time}` : undefined}
       >
@@ -2531,11 +2533,13 @@ export default function Home() {
               </div>
               <Button variant="primary" fullWidth onClick={async () => {
                 if (!userId) return;
+                if (bookingConflict.overlap && !acceptConfirmed) { setAcceptConfirmed(true); return; }
                 try {
                   const result = await acceptBookingRequest(selectedBooking.id, userId);
                   // Send confirmation message via SendSheet
                   setSheet(null);
                   setSelectedBooking(null);
+                  setAcceptConfirmed(false);
                   setSendSheetConfig({
                     title: `Send confirmation to ${result.customer.name}?`,
                     customerPhone: result.customer.phone,
@@ -2552,7 +2556,7 @@ export default function Home() {
                 }
               }}>
                 <Check size={18} className="mr-2" />
-                Accept booking
+                {acceptConfirmed && bookingConflict.overlap ? 'Accept anyway' : 'Accept booking'}
               </Button>
               <Button variant="secondary" fullWidth onClick={async () => {
                 await rejectBookingRequest(selectedBooking.id);

@@ -108,12 +108,17 @@ export async function getDashboardStats(userId: string, month?: Date): Promise<D
   const monthPayments = allPayments.filter((p) => isSameMonth(new Date(p.recorded_at), ref));
   const monthEarnings = monthPayments.reduce((sum, p) => sum + p.amount, 0);
 
-  // BN-2: Query expense work_log entries for this month
+  // BN-2: Query expense work_log entries for this month (job-specific + general)
   const allWorkLogs = allJobIds.length > 0
     ? await db.work_log.where('job_id').anyOf(allJobIds).toArray()
     : [];
-  const monthExpenses = allWorkLogs
-    .filter(log => log.type === 'expense' && isSameMonth(new Date(log.created_at), ref))
+  // General expenses (no job_id) — query by created_at index, filter in memory
+  const monthStart = new Date(ref.getFullYear(), ref.getMonth(), 1).toISOString();
+  const generalExpenses = await db.work_log
+    .where('created_at').above(monthStart)
+    .filter(log => log.type === 'expense' && !log.job_id)
+    .toArray();
+  const monthExpenses = [...allWorkLogs.filter(log => log.type === 'expense' && isSameMonth(new Date(log.created_at), ref)), ...generalExpenses]
     .reduce((sum, log) => sum + (log.amount || 0), 0);
   const monthProfit = monthEarnings - monthExpenses;
 
