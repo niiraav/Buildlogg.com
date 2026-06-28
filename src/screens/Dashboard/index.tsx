@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users, Calendar } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { db } from '../../lib/db';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
 import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed, captureInsightsShown, captureInsightCtaTapped, captureInsightDismissed } from '../../lib/analytics';
 import { showSuccess } from '../../components/Toast/store';
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [pricing, setPricing] = useState<JobTitlePricing | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+  const [recurringRevenue, setRecurringRevenue] = useState<{ total: number; count: number } | null>(null);
 
   const canSeeInsights = can('business_insights');
 
@@ -60,6 +62,29 @@ export default function Dashboard() {
       if (raw) setDismissedInsights(new Set(JSON.parse(raw)));
     } catch { /* ignore */ }
   }, []);
+
+  // XU-3: Compute recurring revenue from active recurring jobs' original job line items
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const active = await db.recurring_jobs
+          .where('user_id')
+          .equals(userId)
+          .filter((r) => r.status === 'active')
+          .toArray();
+        if (active.length === 0) { setRecurringRevenue(null); return; }
+        const originalJobIds = active.map((r) => r.original_job_id);
+        const items = await db.line_items
+          .where('job_id')
+          .anyOf(originalJobIds)
+          .filter((li) => !li.is_sample)
+          .toArray();
+        const total = items.reduce((sum, li) => sum + li.amount, 0);
+        setRecurringRevenue({ total, count: active.length });
+      } catch { setRecurringRevenue(null); }
+    })();
+  }, [userId]);
 
   const visibleInsights = useMemo(
     () => insights.filter((i) => !dismissedInsights.has(i.id)),
@@ -229,6 +254,18 @@ export default function Dashboard() {
             <p className="text-xs text-brand-muted mt-1">Log expenses on jobs to see your true profit</p>
           )}
         </div>
+
+        {/* XU-3: Recurring revenue tracked */}
+        {recurringRevenue && recurringRevenue.total > 0 && (
+          <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Calendar size={14} className="text-brand-mid" />
+              <span className="text-xs font-semibold text-brand-mid">Recurring revenue tracked</span>
+            </div>
+            <p className="text-2xl font-extrabold text-brand-black">£{recurringRevenue.total.toFixed(0)}</p>
+            <p className="text-xs text-brand-muted mt-1">{recurringRevenue.count} active recurring job{recurringRevenue.count !== 1 ? 's' : ''}</p>
+          </div>
+        )}
 
         {stats.topJobType && (
           <div className="bg-white border border-brand-border rounded-xl p-4 mb-4">

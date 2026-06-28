@@ -29,7 +29,8 @@ import { getDueQuoteFollowUps, snoozeFollowUp, markQuoteResponded, dismissFollow
 import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseById } from '../../lib/paymentChase';
 import { advanceRecurrence, cancelRecurrence, incrementContactAttempt, setReminderMode, updateReminderLeadDays, updateCustomMessage } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
-import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
+import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflictsFull, type ConflictJobInfo } from '../../lib/booking';
+import { type SchedulingConflict } from '../../lib/scheduling';
 import { createCheckoutSession } from '../../lib/stripe';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
 import type { PaymentChase, QuoteFollowUp, RecurringJob, BookingRequest } from '../../lib/db';
@@ -241,7 +242,7 @@ export default function Home() {
   const [selectedRecurring, setSelectedRecurring] = useState<(RecurringJob & { job?: import('../../lib/db').Job }) | null>(null);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
-  const [bookingConflict, setBookingConflict] = useState<ConflictJobInfo | null>(null);
+  const [bookingConflict, setBookingConflict] = useState<{ overlap: ConflictJobInfo | null; soft: SchedulingConflict[] }>({ overlap: null, soft: [] });
   const summaryBookingStats = useRef<{ count: number; urgent: number }>({ count: 0, urgent: 0 });
   const [sendSheetConfig, setSendSheetConfig] = useState<{
     title: string;
@@ -368,15 +369,15 @@ export default function Home() {
   /* Check for booking conflicts when the booking request sheet opens */
   useEffect(() => {
     if (sheet !== 'booking_request' || !selectedBooking || !userId) {
-      setBookingConflict(null);
+      setBookingConflict({ overlap: null, soft: [] });
       return;
     }
-    checkBookingConflict(userId, selectedBooking.id)
+    checkBookingConflictsFull(userId, selectedBooking.id)
       .then((result) => {
-        setBookingConflict(result.conflictJob || null);
+        setBookingConflict(result);
       })
       .catch(() => {
-        setBookingConflict(null);
+        setBookingConflict({ overlap: null, soft: [] });
       });
   }, [sheet, selectedBooking, userId]);
 
@@ -1153,7 +1154,7 @@ export default function Home() {
       }
       const bookingId = task.id.replace('booking_', '');
       const bk = pendingBookings.find(b => b.id === bookingId);
-      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
+      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
     } else {
       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
     }
@@ -1341,7 +1342,7 @@ export default function Home() {
                       }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -1399,7 +1400,7 @@ export default function Home() {
                       }
                       const bookingId = task.id.replace('booking_', '');
                       const bk = pendingBookings.find(b => b.id === bookingId);
-                      if (bk) { setSelectedBooking(bk); setBookingConflict(null); setSheet('booking_request'); }
+                      if (bk) { setSelectedBooking(bk); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }
                     } else {
                       navigate(`/jobs/${task.jobId}`, { state: { initialTab: 'tasks' } });
                     }
@@ -2448,7 +2449,7 @@ export default function Home() {
           {pendingBookings.map((b) => (
             <div
               key={b.id}
-              onClick={() => { setSelectedBooking(b); setBookingConflict(null); setSheet('booking_request'); }}
+              onClick={() => { setSelectedBooking(b); setBookingConflict({ overlap: null, soft: [] }); setSheet('booking_request'); }}
               className="bg-white border border-brand-border rounded-lg p-3 cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="flex items-center justify-between mb-1">
@@ -2472,21 +2473,41 @@ export default function Home() {
         subtitle={selectedBooking ? `${selectedBooking.requested_date} at ${selectedBooking.requested_time}` : undefined}
       >
         {selectedBooking && (() => {
-          const conflictTime = bookingConflict?.scheduledStart
-            ? new Date(bookingConflict.scheduledStart).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          const conflictTime = bookingConflict.overlap?.scheduledStart
+            ? new Date(bookingConflict.overlap.scheduledStart).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
             : '';
+          const hasOverlap = !!bookingConflict.overlap;
+          const hasSoft = bookingConflict.soft.length > 0;
           return (
             <div className="flex flex-col gap-2">
               {/* Client name — primary heading */}
               <h3 className="text-xl font-extrabold text-brand-black px-1">{selectedBooking.client_name}</h3>
 
               {/* Availability/conflict badge — directly below name */}
-              {bookingConflict ? (
+              {hasOverlap ? (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
                   <AlertTriangle size={18} className="text-status-red shrink-0 mt-0.5" />
-                  <p className="text-sm text-status-red">
-                    Conflicts with: {bookingConflict.jobNumber || 'no job #'} · {bookingConflict.customerName} · {bookingConflict.title} · {conflictTime}
-                  </p>
+                  <div className="flex-1">
+                    <p className="text-sm text-status-red">
+                      Conflicts with: {bookingConflict.overlap!.jobNumber || 'no job #'} · {bookingConflict.overlap!.customerName} · {bookingConflict.overlap!.title} · {conflictTime}
+                    </p>
+                    {hasSoft && (
+                      <div className="mt-2 pt-2 border-t border-red-200 space-y-1">
+                        {bookingConflict.soft.map((sc, i) => (
+                          <p key={i} className="text-xs text-status-amber">{sc.message}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : hasSoft ? (
+                <div className="bg-status-amberBg border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                  <AlertTriangle size={18} className="text-status-amber shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    {bookingConflict.soft.map((sc, i) => (
+                      <p key={i} className="text-sm text-status-amber">{sc.message}</p>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="bg-status-greenBg border border-green-200 rounded-lg p-3 flex items-center gap-2">

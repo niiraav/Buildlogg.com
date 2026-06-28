@@ -8,6 +8,7 @@ import { db, type BookingRequest, type Customer, type Job } from './db';
 import { getFilledTemplateMessage } from './templateEngine';
 import { findDuplicateByPhone } from './customers';
 import { nextJobNumber } from './jobNumbers';
+import { detectConflicts, type SchedulingConflict } from './scheduling';
 import { supabase } from './supabase';
 import { createCheckoutSession } from './stripe';
 
@@ -129,6 +130,33 @@ export async function getPendingBookingRequests(userId: string): Promise<Booking
   } catch {
     return [];
   }
+}
+
+/**
+ * Full conflict check for booking accept UI — includes overlap (with Supabase fallback)
+ * plus back-to-back and travel time warnings (Dexie only).
+ */
+export async function checkBookingConflictsFull(
+  userId: string,
+  bookingId: string,
+): Promise<{ overlap: ConflictJobInfo | null; soft: SchedulingConflict[] }> {
+  // 1. Overlap check (with Supabase fallback for new devices)
+  const overlapResult = await checkBookingConflict(userId, bookingId);
+  const overlap = overlapResult.conflictJob || null;
+
+  // 2. Soft warnings (back-to-back, travel time) — Dexie only
+  const booking = await db.booking_requests.get(bookingId);
+  let soft: SchedulingConflict[] = [];
+  if (booking) {
+    const start = bookingScheduledStart(booking);
+    const duration = await getServiceDurationMinutes(booking);
+    const end = bookingScheduledEnd(booking, duration);
+    const allConflicts = await detectConflicts(userId, start, end);
+    // Filter out overlaps — already handled by checkBookingConflict
+    soft = allConflicts.filter((c) => c.conflictType !== 'overlap');
+  }
+
+  return { overlap, soft };
 }
 
 /**
