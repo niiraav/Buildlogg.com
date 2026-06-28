@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, Calendar, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle, CreditCard,
+  ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle, CreditCard,
 } from 'lucide-react';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Profile, type Payment, type JobPhoto, type MaterialItem } from '../../lib/db';
 import { paymentSummary, formatAmount, paymentMethodLabel } from '../../lib/paymentHelpers';
@@ -2100,6 +2100,7 @@ export default function JobDetail() {
     return (
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-[calc(120px + env(safe-area-inset-bottom))]">
 
+        {/* What happened */}
         <div className="border border-brand-border rounded-lg p-4 mb-5">
           <div className="text-micro font-bold tracking-[0.5px] text-brand-mid mb-2">
             What happened
@@ -2107,6 +2108,75 @@ export default function JobDetail() {
           <div className="text-sm text-brand-dark leading-relaxed">
             {profile?.full_name?.split(' ')[0] || 'Dave'} arrived at {job.actual_end ? formatTime(new Date(job.actual_end)) : '—'} — customer not home
           </div>
+        </div>
+
+        {/* Location */}
+        {customer.address ? (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl overflow-hidden bg-white">
+              <div className="relative">
+                <MapPreview address={customer.address} />
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-brand-borderLight">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin size={16} className="text-brand-muted shrink-0" />
+                  <span className="text-sm text-brand-dark font-medium truncate">{customer.address}</span>
+                </div>
+                <button
+                  onClick={() => window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`, '_blank')}
+                  className="flex items-center gap-1 text-sm font-semibold text-brand-black shrink-0 ml-2"
+                >
+                  <Navigation size={14} />
+                  Navigate
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-5">
+            <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Location</div>
+            <div className="border border-brand-border rounded-xl px-4 py-6 bg-white flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-brand-surface flex items-center justify-center">
+                <MapPin size={18} className="text-brand-muted" />
+              </div>
+              <p className="text-sm text-brand-muted">No address set</p>
+              <button onClick={openEditDetails} className="text-sm font-semibold text-brand-black underline underline-offset-2">
+                Add address
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Schedule (simplified — date + arrival window only) */}
+        <div className="mb-5">
+          <div className="text-micro font-bold text-brand-mid tracking-[0.7px] mb-2.5">Schedule</div>
+          <div className="border border-brand-border rounded-xl overflow-hidden bg-white divide-y divide-brand-borderLight">
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-sm text-brand-muted">Date</span>
+              <span className="text-sm font-medium text-brand-black text-right">
+                {job.scheduled_start ? formatShortDate(new Date(job.scheduled_start)) : 'Not set'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-sm text-brand-muted">Arrival window</span>
+              <span className="text-sm font-medium text-brand-black text-right">
+                {job.scheduled_start ? formatTime(new Date(job.scheduled_start)) : '—'}
+                {job.scheduled_end ? ` – ${formatTime(new Date(job.scheduled_end))}` : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quote items */}
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">Quote items</span>
+        </div>
+        <div className="border border-brand-border rounded-lg overflow-hidden mb-5">
+          {lineItems.map((item) => (
+            <InvoiceItemRow key={item.id} item={item} showRemove={false} />
+          ))}
+          <InvoiceTotalRow total={total} />
         </div>
       </div>
     );
@@ -3128,9 +3198,8 @@ export default function JobDetail() {
             type="date"
             value={editDate}
             onChange={(e) => setEditDate(e.target.value)}
-            className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+            className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
           />
-          <Calendar size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
         </div>
       </div>
       <div className="mb-3">
@@ -3142,9 +3211,8 @@ export default function JobDetail() {
             type="time"
             value={editStartTime}
             onChange={(e) => setEditStartTime(e.target.value)}
-            className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+            className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
           />
-          <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
         </div>
       </div>
       <div className="mb-3">
@@ -3165,7 +3233,7 @@ export default function JobDetail() {
               type="time"
               value={editEndTime}
               onChange={(e) => setEditEndTime(e.target.value)}
-              className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+              className="w-full h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
             />
             <button
               onClick={() => setEditEndTime('')}

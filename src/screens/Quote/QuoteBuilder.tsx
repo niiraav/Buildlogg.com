@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ChevronLeft, X, Plus, Calendar, Clock, BookmarkPlus, LayoutTemplate } from 'lucide-react';
+import { ChevronLeft, X, Plus, BookmarkPlus, LayoutTemplate } from 'lucide-react';
 import { db, type Customer, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { nextJobNumber } from '../../lib/jobNumbers';
@@ -743,9 +743,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDate(e.target.value)}
                 onBlur={handleDateBlur}
-                className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+                className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
               />
-              <Calendar size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
             </div>
           </div>
 
@@ -761,9 +760,8 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                   min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
                   onChange={(e) => setStartTime(e.target.value)}
                   onBlur={handleStartTimeBlur}
-                  className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+                  className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                 />
-                <Clock size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
               </div>
             </div>
             <div className="flex-1">
@@ -791,7 +789,7 @@ export default function QuoteBuilder({ customerId, jobId, onPreview, onBack, onS
                     min={startTime || undefined}
                     onChange={(e) => setEndTime(e.target.value)}
                     onBlur={handleEndTimeBlur}
-                    className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white appearance-none"
+                    className="w-full min-h-12 px-3.5 pr-10 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                   />
                   <button
                     onClick={() => { setEndTime(''); saveJob(); }}
