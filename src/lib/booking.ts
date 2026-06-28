@@ -9,6 +9,7 @@ import { getFilledTemplateMessage } from './templateEngine';
 import { findDuplicateByPhone } from './customers';
 import { nextJobNumber } from './jobNumbers';
 import { supabase } from './supabase';
+import { createCheckoutSession } from './stripe';
 
 function now(): string {
   return new Date().toISOString();
@@ -272,6 +273,45 @@ export async function acceptBookingRequest(
     });
   }
 
+  // ─── BU-6: Auto-generate Stripe deposit link if payment_terms === 'deposit' and not already paid ───
+  let depositLinkSuffix = '';
+  if (profile.payment_terms === 'deposit' && profile.stripe_connected && booking.status !== 'deposit_paid' && booking.service_amount && booking.service_amount > 0) {
+    const depositPct = profile.deposit_pct || 20;
+    const depositAmount = booking.service_amount * (depositPct / 100);
+    if (depositAmount >= 0.50) { // Stripe minimum charge
+      try {
+        const checkoutResult = await createCheckoutSession({
+          merchantId: userId,
+          jobId,
+          amount: depositAmount,
+          description: 'Deposit for ' + booking.service_description,
+          type: 'deposit',
+        });
+        await db.jobs.update(jobId, {
+          deposit_status: 'requested',
+          deposit_amount: depositAmount,
+          deposit_stripe_url: checkoutResult.url,
+          deposit_stripe_link_id: checkoutResult.id,
+          deposit_requested_at: n,
+          updated_at: n,
+          _sync_status: 'pending',
+        });
+        await db.sync_queue.add({
+          operation: 'update', table_name: 'jobs', record_id: jobId,
+          payload: {
+            deposit_status: 'requested', deposit_amount: depositAmount,
+            deposit_stripe_url: checkoutResult.url, deposit_stripe_link_id: checkoutResult.id,
+            deposit_requested_at: n, updated_at: n,
+          },
+          created_at: n, retry_count: 0,
+        });
+        depositLinkSuffix = '\n\nPay your £' + depositAmount.toFixed(2) + ' deposit here: ' + checkoutResult.url;
+      } catch (e) {
+        console.error('[booking] Deposit link creation failed:', e);
+      }
+    }
+  }
+
   // ─── 3. Update the booking request ───
   await db.booking_requests.update(bookingId, {
     status: 'accepted',
@@ -310,7 +350,7 @@ export async function acceptBookingRequest(
   return {
     jobId,
     customerId,
-    confirmationMessage,
+    confirmationMessage: confirmationMessage + depositLinkSuffix,
     customer: {
       name: customerName,
       phone: booking.client_phone,
