@@ -572,8 +572,8 @@ recurring job task cards.
 | 3 | XU-1: Trade templates in QuoteBuilder | HIGH — saves 5 min per quote | S | Both | ✅ Shipped (cf4c652) |
 | 4 | XU-4: Customer notes banner on JobDetail | HIGH — prevents site visit problems | S | Both | ✅ Already built |
 | 5 | BU-1: Booking link on QuoteSent | MED-HIGH — self-serve booking | S | Both | ⬜ Next |
-| 6 | CU-2: Stripe link in chase messages | HIGH — gets overdue money | S-M | Both | ⬜ |
-| 7 | BU-4: Rebook link post-payment | MED — recurring revenue | S | Sophie core | ⬜ |
+| 6 | CU-2: Stripe link in chase messages | HIGH — gets overdue money | S-M | Both | ✅ Shipped (c83f5de) |
+| 7 | BU-4: Rebook link post-payment | MED — recurring revenue | S | Sophie core | ✅ Shipped (c83f5de) |
 | 8 | XU-7: Templates in booking + chase | MED — consistency | S-M | Both | ⬜ |
 | 9 | BU-5: Deposits on booking page | HIGH — reduces no-shows | M | Sophie core | ⬜ |
 | 10 | XU-6: Mini stat on Home | MED — daily feedback | S | Both | ⬜ |
