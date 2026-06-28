@@ -10,10 +10,10 @@
 
 | # | Feature | File | Status | Commit |
 |---|---------|------|--------|--------|
-| BU-1 | Booking link on QuoteSent screen | `src/screens/Quote/QuoteSent.tsx` | ✅ Done | (this commit) |
-| XU-6 | Mini "completed today" stat on Home | `src/screens/Home/index.tsx` | ✅ Done | (this commit) |
-| XU-2a | Pricing insights card on Dashboard | `src/screens/Dashboard/index.tsx` | ✅ Done | (this commit) |
-| XU-2b | Avg per-job subtitle on CustomerDetail | `src/screens/Customers/CustomerDetail.tsx` | ✅ Done | (this commit) |
+| BU-1 | Booking link on QuoteSent screen | `src/screens/Quote/QuoteSent.tsx` | ✅ Done | (d323ad6) |
+| XU-6 | Mini "completed today" stat on Home | `src/screens/Home/index.tsx` | ✅ Done | (d323ad6) |
+| XU-2a | Pricing insights card on Dashboard | `src/screens/Dashboard/index.tsx` | ✅ Done | (d323ad6) |
+| XU-2b | Avg per-job subtitle on CustomerDetail | `src/screens/Customers/CustomerDetail.tsx` | ✅ Done | (d323ad6) |
 
 ---
 
