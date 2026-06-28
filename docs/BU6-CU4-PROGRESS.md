@@ -10,8 +10,8 @@
 
 | # | Feature | File | Status | Commit |
 |---|---------|------|--------|--------|
-| BU-6 | Booking accept flow with deposit link | `src/lib/booking.ts`, `src/lib/db.ts` | ✅ Done | (this commit) |
-| CU-4 | Card payment upsell nudge at chase moment | `src/screens/Home/index.tsx` | ✅ Done | (this commit) |
+| BU-6 | Booking accept flow with deposit link | `src/lib/booking.ts`, `src/lib/db.ts` | ✅ Done | (99ba61b) |
+| CU-4 | Card payment upsell nudge at chase moment | `src/screens/Home/index.tsx` | ✅ Done | (99ba61b) |
 
 ---
 
