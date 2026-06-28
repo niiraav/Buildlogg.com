@@ -62,11 +62,11 @@ export default function AppDesktopContext() {
       const allItems = await db.line_items.toArray();
       const prof = await db.profiles.get(uid);
 
-      const inProgress = allJobs.filter((j) => j.status === 'in_progress').length;
-      const booked = allJobs.filter((j) => j.status === 'booked').length;
+      const inProgress = allJobs.filter((j) => j.status === 'in_progress' && !j.is_sample).length;
+      const booked = allJobs.filter((j) => j.status === 'booked' && !j.is_sample).length;
       const active = inProgress + booked;
       const unpaid = allJobs
-        .filter((j) => j.status === 'awaiting_payment')
+        .filter((j) => j.status === 'awaiting_payment' && !j.is_sample)
         .reduce((sum, j) => {
           const items = allItems.filter((i) => i.job_id === j.id);
           return sum + items.reduce((s, i) => s + (i.amount || 0), 0);
