@@ -82,6 +82,11 @@ export default function Settings() {
   const [showReviewsSheet, setShowReviewsSheet] = useState(false);
   const [showCardPaymentsSheet, setShowCardPaymentsSheet] = useState(false);
   const [showLogoHelp, setShowLogoHelp] = useState(false);
+  const [showProfileSheet, setShowProfileSheet] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editBusinessName, setEditBusinessName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   
   // Detect active quote draft for quick resume
@@ -144,6 +149,25 @@ export default function Settings() {
     },
     [userId, profile]
   );
+
+  const handleOpenProfile = () => {
+    setEditFullName(fullName);
+    setEditBusinessName(businessName);
+    setEditPhone(phone);
+    setPhoneError(null);
+    setTradeOtherMode(false);
+    setShowProfileSheet(true);
+  };
+
+  const handleSaveProfile = () => {
+    const err = validateUKPhone(editPhone);
+    if (err) { setPhoneError(err); return; }
+    setPhoneError(null);
+    saveField('full_name', editFullName);
+    saveField('business_name', editBusinessName);
+    saveField('phone', normalizeUKPhone(editPhone));
+    setShowProfileSheet(false);
+  };
 
   const handlePreviewPDF = async () => {
     if (!profile) return;
@@ -280,114 +304,47 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Business profile */}
+        {/* Business profile — summary card */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Business profile
           </div>
-          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-            <div className="px-4">
-              <InlineEditRow
-                label="Your name"
-                value={fullName}
-                onSave={(v) => saveField('full_name', v)}
-                isEditing={editingField === 'full_name'}
-                onEditStart={() => setEditingField('full_name')}
-                onEditEnd={() => setEditingField(null)}
-                placeholder="Your name"
-              />
-            </div>
-            <div className={`px-4 ${businessNameEmpty ? 'bg-status-amberBg' : ''}`}>
-              <div
-                className={`min-h-13 flex items-center justify-between border-b border-brand-borderLight ${
-                  businessNameEmpty ? 'border-amber-200' : ''
-                }`}
-                onClick={() => {
-                  if (editingField !== 'business_name') setEditingField('business_name');
-                }}
-              >
-                <span className={`text-sm font-medium ${businessNameEmpty ? 'text-status-amber' : 'text-brand-dark'}`}>
-                  Business name
-                </span>
-                <div className="flex items-center gap-2">
-                  {editingField === 'business_name' ? (
-                    <>
-                      <input
-                        autoFocus
-                        type="text"
-                        defaultValue={businessName}
-                        placeholder="Enter business name"
-                        className="text-base text-brand-black text-right min-w-[120px] bg-transparent border-none outline-none p-0"
-                        onBlur={(e) => {
-                          saveField('business_name', e.target.value);
-                          setEditingField(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            saveField('business_name', (e.target as HTMLInputElement).value);
-                            setEditingField(null);
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => setEditingField(null)}
-                        className="text-sm font-semibold text-brand-black underline underline-offset-2"
-                      >
-                        Done
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className={`text-base font-medium truncate max-w-[60vw] ${businessNameEmpty ? 'text-status-amber italic' : 'text-brand-black'}`}>
-                        {businessNameEmpty ? 'Tap to add ›' : businessName}
-                      </span>
-                      <ChevronRight size={14} className="text-brand-muted" />
-                    </>
-                  )}
-                </div>
+          <div
+            className="bg-white border border-brand-border rounded-xl p-4 flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity"
+            onClick={handleOpenProfile}
+          >
+            {profile?.logo_data_url ? (
+              <img src={profile.logo_data_url} alt="" className="w-12 h-12 rounded-full object-cover border border-brand-border shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-brand-black text-brand-surface flex items-center justify-center text-lg font-bold shrink-0">
+                {(businessName || fullName || '?').charAt(0).toUpperCase()}
               </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={`text-base font-bold truncate ${businessNameEmpty ? 'text-status-amber italic' : 'text-brand-black'}`}>
+                {businessNameEmpty ? 'Add business name' : businessName}
+              </p>
+              <p className="text-xs text-brand-muted mt-0.5">
+                {trade
+                  ? trade === 'other' && profile?.trade_other
+                    ? profile.trade_other
+                    : TRADE_OPTIONS.find((t) => t.value === trade)?.label || trade
+                  : 'Trade not set'}
+              </p>
             </div>
-            <div className="px-4">
-              <InlineEditRow
-                label="Phone"
-                value={phone || ''}
-                onSave={(v) => saveField('phone', normalizeUKPhone(v))}
-                isEditing={editingField === 'phone'}
-                onEditStart={() => setEditingField('phone')}
-                onEditEnd={() => setEditingField(null)}
-                inputType="tel"
-                inputMode="tel"
-                placeholder="Phone number"
-                validate={validateUKPhone}
-              />
-            </div>
-            <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer"
-              onClick={() => setTradeSheetOpen(true)}
-            >
-              <span className="text-sm font-medium text-brand-dark">Trade</span>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-medium text-brand-black">
-                  {trade
-                    ? trade === 'other' && profile?.trade_other
-                      ? profile.trade_other
-                      : TRADE_OPTIONS.find((t) => t.value === trade)?.label || trade
-                    : '—'}
-                </span>
-                <ChevronRight size={14} className="text-brand-muted" />
-              </div>
-            </div>
-            <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
-              onClick={() => can('pdf_branding') ? setShowBrandingSheet(true) : undefined}
-            >
-              <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
-              {can('pdf_branding') ? (
-                <ChevronRight size={14} className="text-brand-muted" />
-              ) : (
-                <ProBadge upgradeUrl={upgradeUrl} />
-              )}
-            </div>
+            <ChevronRight size={18} className="text-brand-muted shrink-0" />
+          </div>
+          {/* PDF & invoice branding — separate row */}
+          <div
+            className="mt-2 bg-white border border-brand-border rounded-xl px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
+            onClick={() => can('pdf_branding') ? setShowBrandingSheet(true) : undefined}
+          >
+            <span className="text-sm font-medium text-brand-dark">PDF & invoice branding</span>
+            {can('pdf_branding') ? (
+              <ChevronRight size={14} className="text-brand-muted" />
+            ) : (
+              <ProBadge upgradeUrl={upgradeUrl} />
+            )}
           </div>
         </div>
 
@@ -1042,6 +999,154 @@ export default function Settings() {
 
           </div>
         )}
+      </BottomSheet>
+
+      {/* Profile edit sheet */}
+      <BottomSheet
+        isOpen={showProfileSheet}
+        onClose={() => setShowProfileSheet(false)}
+        title="Edit profile"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Logo */}
+          <div>
+            <p className="text-sm font-semibold text-brand-dark mb-2">Business logo</p>
+            {profile?.logo_data_url ? (
+              <div className="flex items-center gap-3">
+                <img src={profile.logo_data_url} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-brand-border" />
+                <button
+                  onClick={() => updateProfile({ logo_data_url: undefined })}
+                  className="text-sm text-status-error cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-brand-border rounded-lg cursor-pointer hover:bg-brand-surface transition-colors">
+                <Upload size={20} className="text-brand-muted mb-1" />
+                <span className="text-xs font-medium text-brand-dark">Choose logo</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+                    const img = new Image();
+                    img.onload = () => {
+                      ctx.drawImage(img, 0, 0, 200, 200);
+                      updateProfile({ logo_data_url: canvas.toDataURL('image/png') });
+                    };
+                    img.src = URL.createObjectURL(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* Business name */}
+          <div>
+            <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+              Business name
+            </label>
+            <input
+              type="text"
+              value={editBusinessName}
+              onChange={(e) => setEditBusinessName(e.target.value)}
+              placeholder="Enter business name"
+              className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+            />
+          </div>
+
+          {/* Your name */}
+          <div>
+            <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+              Your name
+            </label>
+            <input
+              type="text"
+              value={editFullName}
+              onChange={(e) => setEditFullName(e.target.value)}
+              placeholder="Your name"
+              className="w-full h-12 px-3.5 border-2 border-brand-border rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-1">
+              Phone
+            </label>
+            <input
+              type="tel"
+              inputMode="tel"
+              value={editPhone}
+              onChange={(e) => { setEditPhone(e.target.value); setPhoneError(null); }}
+              placeholder="Phone number"
+              className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black ${phoneError ? 'border-status-red' : 'border-brand-border'}`}
+            />
+            {phoneError && <p className="text-label text-status-red mt-1">{phoneError}</p>}
+          </div>
+
+          {/* Trade — inline selection */}
+          <div>
+            <label className="block text-micro font-bold tracking-[0.4px] text-brand-mid mb-2">
+              Trade
+            </label>
+            <div className="flex flex-col gap-1">
+              {TRADE_OPTIONS.map((opt, idx) => (
+                <SheetRow
+                  key={opt.value}
+                  label={opt.label}
+                  onTap={() => {
+                    if (opt.value === 'other') {
+                      setTradeOtherMode(true);
+                      setTradeOtherInput(profile?.trade_other || '');
+                    } else {
+                      saveField('trade', opt.value!);
+                      setTradeOtherMode(false);
+                    }
+                  }}
+                  isLast={idx === TRADE_OPTIONS.length - 1}
+                />
+              ))}
+              {tradeOtherMode && (
+                <div className="mt-2 pt-2 border-t border-brand-borderLight">
+                  <input
+                    type="text"
+                    value={tradeOtherInput}
+                    onChange={(e) => setTradeOtherInput(e.target.value)}
+                    placeholder="Your trade, e.g. Roofer"
+                    className="w-full h-12 px-4 text-base font-medium text-brand-black border border-brand-border rounded-xl outline-none focus:border-brand-black bg-white"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      if (tradeOtherInput.trim()) {
+                        saveField('trade', 'other');
+                        saveField('trade_other', tradeOtherInput.trim());
+                      }
+                      setTradeOtherMode(false);
+                    }}
+                    className="mt-2 w-full h-13 bg-brand-black text-brand-surface rounded-xl text-base font-semibold cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Save */}
+          <Button variant="primary" fullWidth onClick={handleSaveProfile}>
+            Save
+          </Button>
+        </div>
       </BottomSheet>
 
       {/* Feedback sheet */}
