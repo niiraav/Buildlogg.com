@@ -29,6 +29,7 @@ import { markChaseSent, pauseChase, resumeChase, resolveChases as resolveChaseBy
 import { advanceRecurrence, cancelRecurrence, incrementContactAttempt } from '../../lib/recurringJobs';
 import { getUpcomingRecurringJobs, createRecurringJob } from '../../lib/recurringJobs';
 import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, checkBookingConflict, type ConflictJobInfo } from '../../lib/booking';
+import { createCheckoutSession } from '../../lib/stripe';
 import type { PaymentChase, QuoteFollowUp, RecurringJob, BookingRequest } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
@@ -239,6 +240,7 @@ export default function Home() {
     messageText: string;
     onSend: (method: SendMethod, pdfShared: boolean) => void;
   } | null>(null);
+  const [chaseStripeLoading, setChaseStripeLoading] = useState(false);
 
   const [recurringListExpanded, setRecurringListExpanded] = useState(false);
   const [showEodReview, setShowEodReview] = useState(false);
@@ -2009,8 +2011,28 @@ export default function Home() {
                   <p className="text-sm text-status-amber">This invoice is {daysOverdue} days overdue. You can file a small claims court claim for £{total.toFixed(2)}.</p>
                 </div>
               ) : !isPaused ? (
-                <Button variant="primary" fullWidth onClick={() => {
-                  const msg = stageMessages[selectedChase.stage] || stageMessages.gentle;
+              <>
+                <Button variant="primary" fullWidth disabled={chaseStripeLoading} onClick={async () => {
+                  let msg = stageMessages[selectedChase.stage] || stageMessages.gentle;
+                  let stripeLinkIncluded = false;
+                  if (profile?.stripe_connected) {
+                    setChaseStripeLoading(true);
+                    try {
+                      const result = await createCheckoutSession({
+                        merchantId: userId!,
+                        jobId: selectedChase.job_id,
+                        amount: total,
+                        description: `Payment for ${selectedChase.job?.title || 'job'}`,
+                        type: 'full',
+                      });
+                      msg = msg + `\n\nPay online here: ${result.url}`;
+                      stripeLinkIncluded = true;
+                    } catch (e) {
+                      console.error('[Home] Chase Stripe link creation failed:', e);
+                    } finally {
+                      setChaseStripeLoading(false);
+                    }
+                  }
                   setSendSheetConfig({
                     title: `Send to ${c?.name || 'customer'}?`,
                     customerPhone: c?.phone || '',
@@ -2019,16 +2041,54 @@ export default function Home() {
                       await markChaseSent(selectedChase.id, method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
                       const n = new Date().toISOString();
                       const logId = crypto.randomUUID();
-                      await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Payment chase sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}: ${msg}`, created_at: n, _sync_status: 'pending' });
-                      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Payment chase sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}: ${msg}`, created_at: n }, 'insert');
+                      const logDesc = `[Payment chase sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}: ${msg}${stripeLinkIncluded ? ' [+ card payment link]' : ''}`;
+                      await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: logDesc, created_at: n, _sync_status: 'pending' });
+                      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: logDesc, created_at: n }, 'insert');
                       capturePaymentChaseSent({ jobId: selectedChase.job_id, stage: selectedChase.stage, method: method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms' });
                       setSheet(null); setSelectedChase(null); refresh();
                     },
                   });
                 }}>
                   <MessageCircle size={18} className="mr-2" />
-                  Send chase
+                  {chaseStripeLoading ? 'Preparing chase...' : 'Send chase'}
                 </Button>
+                {profile?.stripe_connected && (
+                  <Button variant="secondary" fullWidth disabled={chaseStripeLoading} onClick={async () => {
+                    setChaseStripeLoading(true);
+                    try {
+                      const result = await createCheckoutSession({
+                        merchantId: userId!,
+                        jobId: selectedChase.job_id,
+                        amount: total,
+                        description: `Payment for ${selectedChase.job?.title || 'job'}`,
+                        type: 'full',
+                      });
+                      const cardMsg = `Hi ${firstName}, you can pay the £${total.toFixed(2)} balance online here: ${result.url} — ${businessName}`;
+                      setSendSheetConfig({
+                        title: `Send payment link to ${c?.name || 'customer'}?`,
+                        customerPhone: c?.phone || '',
+                        messageText: cardMsg,
+                        onSend: async (method) => {
+                          await markChaseSent(selectedChase.id, method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms');
+                          const n = new Date().toISOString();
+                          const logId = crypto.randomUUID();
+                          await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Card payment link sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}`, created_at: n, _sync_status: 'pending' });
+                          await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_sent', description: `[Card payment link sent via ${method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS'}] ${selectedChase.stage}`, created_at: n }, 'insert');
+                          capturePaymentChaseSent({ jobId: selectedChase.job_id, stage: selectedChase.stage, method: method === 'whatsapp' || method === 'whatsapp_pdf' ? 'whatsapp' : 'sms' });
+                          setSheet(null); setSelectedChase(null); refresh();
+                        },
+                      });
+                    } catch (e) {
+                      showToast('Could not create payment link', 'error', 4000);
+                    } finally {
+                      setChaseStripeLoading(false);
+                    }
+                  }}>
+                    <CreditCard size={18} className="mr-2" />
+                    Send card payment link
+                  </Button>
+                )}
+              </>
               ) : null}
               {isPaused ? (
                 <Button variant="secondary" fullWidth onClick={async () => { await resumeChase(selectedChase.job_id); const n = new Date().toISOString(); const logId = crypto.randomUUID(); await db.work_log.add({ id: logId, job_id: selectedChase.job_id, type: 'payment_chase_resumed', description: 'Payment chase resumed', created_at: n, _sync_status: 'pending' }); await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedChase.job_id, type: 'payment_chase_resumed', description: 'Payment chase resumed', created_at: n }, 'insert'); capturePaymentChaseResumed({ jobId: selectedChase.job_id }); setSheet(null); setSelectedChase(null); refresh(); showToast('Chase resumed'); }}>Resume chase</Button>

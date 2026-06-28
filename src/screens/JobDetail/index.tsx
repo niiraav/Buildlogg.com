@@ -34,6 +34,7 @@ import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { detectConflicts, type SchedulingConflict } from '../../lib/scheduling';
 import { captureReviewRequestShown, captureReviewRequestSent, captureReviewRequestSkipped } from '../../lib/analytics';
 import { addToCalendar } from '../../lib/calendar';
+import { bookingPageUrl } from '../../lib/referral';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
 import { markQuoteResponded } from '../../lib/quoteFollowUp';
 import { createPaymentChases, resolveChases, markStageSentByJob, pauseChasesOnStatusChange } from '../../lib/paymentChase';
@@ -2157,6 +2158,50 @@ export default function JobDetail() {
             </button>
           </div>
         </div>
+
+        {/* BU-4: Book again card — shown when booking is enabled */}
+        {profile?.booking_enabled && profile?.booking_slug && (() => {
+          const bookingUrl = bookingPageUrl(profile.booking_slug);
+          const businessName = profile?.business_name || profile?.full_name || 'Your business';
+          const firstName = customer?.name?.split(' ')[0] || 'there';
+          return (
+            <div className="bg-brand-surface border border-brand-border rounded-lg p-4 mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <CalendarPlus size={16} className="text-brand-mid" />
+                <span className="text-micro font-bold text-brand-mid tracking-[0.7px]">Book again</span>
+              </div>
+              <p className="text-sm text-brand-dark mb-3 leading-relaxed">Let {firstName} book their next appointment online.</p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled={!!job?.is_sample}
+                  onClick={() => {
+                    setSendSheetConfig({
+                      title: `Send booking link to ${customer?.name || 'customer'}?`,
+                      messageText: `Hi ${firstName}, thanks for your business! Book your next appointment online: ${bookingUrl} — ${businessName}`,
+                      onSend: () => { setSendSheetConfig(null); },
+                    });
+                  }}
+                >
+                  Send booking link
+                </Button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(bookingUrl).then(() => {
+                      showToast('Booking link copied', 'info', 3000);
+                    }).catch(() => {
+                      showToast('Could not copy link', 'error', 3000);
+                    });
+                  }}
+                  className="text-sm font-medium text-brand-mid underline underline-offset-2 cursor-pointer text-center min-h-11"
+                >
+                  Copy booking link
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {renderPhotosAndMaterials(false)}
 
