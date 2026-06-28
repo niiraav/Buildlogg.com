@@ -10,9 +10,9 @@
 
 | # | Feature | File | Status | Commit |
 |---|---------|------|--------|--------|
-| BU-3 | Booking link on CustomerDetail | `src/screens/Customers/CustomerDetail.tsx` | ✅ Done | (this commit) |
-| BU-7 | Merchant logo on booking page | `functions/book/[[slug]].js` | ✅ Done | (this commit) |
-| CU-3/XU-5 | QR codes on invoice PDFs | `src/lib/prettyQr.ts`, `src/lib/pdfGenerator.ts` | ✅ Done | (this commit) |
+| BU-3 | Booking link on CustomerDetail | `src/screens/Customers/CustomerDetail.tsx` | ✅ Done | (255a226) |
+| BU-7 | Merchant logo on booking page | `functions/book/[[slug]].js` | ✅ Done | (255a226) |
+| CU-3/XU-5 | QR codes on invoice PDFs | `src/lib/prettyQr.ts`, `src/lib/pdfGenerator.ts` | ✅ Done | (255a226) |
 
 ---
 
