@@ -12,6 +12,7 @@ import { InlineEditRow } from '../../components/InlineEditRow';
 import { showSuccess } from '../../components/Toast/store';
 import { useAppStore } from '../../store/useAppStore';
 import { bookingPageUrl } from '../../lib/referral';
+import { formatPhoneDisplay, normalizePhone, phoneForWhatsApp } from '../../lib/phone';
 
 export default function CustomerDetail() {
   const navigate = useNavigate();
@@ -170,11 +171,11 @@ export default function CustomerDetail() {
           <div className="flex flex-col gap-2 mt-2">
             {customer.phone && (
               <button
-                onClick={() => window.open(`tel:${customer.phone}`, '_self')}
+                onClick={() => window.open(`tel:${normalizePhone(customer.phone)}`, '_self')}
                 className="flex items-center gap-2 text-sm text-brand-dark cursor-pointer"
               >
                 <Phone size={14} className="text-brand-muted" />
-                {customer.phone}
+                {formatPhoneDisplay(customer.phone)}
               </button>
             )}
             {customer.address && (
@@ -343,7 +344,7 @@ export default function CustomerDetail() {
               const url = bookingPageUrl(profile.booking_slug!);
               const customerFirstName = customer.name.split(' ')[0] || 'there';
               if (customer.phone) {
-                const phone = customer.phone.replace(/\D/g, '');
+                const phone = phoneForWhatsApp(customer.phone);
                 window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${customerFirstName}, book your next appointment online: ${url}`)}`, '_blank');
               } else {
                 navigator.clipboard?.writeText(url).then(() => {

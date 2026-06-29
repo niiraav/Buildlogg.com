@@ -5,6 +5,7 @@
 import type { Profile, Customer, Job, LineItem, Payment } from './db';
 import type { jsPDF } from 'jspdf';
 import { formatAmount } from './paymentHelpers';
+import { formatPhoneDisplay } from './phone';
 import { qrToDataUrl } from './prettyQr';
 import { bookingPageUrl } from './referral';
 
@@ -61,7 +62,7 @@ function buildHeader(doc: jsPDF, profile: Profile, docType: 'QUOTE' | 'INVOICE',
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED);
-  if (profile.phone) doc.text(profile.phone, nameX, profile.logo_data_url ? 21 : 26);
+  if (profile.phone) doc.text(formatPhoneDisplay(profile.phone), nameX, profile.logo_data_url ? 21 : 26);
   if (profile.business_name) doc.text(profile.full_name, nameX, profile.logo_data_url ? 25 : 30);
 
   // Document type + number (right-aligned)
@@ -103,7 +104,7 @@ function buildCustomerBlock(doc: jsPDF, customer: Customer, startY: number): num
     y += lines.length * 5;
   }
   if (customer.phone) {
-    doc.text(customer.phone, 14, y);
+    doc.text(formatPhoneDisplay(customer.phone), 14, y);
     y += 5;
   }
   return y + 4;
