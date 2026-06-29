@@ -229,7 +229,7 @@ export async function onRequest(context) {
       if (!body.clientEmail || String(body.clientEmail).trim() === '') return json({error:'Please enter your email so we can send you a booking confirmation'},400);
       if (!isValidPhone(phone)) return json({error:'Please enter a valid phone number with country code (e.g. +44 7700 900123)'},400);
       const normalizedPhone = normalizePhoneForServer(phone);
-      const profiles = await supabaseQuery(SU, SK, 'profiles', `?booking_slug=eq.${encodeURIComponent(slug)}&booking_enabled=eq.true&select=id,booking_buffer_hours,booking_working_days,booking_hours_start,booking_hours_end,booking_blocked_dates,booking_break_start,booking_break_end,booking_hours_per_day,payment_terms,deposit_pct,stripe_connected`);
+      const profiles = await supabaseQuery(SU, SK, 'profiles', `?booking_slug=eq.${encodeURIComponent(slug)}&booking_enabled=eq.true&select=id,booking_buffer_hours,booking_working_days,booking_hours_start,booking_hours_end,booking_blocked_dates,booking_break_start,booking_break_end,booking_hours_per_day,payment_terms,stripe_connected`);
       if (!profiles||profiles.length===0) return json({error:'Booking page not found'},404);
       const merchant = profiles[0];
       const oneHrAgo = new Date(Date.now()-60*60*1000).toISOString();

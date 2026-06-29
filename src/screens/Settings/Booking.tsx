@@ -302,8 +302,8 @@ export default function Booking() {
   /* ─── enable-first toggles for optional settings ─── */
 
   const hasBreak = !!(profile?.booking_break_start && profile?.booking_break_end);
-  const hasPerDayHours = !!(profile?.booking_hours_per_day && Object.keys(profile.booking_hours_per_day).length > 0);
-  const hasBlockedDates = !!(profile?.booking_blocked_dates && profile.booking_blocked_dates.length > 0);
+  const hasPerDayHours = profile?.booking_hours_per_day !== undefined && profile?.booking_hours_per_day !== null;
+  const hasBlockedDates = profile?.booking_blocked_dates !== undefined && profile?.booking_blocked_dates !== null;
 
   const handleToggleBreak = useCallback(async () => {
     if (!userId) return;
@@ -413,20 +413,13 @@ export default function Booking() {
                     <Copy size={16} />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={handleCopyLink}
-                    className="flex items-center justify-center gap-1.5 px-2 py-2 bg-brand-surface border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
-                  >
-                    <Copy size={14} />
-                    Copy
-                  </button>
+                <div className="grid grid-cols-1 gap-2">
                   <button
                     onClick={handleShareLink}
                     className="flex items-center justify-center gap-1.5 px-2 py-2 bg-brand-surface border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
                   >
                     <Share2 size={14} />
-                    Share
+                    Share link
                   </button>
                 </div>
               </>
