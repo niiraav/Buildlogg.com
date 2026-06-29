@@ -3,52 +3,11 @@ import { ChevronLeft, X } from 'lucide-react';
 import { db } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { useAppStore } from '../../store/useAppStore';
+import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 import { searchCustomers, findDuplicateByPhone } from '../../lib/customers';
 import type { Customer } from '../../lib/db';
 import { SkeletonInline } from '../../components/Skeleton';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-
-/* ─── helpers ─── */
-
-const UK_PHONE_RE = /^(\+44|0)7\d{9}$/;
-
-function isValidUkPhone(phone: string): boolean {
-  const cleaned = phone.replace(/\s/g, '');
-  return UK_PHONE_RE.test(cleaned);
-}
-
-function normalisePhone(phone: string): string {
-  const cleaned = phone.replace(/\s/g, '');
-  if (cleaned.startsWith('0')) return '+44' + cleaned.slice(1);
-  return cleaned;
-}
-
-function formatUkPhoneInput(raw: string): string {
-  // Strip everything except digits and +
-  let digits = raw.replace(/[^\d+]/g, '');
-
-  // If user typed +44, extract digits after it
-  if (digits.startsWith('+44')) {
-    digits = '0' + digits.slice(3);
-  }
-
-  // Remove any leading + if present without 44
-  digits = digits.replace(/^\+/, '');
-
-  // Ensure it starts with 0 for UK mobile
-  if (!digits.startsWith('0') && digits.length > 0) {
-    digits = '0' + digits;
-  }
-
-  // Cap at 11 digits (UK mobile: 07 + 9 digits)
-  digits = digits.slice(0, 11);
-
-  // Format: 0 7 00 00 00 000 -> 07700 000 000
-  if (digits.length <= 1) return digits;
-  if (digits.length <= 5) return digits;
-  if (digits.length <= 8) return digits.slice(0, 5) + ' ' + digits.slice(5);
-  return digits.slice(0, 5) + ' ' + digits.slice(5, 8) + ' ' + digits.slice(8);
-}
 
 interface CustomerDetailsProps {
   customerId?: string;
@@ -144,7 +103,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
 
   // Check for duplicate phone (excludes archived customers)
   useEffect(() => {
-    if (!userId || !isValidUkPhone(phone) || !phone.trim()) {
+    if (!userId || validatePhone(phone) !== null || !phone.trim()) {
       setDuplicateWarning(null);
       return;
     }
@@ -169,11 +128,11 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     // The form will use the filled data — the parent component handles customer creation/lookup
   };
 
-  const canContinue = name.trim().length > 0 && isValidUkPhone(phone);
+  const canContinue = name.trim().length > 0 && validatePhone(phone) === null;
 
   const handleContinue = () => {
     if (!canContinue) return;
-    if (!isValidUkPhone(phone)) {
+    if (validatePhone(phone) !== null) {
       setPhoneError(true);
       return;
     }
@@ -183,7 +142,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
     onComplete({
       id: customerId || selectedCustomerId || crypto.randomUUID(),
       name: name.trim(),
-      phone: normalisePhone(phone),
+      phone: normalizePhone(phone),
       address: address.trim() || undefined,
       email: email.trim() || undefined,
     });
@@ -286,10 +245,10 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
               type="tel"
               inputMode="numeric"
               value={phone}
-              onChange={(e) => { setPhone(formatUkPhoneInput(e.target.value)); setPhoneError(false); }}
+              onChange={(e) => { setPhone(formatPhoneInput(e.target.value)); setPhoneError(false); }}
               onFocus={() => setPhoneFocused(true)}
               onBlur={() => setPhoneFocused(false)}
-              placeholder="e.g. 07700 900123"
+              placeholder="e.g. 07700 900123 or +353 86 123 4567"
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none ${
                 phoneError ? 'border-status-error' : phoneFocused ? 'border-brand-black' : 'border-brand-border'
               }`}
