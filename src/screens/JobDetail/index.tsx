@@ -509,7 +509,7 @@ export default function JobDetail() {
     }
   };
 
-  const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
+  const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'terminal' | 'other' | 'not_yet') => {
     if (!job || !userId || paymentProcessing) return;
     let pendingSendSheetConfig: { title: string; messageText: string; onSend: (method: SendMethod, pdfShared: boolean) => void; pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string } } | null = null;
 
@@ -685,7 +685,7 @@ export default function JobDetail() {
     }
   };
 
-  const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'other') => {
+  const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'terminal' | 'other') => {
     if (!job || !userId || paymentProcessing) return;
     let pendingReceiptConfig: { title: string; messageText: string; onSend: (method: SendMethod, pdfShared: boolean) => void } | null = null;
 
@@ -869,7 +869,7 @@ export default function JobDetail() {
     await handleRequestStripePayment('full');
   };
 
-  const handleRecordDeposit = async (method: 'cash' | 'bank_transfer' | 'other') => {
+  const handleRecordDeposit = async (method: 'cash' | 'bank_transfer' | 'terminal' | 'other') => {
     if (!job || !userId || paymentProcessing) return;
     const summary = paymentSummary(job, payments, total);
     if (summary.totalPaid >= summary.depositAmount - 0.0001) {
@@ -3018,6 +3018,12 @@ export default function JobDetail() {
               onTap={() => handleMarkDone('bank_transfer')}
               disabled={paymentProcessing}
             />
+            <SheetRow
+              icon={<CreditCard size={18} className="text-brand-dark" />}
+              label="Terminal"
+              onTap={() => handleMarkDone('terminal')}
+              disabled={paymentProcessing}
+            />
             {profile?.stripe_connected && summary && summary.amountDue > 0 && (
               <SheetRow
                 icon={<CreditCard size={18} className="text-brand-dark" />}
@@ -3073,6 +3079,12 @@ export default function JobDetail() {
           disabled={paymentProcessing}
         />
         <SheetRow
+          icon={<CreditCard size={18} className="text-brand-dark" />}
+          label="Terminal"
+          onTap={() => handleMarkAsPaid('terminal')}
+          disabled={paymentProcessing}
+        />
+        <SheetRow
           icon={<Pencil size={18} className="text-brand-dark" />}
           label="Other"
           sublabel="Entered manually"
@@ -3106,6 +3118,21 @@ export default function JobDetail() {
           onTap={() => handleRecordDeposit('bank_transfer')}
           disabled={paymentProcessing}
         />
+        <SheetRow
+          icon={<CreditCard size={18} className="text-brand-dark" />}
+          label="Terminal"
+          onTap={() => handleRecordDeposit('terminal')}
+          disabled={paymentProcessing}
+        />
+        {profile?.stripe_connected && (
+          <SheetRow
+            icon={<CreditCard size={18} className="text-brand-dark" />}
+            label="Send card payment link"
+            sublabel="Request deposit via Stripe"
+            onTap={() => handleRequestStripePayment('deposit')}
+            disabled={paymentProcessing || stripeLoading}
+          />
+        )}
         <SheetRow
           icon={<Pencil size={18} className="text-brand-dark" />}
           label="Other"
