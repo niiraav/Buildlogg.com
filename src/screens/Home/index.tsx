@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight, Building2, Pencil } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { useCountUp } from '../../hooks/useCountUp';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Payment, type ReminderMode } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
 import { JobCard } from '../../components/JobCard';
@@ -498,6 +499,8 @@ export default function Home() {
     });
     return owed;
   }, [jobs, lineItems]);
+
+  const owedDisplay = useCountUp(Number(totalOwed));
 
   const tasks = useMemo<TaskItem[]>(() => {
     const items: TaskItem[] = [];
@@ -1630,7 +1633,7 @@ export default function Home() {
               onClick={() => navigate('/dashboard')}
             >
               <span className="text-xl font-extrabold text-brand-black block">
-                £{Number(totalOwed).toFixed(2)}
+                £{owedDisplay.toFixed(2)}
               </span>
               <span className="text-xs text-brand-dark block mt-0.5">
                 owed to you →

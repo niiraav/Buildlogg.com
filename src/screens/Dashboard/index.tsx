@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, TrendingDown, AlertCircle, Target, PoundSterling, Download, Users, Calendar, Plus } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { useCountUp } from '../../hooks/useCountUp';
 import { db } from '../../lib/db';
 import { getDashboardStats, exportMonthlyCSV, type DashboardStats } from '../../lib/dashboard';
 import { captureDashboardViewed, captureDashboardCardTapped, captureDataExported, captureReferralCardViewed, captureInsightsShown, captureInsightCtaTapped, captureInsightDismissed } from '../../lib/analytics';
@@ -24,6 +25,11 @@ export default function Dashboard() {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
   const [recurringRevenue, setRecurringRevenue] = useState<{ total: number; count: number } | null>(null);
+
+  const monthEarningsDisplay = useCountUp(stats?.monthEarnings ?? 0);
+  const outstandingDisplay = useCountUp(stats?.outstandingTotal ?? 0);
+  const winRateDisplay = useCountUp(stats?.winRate ?? 0);
+  const avgJobDisplay = useCountUp(stats?.avgJobValue ?? 0);
 
   const canSeeInsights = can('business_insights');
 
@@ -226,7 +232,7 @@ export default function Dashboard() {
               <PoundSterling size={14} className="text-brand-mid" />
               <span className="text-xs font-semibold text-brand-mid">This Month</span>
             </div>
-            <p className="text-2xl font-extrabold text-brand-black">£{stats.monthEarnings.toFixed(0)}</p>
+            <p className="text-2xl font-extrabold text-brand-black">£{monthEarningsDisplay.toFixed(0)}</p>
             {!isFirstMonth && (
               <div className={`flex items-center gap-1 mt-1 ${earningsUp ? 'text-status-green' : 'text-status-amber'}`}>
                 {earningsUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -246,7 +252,7 @@ export default function Dashboard() {
               <AlertCircle size={14} className="text-brand-mid" />
               <span className="text-xs font-semibold text-brand-mid">Outstanding</span>
             </div>
-            <p className="text-2xl font-extrabold text-brand-black">£{stats.outstandingTotal.toFixed(0)}</p>
+            <p className="text-2xl font-extrabold text-brand-black">£{outstandingDisplay.toFixed(0)}</p>
             <p className="text-xs text-brand-muted mt-1">{stats.outstandingCount} job{stats.outstandingCount !== 1 ? 's' : ''}</p>
           </div>
 
@@ -255,7 +261,7 @@ export default function Dashboard() {
               <Target size={14} className="text-brand-mid" />
               <span className="text-xs font-semibold text-brand-mid">Win Rate</span>
             </div>
-            <p className="text-2xl font-extrabold text-brand-black">{stats.winRate.toFixed(0)}%</p>
+            <p className="text-2xl font-extrabold text-brand-black">{winRateDisplay.toFixed(0)}%</p>
             <p className="text-xs text-brand-muted mt-1">{stats.monthQuoted} quoted this month</p>
           </div>
 
@@ -264,7 +270,7 @@ export default function Dashboard() {
               <PoundSterling size={14} className="text-brand-mid" />
               <span className="text-xs font-semibold text-brand-mid">Avg Job</span>
             </div>
-            <p className="text-2xl font-extrabold text-brand-black">£{stats.avgJobValue.toFixed(0)}</p>
+            <p className="text-2xl font-extrabold text-brand-black">£{avgJobDisplay.toFixed(0)}</p>
             <p className="text-xs text-brand-muted mt-1">per completed job</p>
           </div>
         </div>

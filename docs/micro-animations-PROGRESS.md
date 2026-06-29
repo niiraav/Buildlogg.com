@@ -10,3 +10,14 @@
 | 6 | Activity list staggered entry | ✅ DONE | fb774e8 |
 | 7 | DaySummaryCard expand/collapse animation | ✅ DONE | fb774e8 |
 | 8 | Final verification and deploy | ✅ DONE | 30945a6 |
+
+# Tier 2 Micro-Animations — Progress
+
+| Task | Description | Status | Commit |
+|------|-------------|--------|--------|
+| T2-1 | useCountUp hook | ✅ DONE | c88edc6 |
+| T2-2 | Home "owed to you" count-up | PENDING | — |
+| T2-3 | Dashboard stat cards count-up | PENDING | — |
+| T2-4 | Exit animation CSS (item-exit) | PENDING | — |
+| T2-5 | AnimatedRemove wrapper component | PENDING | — |
+| T2-6 | Final verification and deploy | PENDING | — |
