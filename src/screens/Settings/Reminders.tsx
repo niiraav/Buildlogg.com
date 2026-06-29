@@ -74,7 +74,7 @@ export default function Reminders() {
       // Step 2: Subscribe to push
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
-        showToast('Push notifications aren\'t set up yet. We\'re rolling this out gradually.', 'error');
+        showToast('Push setup incomplete. Please update the app — Settings → About → Check for updates.', 'error');
         return;
       }
       const sub = await subscribePush(vapidKey);
@@ -109,7 +109,7 @@ export default function Reminders() {
         // Re-enable: permission should already be granted, just re-subscribe
         const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
         if (!vapidKey) {
-          showToast('Push notifications aren\'t set up yet. We\'re rolling this out gradually.', 'error');
+          showToast('Push setup incomplete. Please update the app — Settings → About → Check for updates.', 'error');
           return;
         }
         const sub = await subscribePush(vapidKey);
@@ -209,11 +209,26 @@ export default function Reminders() {
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             {/* State A: Not supported (not installed as PWA) */}
             {!pushSupported && (
-              <div className="px-4 min-h-13 flex items-center gap-3">
-                <Bell size={18} className="text-brand-mid shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-brand-dark">Get notified on this device</p>
-                  <button onClick={() => navigate("/settings")} className="text-xs text-status-amber mt-0.5 py-1 underline underline-offset-2 cursor-pointer">Requires adding to Home Screen — tap for help</button>
+              <div className="px-4 py-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Bell size={18} className="text-brand-mid shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-brand-dark">Get notified on this device</p>
+                    <p className="text-xs text-brand-muted mt-0.5">Push notifications require adding Buildlogg to your Home Screen.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 bg-status-amberBg border border-amber-200 rounded-lg p-3">
+                  <AlertCircle size={14} className="text-status-amber shrink-0 mt-0.5" />
+                  <div className="text-xs text-status-amber leading-relaxed">
+                    <p className="font-medium mb-1">How to enable:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Open buildlogg.com in <strong>Safari</strong> (not Chrome)</li>
+                      <li>Tap the <strong>Share</strong> icon (square with arrow)</li>
+                      <li>Tap <strong>Add to Home Screen</strong></li>
+                      <li>Open Buildlogg from your Home Screen</li>
+                      <li>Return here and tap Enable notifications</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
             )}

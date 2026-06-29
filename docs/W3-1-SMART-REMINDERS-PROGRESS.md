@@ -23,8 +23,10 @@ Automate the recurring job reminder layer. Adds `reminder_mode` per recurring jo
 | 14 | realtime.ts: reminder_log in tableMap + INSERT-only subscription | ✅ Done | 7bfe911 |
 | 15 | functions/api/cron-recurring-reminders.js: HTTP-triggered cron endpoint | ✅ Done | 7bfe911 |
 | 16 | supabase/migrations/20260628000003_smart_reminders.sql: columns + table + RLS + CHECK constraint | ✅ Done | 7bfe911 |
-| 17 | VAPID keys + CRON_SECRET env vars | ✅ Done — verified in Cloudflare secrets | — |
+| 17 | VAPID keys + CRON_SECRET env vars | ✅ Done — VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VITE_VAPID_PUBLIC_KEY, CRON_SECRET all set in Cloudflare secrets | — |
 | 18 | External scheduler (cron-job.org) | ⬜ Manual setup needed — endpoint live, auth working, scheduler not yet configured | — |
+| 19 | Web Push payload encryption (aes128gcm) | ✅ Done — shared module functions/_lib/webpush.js with ECDH+HKDF+AES-GCM | — |
+| 20 | VAPID public key in client bundle | ✅ Done — added to .env, verified in production JS | — |
 
 ## Files Changed
 - src/lib/db.ts — ReminderMode, RecurringJob fields, Profile fields, ReminderLog, Dexie v10

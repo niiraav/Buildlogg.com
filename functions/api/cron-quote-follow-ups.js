@@ -6,6 +6,8 @@
 // when merchant's default_reminder_mode is 'remind_client' or 'both'.
 // Mirrors cron-recurring-reminders.js structure.
 
+import { sendWebPush } from '../_lib/webpush.js';
+
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -66,7 +68,7 @@ export async function onRequestGet(context) {
       } else if (mode === 'remind_client' || mode === 'both') {
         // No email — push fallback to merchant
         if (fu.push_subscription_endpoint) {
-          await sendPush(env, fu.push_subscription_endpoint, fu.push_subscription_keys, {
+          await sendWebPush(env, fu.push_subscription_endpoint, fu.push_subscription_keys, {
             title: `Quote follow-up — ${fu.customer_name || 'Customer'}`,
             body: `No email on file for ${fu.job_title}. Send WhatsApp manually.`,
             url: '/app/',
@@ -75,7 +77,7 @@ export async function onRequestGet(context) {
         sendResult = { channel: 'push', status: 'sent' };
       } else if (fu.push_subscription_endpoint) {
         // remind_me mode — push to merchant only
-        await sendPush(env, fu.push_subscription_endpoint, fu.push_subscription_keys, {
+        await sendWebPush(env, fu.push_subscription_endpoint, fu.push_subscription_keys, {
           title: `Quote follow-up — ${fu.customer_name || 'Customer'}`,
           body: `${fu.job_title} quote is going cold. Tap to follow up.`,
           url: '/app/',
@@ -208,51 +210,4 @@ async function sendFollowUpEmail(env, fu) {
   } catch (err) {
     return { channel: 'email', status: 'failed', error: err.message };
   }
-}
-
-async function sendPush(env, endpoint, keys, notification) {
-  if (!endpoint || !env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY) return;
-  try {
-    const vapidPrivateKey = env.VAPID_PRIVATE_KEY;
-    const vapidPublicKey = env.VAPID_PUBLIC_KEY;
-    const audience = new URL(endpoint).origin;
-    const header = { typ: 'JWT', alg: 'ES256' };
-    const payload = { aud: audience, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:noreply@buildlogg.com' };
-    const jwt = await createJWT(header, payload, vapidPrivateKey);
-    const body = JSON.stringify({ notification: { title: notification.title, body: notification.body, data: { url: notification.url } } });
-    await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'aes128gcm', 'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`, 'TTL': '86400' },
-      body,
-    });
-  } catch (err) {
-    console.error('[sendPush] Error:', err.message);
-  }
-}
-
-async function createJWT(header, payload, privateKey) {
-  const enc = new TextEncoder();
-  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
-  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
-  const data = `${headerB64}.${payloadB64}`;
-  const keyData = urlBase64ToUint8Array(privateKey);
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', keyData, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-  const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, enc.encode(data));
-  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
-  return `${data}.${signatureB64}`;
-}
-
-function base64UrlEncode(bytes) {
-  let str = '';
-  for (const byte of bytes) str += String.fromCharCode(byte);
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray.buffer;
 }

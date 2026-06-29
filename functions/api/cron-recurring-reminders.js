@@ -1,6 +1,6 @@
 // Buildlogg — W3-1 Smart Reminders cron endpoint (Cloudflare Pages Function)
 // GET /api/cron-recurring-reminders
-// Authorization: Bearer <CRON_SECRET>
+// Authorization: Bearer ***
 //
 // Processes due recurring_jobs and sends:
 // - Email to client (via Resend) when mode is 'remind_client' or 'both'
@@ -17,6 +17,8 @@
 // - SUPABASE_SERVICE_ROLE_KEY: service role key (bypasses RLS)
 // - RESEND_API_KEY: for sending emails
 // - VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY: for Web Push (optional if no push subscriptions)
+
+import { sendWebPush } from '../_lib/webpush.js';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
@@ -80,7 +82,7 @@ export async function onRequestGet(context) {
       if (isBatch && (mode === 'remind_me' || mode === 'both')) {
         const merchant = merchantJobs[0];
         if (merchant.push_subscription_endpoint) {
-          await sendPush(env, merchant.push_subscription_endpoint, merchant.push_subscription_keys, {
+          await sendWebPush(env, merchant.push_subscription_endpoint, merchant.push_subscription_keys, {
             title: `Buildlogg — ${merchantJobs.length} recurring jobs due`,
             body: 'Tap to review and contact clients',
             url: '/app/?tab=tasks',
@@ -99,7 +101,7 @@ export async function onRequestGet(context) {
         } else if (effectiveMode === 'remind_client' || effectiveMode === 'both') {
           // No email or bounced — fallback to push
           if (!isBatch && job.push_subscription_endpoint) {
-            await sendPush(env, job.push_subscription_endpoint, job.push_subscription_keys, {
+            await sendWebPush(env, job.push_subscription_endpoint, job.push_subscription_keys, {
               title: `${job.customer_name || 'Client'} — ${job.title} due`,
               body: job.customer_email ? 'Last email bounced — send WhatsApp manually' : 'No email on file — send WhatsApp manually',
               url: '/app/?recurring=' + job.id,
@@ -108,7 +110,7 @@ export async function onRequestGet(context) {
           sendResult = { channel: 'push', status: 'sent' };
         } else if (!isBatch && (effectiveMode === 'remind_me' || effectiveMode === 'both') && job.push_subscription_endpoint) {
           // Push to merchant only
-          await sendPush(env, job.push_subscription_endpoint, job.push_subscription_keys, {
+          await sendWebPush(env, job.push_subscription_endpoint, job.push_subscription_keys, {
             title: `${job.customer_name || 'Client'} — ${job.title} due`,
             body: `Recurring job due soon. Tap to contact client.`,
             url: '/app/',
@@ -285,87 +287,4 @@ async function sendReminderEmail(env, job) {
   } catch (err) {
     return { channel: 'email', status: 'failed', error: err.message };
   }
-}
-
-async function sendPush(env, endpoint, keys, notification) {
-  if (!endpoint || !env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY) return;
-  try {
-    // Web Push using Web Crypto API for VAPID JWT
-    // This is a simplified implementation — production should use a proper VAPID library
-    const vapidPrivateKey = env.VAPID_PRIVATE_KEY;
-    const vapidPublicKey = env.VAPID_PUBLIC_KEY;
-    const audience = new URL(endpoint).origin;
-
-    // Create VAPID JWT
-    const header = { typ: 'JWT', alg: 'ES256' };
-    const payload = {
-      aud: audience,
-      exp: Math.floor(Date.now() / 1000) + 12 * 3600,
-      sub: 'mailto:noreply@buildlogg.com',
-    };
-
-    const jwt = await createJWT(header, payload, vapidPrivateKey);
-
-    const body = JSON.stringify({
-      notification: {
-        title: notification.title,
-        body: notification.body,
-        data: { url: notification.url },
-      },
-    });
-
-    await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'aes128gcm',
-        'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
-        'TTL': '86400',
-      },
-      body,
-    });
-  } catch (err) {
-    console.error('[sendPush] Error:', err.message);
-  }
-}
-
-async function createJWT(header, payload, privateKey) {
-  // Simplified VAPID JWT creation using Web Crypto API
-  // In production, use a proper VAPID implementation
-  const enc = new TextEncoder();
-  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
-  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
-  const data = `${headerB64}.${payloadB64}`;
-
-  // Import the ECDSA P-256 private key
-  const keyData = urlBase64ToUint8Array(privateKey);
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8', keyData, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
-  );
-
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    cryptoKey,
-    enc.encode(data)
-  );
-
-  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
-  return `${data}.${signatureB64}`;
-}
-
-function base64UrlEncode(bytes) {
-  let str = '';
-  for (const byte of bytes) str += String.fromCharCode(byte);
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray.buffer;
 }
