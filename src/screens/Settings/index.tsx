@@ -963,26 +963,40 @@ export default function Settings() {
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-brand-dark leading-relaxed">
-              Let clients pay by card when you send them a payment link. They pay online — you get notified when it's done.
+              Accept card payments from clients — deposits at booking, full payments after a job, or balance chases. Money lands in your bank account automatically.
             </p>
+
+            {/* Outcome-focused — what they get */}
             <div className="bg-brand-surface border border-brand-border rounded-lg p-3">
-              <p className="text-xs font-semibold text-brand-mid mb-2">How it works</p>
-              <ol className="text-xs text-brand-dark space-y-1.5">
-                <li>1. Send a payment link via WhatsApp from a job</li>
-                <li>2. Client opens the link and pays by card</li>
-                <li>3. Job updates automatically — deposit marked as paid</li>
-              </ol>
+              <p className="text-xs font-semibold text-brand-mid mb-2">What you can do with card payments</p>
+              <ul className="text-xs text-brand-dark space-y-1.5">
+                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Take deposits when clients book online</li>
+                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Send payment links via WhatsApp from any job</li>
+                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Automatically chase overdue payments by card</li>
+                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Money paid into your bank — no manual invoicing</li>
+              </ul>
             </div>
+
+            {/* Setup expectation — what they'll need */}
             <div className="bg-status-blueBg border border-status-blueBorder rounded-lg p-3">
-              <p className="text-xs font-semibold text-status-blue mb-1.5">What happens when you tap Enable</p>
-              <ol className="text-xs text-status-blue leading-relaxed space-y-1">
-                <li>1. You'll be redirected to Stripe's secure onboarding page</li>
-                <li>2. Enter your bank details so Stripe knows where to send payouts</li>
-                <li>3. Stripe verifies your identity (takes 2–3 minutes)</li>
-                <li>4. You'll be sent back to Buildlogg — card payments turn on automatically</li>
-              </ol>
-              <p className="text-xs text-status-blue/70 mt-2">Stripe handles all payment processing securely. Buildlogg never sees your card or bank details.</p>
+              <p className="text-xs font-semibold text-status-blue mb-1.5">One-time setup with Stripe (2–3 minutes)</p>
+              <p className="text-xs text-status-blue leading-relaxed mb-2">
+                Stripe is our payment partner — they handle card processing and send money to your bank. You'll create a free Stripe account to receive payouts.
+              </p>
+              <div className="text-xs text-status-blue leading-relaxed">
+                <p className="font-medium mb-1">Before you start, have ready:</p>
+                <ul className="space-y-0.5 ml-3">
+                  <li>• Bank account sort code & account number</li>
+                  <li>• Your date of birth</li>
+                  <li>• Home address</li>
+                  <li>• Photo ID (driving licence or passport)</li>
+                </ul>
+              </div>
+              <p className="text-xs text-status-blue/70 mt-2 border-t border-status-blueBorder/50 pt-2">
+                Stripe handles all payment processing securely. Buildlogg never sees your bank or card details.
+              </p>
             </div>
+
             <Button
               variant="primary"
               fullWidth
@@ -1010,7 +1024,7 @@ export default function Settings() {
               }}
             >
               <CreditCard size={18} className="mr-2" />
-              {stripeLoading ? 'Starting...' : 'Enable card payments'}
+              {stripeLoading ? 'Redirecting to Stripe...' : 'Set up card payments with Stripe'}
             </Button>
 
           </div>
