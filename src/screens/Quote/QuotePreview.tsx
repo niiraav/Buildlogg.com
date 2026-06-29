@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { db, type Job, type LineItem, type Customer, type Profile } from '../../lib/db';
 import { generateQuotePDF } from '../../lib/pdfGenerator';
-import { capturePDFGenerated } from '../../lib/analytics';
+import { capturePDFGenerated, capturePDFShared } from '../../lib/analytics';
 import { SendSheet, type SendMethod } from '../../components/SendSheet';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import { useAppStore } from '../../store/useAppStore';
@@ -183,6 +183,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       return blob;
     },
     fileName: `quote-${job.job_number || jobId}.pdf`,
+    onPdfDownloaded: () => capturePDFShared({ jobId, type: 'quote', method: 'download' }),
   } : undefined;
 
   const handleSaveDraft = () => {

@@ -17,6 +17,14 @@ function now(): string {
 }
 
 function getServiceDurationMinutes(booking: BookingRequest): Promise<number> {
+  // Multi-service: use total_duration or sum from service_items
+  if (booking.total_duration && booking.total_duration > 0) {
+    return Promise.resolve(booking.total_duration);
+  }
+  if (booking.service_items && booking.service_items.length > 0) {
+    return Promise.resolve(booking.service_items.reduce((sum, s) => sum + (s.duration || 60), 0));
+  }
+  // Fallback: fuzzy match for old single-service booking requests
   if (!booking.service_amount || booking.service_amount <= 0) return Promise.resolve(60);
   const description = booking.service_description.toLowerCase().trim();
   return db.custom_items
@@ -277,8 +285,35 @@ export async function acceptBookingRequest(
     created_at: n, retry_count: 0,
   });
 
-  // ─── 2b. Create line item from booking service amount (if priced) ───
-  if (booking.service_amount && booking.service_amount > 0) {
+  // ─── 2b. Create line item(s) from booking service amount ───
+  if (booking.service_items && booking.service_items.length > 0) {
+    // Multi-service: create one line item per service
+    for (let idx = 0; idx < booking.service_items.length; idx++) {
+      const si = booking.service_items[idx];
+      if (si.amount > 0) {
+        const itemId = crypto.randomUUID();
+        await db.line_items.add({
+          id: itemId,
+          job_id: jobId,
+          description: si.description,
+          amount: si.amount,
+          sort_order: idx,
+          added_on_site: false,
+          created_at: n,
+          _sync_status: 'pending',
+        });
+        await db.sync_queue.add({
+          operation: 'insert', table_name: 'line_items', record_id: itemId,
+          payload: {
+            id: itemId, job_id: jobId, description: si.description,
+            amount: si.amount, sort_order: idx, added_on_site: false, created_at: n,
+          },
+          created_at: n, retry_count: 0,
+        });
+      }
+    }
+  } else if (booking.service_amount && booking.service_amount > 0) {
+    // Single service (old format): create one line item
     const itemId = crypto.randomUUID();
     await db.line_items.add({
       id: itemId,

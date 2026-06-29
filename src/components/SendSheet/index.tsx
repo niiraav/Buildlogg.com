@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, FileText, Share2, X, Clipboard } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, FileText, Clipboard, Download } from 'lucide-react';
 import { BottomSheet } from '../BottomSheet';
 import { Button } from '../Button';
 import { haptic } from '../../lib/haptics';
@@ -17,6 +17,7 @@ export interface SendSheetPdfOptions {
   generatePdf: () => Promise<Blob>;
   fileName: string;
   onPdfGenerated?: () => void;
+  onPdfDownloaded?: () => void;
 }
 
 export interface SendSheetProps {
@@ -57,9 +58,7 @@ export function SendSheet({
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [editingMessage, setEditingMessage] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const [showSharePdfToast, setShowSharePdfToast] = useState(false);
   const [lastAutoVariant, setLastAutoVariant] = useState<'full' | 'compact' | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The full message that gets sent (messageText + signature if not Pro)
   const fullSendText = canRemoveSignature
@@ -74,12 +73,7 @@ export function SendSheet({
       setGeneratingPdf(false);
       setEditingMessage(false);
       setShowPdfPreview(false);
-      setShowSharePdfToast(false);
       setLastAutoVariant(null);
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = null;
-      }
     }
   }, [isOpen]);
 
@@ -90,13 +84,10 @@ export function SendSheet({
     else if (messageText !== '' && messageText !== fullMessage && messageText !== compactMessage) setLastAutoVariant(null);
   }, [messageText, fullMessage, compactMessage]);
 
-  const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare;
-
   const handleTogglePDF = async () => {
     if (attachPDF) {
       setAttachPDF(false);
       setPdfBlob(null);
-      setShowSharePdfToast(false);
       if (lastAutoVariant === 'compact' && fullMessage) {
         onMessageChange(fullMessage);
       }
@@ -120,6 +111,39 @@ export function SendSheet({
     }
   };
 
+  const handleDownloadPdf = async () => {
+    haptic('light');
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pdfOptions?.fileName || 'document.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+      pdfOptions?.onPdfDownloaded?.();
+      showToast('PDF downloaded');
+      return;
+    }
+    setGeneratingPdf(true);
+    try {
+      const blob = await pdfOptions!.generatePdf();
+      setPdfBlob(blob);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pdfOptions?.fileName || 'document.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+      pdfOptions?.onPdfGenerated?.();
+      pdfOptions?.onPdfDownloaded?.();
+      showToast('PDF downloaded');
+    } catch {
+      showToast('Could not generate PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   const handleWhatsApp = () => {
     if (!customerPhone) return;
     haptic('light');
@@ -128,45 +152,23 @@ export function SendSheet({
     const waUrl = `https://wa.me/${phone}?text=${encoded}`;
 
     if (attachPDF && pdfBlob) {
-      // Try to share both text and PDF in one navigator.share call
-      if (canShareFiles) {
-        const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
+      const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
+
+      if (navigator.canShare?.({ files: [file] })) {
         navigator.share({ files: [file], text: fullSendText })
           .then(() => { onSend('whatsapp_pdf', true); })
           .catch(() => {
-            // User cancelled share — fall back to text-only WhatsApp
+            // User cancelled share sheet — don't open WhatsApp text-only
             onSend('whatsapp', false);
-            window.location.href = waUrl;
           });
       } else {
-        // Can't share files — show PDF preview first, then open WhatsApp
+        // Browser can't share files — show PDF preview, don't auto-navigate to wa.me
         setShowPdfPreview(true);
         onSend('whatsapp_pdf', false);
-        window.location.href = waUrl;
       }
     } else {
       onSend('whatsapp', false);
       window.location.href = waUrl;
-    }
-  };
-
-  const handleSharePdfFromToast = async () => {
-    if (!pdfBlob) return;
-    haptic('light');
-    setShowSharePdfToast(false);
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
-    try {
-      const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        onSend('whatsapp_pdf', true);
-      }
-    } catch {
-      // User cancelled — still mark as sent (text went through)
-      onSend('whatsapp_pdf', false);
     }
   };
 
@@ -175,21 +177,16 @@ export function SendSheet({
     haptic('light');
 
     if (attachPDF && pdfBlob) {
-      if (canShareFiles) {
-        try {
-          const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], text: fullSendText });
-            onSend('text_pdf', true);
-          } else {
-            setShowPdfPreview(true);
-            onSend('text_pdf', false);
-          }
-        } catch {
+      try {
+        const file = new File([pdfBlob], pdfOptions?.fileName || 'document.pdf', { type: 'application/pdf' });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: fullSendText });
+          onSend('text_pdf', true);
+        } else {
+          setShowPdfPreview(true);
           onSend('text_pdf', false);
         }
-      } else {
-        setShowPdfPreview(true);
+      } catch {
         onSend('text_pdf', false);
       }
     } else {
@@ -312,23 +309,33 @@ export function SendSheet({
         {/* PDF toggle — only when pdfOptions provided AND user has pdf_send entitlement */}
         {showPdfToggle && (
           <div className="flex items-center justify-between mb-6 px-1">
-            <div className="flex items-center gap-2">
-              <FileText size={16} className="text-brand-mid" />
-              <span className="text-sm font-medium text-brand-dark">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText size={16} className="text-brand-mid shrink-0" />
+              <span className="text-sm font-medium text-brand-dark truncate">
                 {generatingPdf ? 'Generating…' : pdfOptions!.label}
               </span>
             </div>
-            <button
-              onClick={handleTogglePDF}
-              disabled={generatingPdf}
-              className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
-                attachPDF ? 'bg-brand-black' : 'bg-brand-border'
-              } ${generatingPdf ? 'opacity-50' : ''}`}
-            >
-              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                attachPDF ? 'left-[22px]' : 'left-0.5'
-              }`} />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={generatingPdf}
+                aria-label="Download PDF"
+                className="w-8 h-8 flex items-center justify-center text-brand-mid cursor-pointer disabled:opacity-50"
+              >
+                <Download size={16} />
+              </button>
+              <button
+                onClick={handleTogglePDF}
+                disabled={generatingPdf}
+                className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
+                  attachPDF ? 'bg-brand-black' : 'bg-brand-border'
+                } ${generatingPdf ? 'opacity-50' : ''}`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  attachPDF ? 'left-[22px]' : 'left-0.5'
+                }`} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -348,34 +355,6 @@ export function SendSheet({
           <div className="h-px bg-brand-border mb-4 -mt-2" />
         )}
       </BottomSheet>
-
-      {/* "Share PDF" toast */}
-      {showSharePdfToast && (
-        <div className="fixed bottom-0 left-0 right-0 z-[65] px-4 py-3 pb-[calc(8px+env(safe-area-inset-bottom))] bg-brand-black">
-          <div className="flex items-center justify-between gap-3 max-w-[430px] mx-auto">
-            <span className="text-sm font-medium text-white">PDF ready to share</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setShowSharePdfToast(false);
-                  if (toastTimerRef.current) { clearTimeout(toastTimerRef.current); toastTimerRef.current = null; }
-                  onSend('whatsapp_pdf', false);
-                }}
-                className="text-xs text-white/60 cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-              <button
-                onClick={handleSharePdfFromToast}
-                className="flex items-center gap-1.5 text-sm font-semibold text-brand-black bg-white px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70"
-              >
-                <Share2 size={14} />
-                Share PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* PDFPreview — desktop fallback */}
       {showPdfPreview && pdfBlob && (

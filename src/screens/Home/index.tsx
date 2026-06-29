@@ -671,6 +671,8 @@ export default function Home() {
       summaryBookingStats.current = { count: pendingBookings.length, urgent: urgentCount };
     } else {
       pendingBookings.forEach((b) => {
+        const totalDur = b.total_duration || (b.service_items ? b.service_items.reduce((s, x) => s + (x.duration || 60), 0) : 60);
+        const hrs = Math.round(totalDur / 60 * 10) / 10;
         items.push({
           id: `booking_${b.id}`,
           jobId: b.accepted_job_id || b.id,
@@ -679,7 +681,7 @@ export default function Home() {
           jobNumber: undefined,
           tag: 'Booking request',
           amount: b.service_amount > 0 ? `£${b.service_amount.toFixed(0)}` : '',
-          duration: '1hr',
+          duration: hrs === 1 ? '1hr' : `${hrs}hr`,
           isL2: true,
           type: 'booking_request',
           phone: b.client_phone,
@@ -2523,10 +2525,27 @@ export default function Home() {
 
               {/* Service + amount — secondary context */}
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-brand-dark">{selectedBooking.service_description}</p>
-                  {selectedBooking.service_amount > 0 && <span className="text-sm font-bold text-brand-black">£{selectedBooking.service_amount.toFixed(0)}</span>}
-                </div>
+                {selectedBooking.service_items && selectedBooking.service_items.length > 0 ? (
+                  /* Multi-service: show each service as a row */
+                  <div className="flex flex-col gap-1.5">
+                    {selectedBooking.service_items.map((si, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-brand-dark">{si.description}</p>
+                        {si.amount > 0 && <span className="text-sm font-bold text-brand-black">£{si.amount.toFixed(0)}</span>}
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-brand-borderLight">
+                      <p className="text-xs font-bold text-brand-mid">Total</p>
+                      <span className="text-sm font-bold text-brand-black">£{selectedBooking.service_amount.toFixed(0)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Single service (old format) */
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-brand-dark">{selectedBooking.service_description}</p>
+                    {selectedBooking.service_amount > 0 && <span className="text-sm font-bold text-brand-black">£{selectedBooking.service_amount.toFixed(0)}</span>}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 mt-2">
                   <Phone size={14} className="text-brand-muted" />
                   <p className="text-sm text-brand-muted">{selectedBooking.client_phone}</p>

@@ -9,7 +9,7 @@ import { addToSyncQueue } from '../../lib/syncQueue';
 import { createCheckoutSession } from '../../lib/stripe';
 import { useAppStore } from '../../store/useAppStore';
 import { setContextualFlag } from '../../lib/notificationManager';
-import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded, capture } from '../../lib/analytics';
+import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded, capturePDFShared, capture } from '../../lib/analytics';
 import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { hapticSuccess } from '../../lib/haptics';
@@ -174,7 +174,7 @@ export default function JobDetail() {
     title: string;
     messageText: string;
     onSend: (method: SendMethod, pdfShared: boolean) => void;
-    pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string; onPdfGenerated?: () => void };
+    pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string; onPdfGenerated?: () => void; onPdfDownloaded?: () => void };
     fullMessage?: string;
     compactMessage?: string;
   } | null>(null);
@@ -2528,6 +2528,7 @@ export default function JobDetail() {
                     return await generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: total, dueDate: job.invoice_sent_at ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined });
                   },
                   fileName: `invoice-${job.invoice_number || job.job_number}.pdf`,
+                  onPdfDownloaded: () => capturePDFShared({ jobId: job!.id, type: 'invoice', method: 'download' }),
                 },
                 fullMessage: defaultText,
                 compactMessage: compactText,

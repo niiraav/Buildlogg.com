@@ -327,6 +327,8 @@ export interface BookingRequest {
   merchant_id: string;
   service_description: string;
   service_amount: number;
+  service_items?: Array<{ description: string; amount: number; duration: number }>;
+  total_duration?: number;
   client_name: string;
   client_phone: string;
   client_email?: string;
