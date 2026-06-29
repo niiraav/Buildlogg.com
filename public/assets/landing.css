@@ -580,17 +580,143 @@ a { color: inherit; text-decoration: none; }
   html { scroll-behavior: auto; }
 }
 
+/* ---------- Before vs After comparison ---------- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.compare-col {
+  border-radius: var(--r-xl);
+  padding: 28px;
+  border: 1px solid var(--line);
+}
+.compare-before {
+  background: var(--surface-card);
+}
+.compare-after {
+  background: #fff;
+  border-color: var(--green-dot);
+  border-width: 1.5px;
+}
+.compare-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.compare-before .compare-head { color: var(--muted); }
+.compare-before .compare-head .lucide { color: var(--muted); font-size: 18px; }
+.compare-after .compare-head { color: var(--green); }
+.compare-after .compare-head .lucide { color: var(--green); font-size: 18px; }
+.compare-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.compare-list li {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--body);
+  padding-left: 24px;
+  position: relative;
+}
+.compare-before .compare-list li::before {
+  content: '✕';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--muted-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+.compare-after .compare-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ---------- Persona grid (Who is this for?) ---------- */
+.persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.persona-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 32px;
+  text-align: center;
+  transition: border-color .2s, box-shadow .2s;
+}
+.persona-card:hover {
+  border-color: var(--line-cool);
+  box-shadow: var(--sh-card);
+}
+.persona-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--surface-card);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+}
+.persona-icon .lucide { font-size: 26px; }
+.persona-card h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+.persona-card p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* ---------- Booking page preview ---------- */
+.booking-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.booking-preview-copy { max-width: 480px; }
+.booking-preview-phone { display: flex; justify-content: center; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 980px) {
   .hero-grid { grid-template-columns: 1fr; gap: 40px; }
   .problem-grid { grid-template-columns: 1fr; }
   .feat { grid-template-columns: 1fr; gap: 40px; }
   .feat.flip .feat-media { order: 0; }
-  .steps { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
   .fgrid { grid-template-columns: 1fr 1fr; }
   .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin-left: auto; margin-right: auto; }
   .early-grid { grid-template-columns: 1fr; }
   .footer-top { grid-template-columns: 1fr 1fr; }
+  .booking-preview { grid-template-columns: 1fr; gap: 32px; }
+  .booking-preview-phone { order: -1; }
 }
 @media (max-width: 720px) {
   .nav-links, .nav-signin { display: none; }
@@ -602,6 +728,9 @@ a { color: inherit; text-decoration: none; }
   .hero-stage { margin-bottom: -100px; }
   .panel { padding: 16px; }
   .panel-callout { right: 8px; }
+  .compare-grid { grid-template-columns: 1fr; gap: 16px; }
+  .persona-grid { grid-template-columns: 1fr; gap: 16px; }
+  .steps { grid-template-columns: 1fr; gap: 24px; }
 }
 
 /* ---------- Beta pricing display ---------- */
