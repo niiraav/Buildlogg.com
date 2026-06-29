@@ -324,6 +324,7 @@ function AppRoutes() {
     location.pathname === '/auth' || location.pathname === '/onboarding';
 
   const routes = (
+    <div key={location.pathname} className="page-enter h-full">
     <Routes location={location}>
       <Route path="/auth" element={<Auth />} />
       <Route element={<AuthGuard />}>
@@ -345,6 +346,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </div>
   );
 
   const appContent = (
