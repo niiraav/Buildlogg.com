@@ -277,6 +277,7 @@ export default function Home() {
   const [markDoneStep, setMarkDoneStep] = useState<'photo' | 'payment'>('photo');
   const [recurringEmailInput, setRecurringEmailInput] = useState('');
   const [recurringMode, setRecurringMode] = useState<ReminderMode>('remind_me');
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [interceptData, setInterceptData] = useState<{ oldJob: Job; oldCustomerName: string; newJobId: string } | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -872,6 +873,54 @@ export default function Home() {
     refresh();
   };
 
+
+  const handleStripePayment = async (type: 'deposit' | 'full') => {
+    if (!selectedJobId || !userId || stripeLoading) return;
+    if (!profile?.stripe_connected) {
+      showToast('Enable card payments in Settings first', 'info');
+      return;
+    }
+    const j = jobs.find((x) => x.id === selectedJobId);
+    if (!j) return;
+    const total = totalFor(selectedJobId);
+    const allPayments = await db.payments.where('job_id').equals(selectedJobId).toArray();
+    const summary = paymentSummary(j, allPayments, total);
+    const amount = type === 'deposit' ? summary.depositAmount : summary.amountDue;
+    if (amount <= 0) { showToast('Nothing to charge', 'info', 2000); return; }
+    setStripeLoading(true);
+    try {
+      const result = await createCheckoutSession({
+        merchantId: userId, jobId: selectedJobId, amount,
+        description: `${type === 'deposit' ? 'Deposit' : 'Payment'} for ${j.title || 'job'}`, type,
+      });
+      const n = now();
+      await db.jobs.update(selectedJobId, {
+        deposit_status: 'requested', deposit_stripe_url: result.url,
+        deposit_stripe_link_id: result.id, updated_at: n, _sync_status: 'pending',
+      });
+      await addToSyncQueue('jobs', selectedJobId, { deposit_status: 'requested', deposit_stripe_url: result.url, updated_at: n }, 'update');
+      const logId = crypto.randomUUID();
+      await db.work_log.add({ id: logId, job_id: selectedJobId, type: 'status_change',
+        description: `Card payment link sent — ${type === 'deposit' ? 'Deposit' : 'Payment'} £${formatAmount(amount)} via Stripe`,
+        amount, created_at: n, _sync_status: 'pending' });
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: selectedJobId, type: 'status_change',
+        description: `Card payment link sent — ${type === 'deposit' ? 'Deposit' : 'Payment'} £${formatAmount(amount)} via Stripe`, amount, created_at: n }, 'insert');
+      capture('stripe_payment_link_sent', { type, amount });
+      setSheet(null);
+      const businessName = profile?.business_name || profile?.full_name || 'Your business';
+      const firstName = (customerFor(selectedJobId)?.name || 'there').split(' ')[0];
+      setSendSheetConfig({
+        title: `Send to ${customerFor(selectedJobId)?.name || 'customer'}?`,
+        customerPhone: customerFor(selectedJobId)?.phone || '',
+        messageText: `Hi ${firstName}, here's your ${type === 'deposit' ? 'deposit' : 'payment'} link for £${formatAmount(amount)}: ${result.url} — ${businessName}`,
+        onSend: () => { setSendSheetConfig(null); refresh(); showToast('Payment link sent'); },
+      });
+    } catch (e) {
+      showToast('Could not create payment link', 'error');
+    } finally {
+      setStripeLoading(false);
+    }
+  };
 
   const handleDone = () => {
     if (!activeJob) return;
@@ -1921,6 +1970,20 @@ export default function Home() {
               label="Cash"
               onTap={() => handlePayment('cash')}
             />
+            {profile?.stripe_connected && (() => {
+              const j = jobs.find(x => x.id === selectedJobId);
+              if (!j) return null;
+              const balance = totalFor(j.id) - (j.deposit_pct ? (j.deposit_pct / 100) * totalFor(j.id) : 0);
+              if (balance <= 0) return null;
+              return (
+                <SheetRow
+                  icon={<CreditCard size={18} className="text-brand-dark" />}
+                  label={`Send card payment link (£${formatAmount(balance)})`}
+                  onTap={() => handleStripePayment('full')}
+                  disabled={stripeLoading}
+                />
+              );
+            })()}
             <SheetRow
               icon={<AlertTriangle size={18} className="text-status-red" />}
               label="Not yet"

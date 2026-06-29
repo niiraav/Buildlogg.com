@@ -248,18 +248,20 @@ export function SendSheet({
                 {attachPDF ? 'Text' : 'SMS'}
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-4 mt-4">
+
+            {/* Copy + Save draft stacked, tertiary style with padding */}
+            <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={handleCopyMessage}
-                className="flex items-center gap-1.5 text-sm font-medium text-brand-mid cursor-pointer"
+                className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-medium text-brand-mid border border-brand-borderLight bg-brand-surface/50 px-4 cursor-pointer active:bg-brand-border/40 active:scale-[0.98] transition-all duration-150"
               >
-                <Clipboard size={14} />
+                <Clipboard size={16} />
                 Copy
               </button>
               {onSaveDraft && (
                 <button
                   onClick={handleSaveDraft}
-                  className="flex items-center gap-1.5 text-sm font-medium text-brand-muted cursor-pointer"
+                  className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-medium text-brand-mid border border-brand-borderLight bg-brand-surface/50 px-4 cursor-pointer active:bg-brand-border/40 active:scale-[0.98] transition-all duration-150"
                 >
                   Save draft
                 </button>
@@ -283,7 +285,7 @@ export function SendSheet({
               onClick={() => setEditingMessage(true)}
               className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
             >
-              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text">
+              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text break-all">
                 {messageText}
               </p>
               {/* Non-editable signature line — only for free tier */}

@@ -1,0 +1,133 @@
+{
+  "routes": [
+    {
+      "routePath": "/api/create-checkout-session",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/create-checkout-session.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/create-subscription-session",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/create-subscription-session.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/cron-payment-chases",
+      "mountPath": "/api",
+      "method": "GET",
+      "module": [
+        "api/cron-payment-chases.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/cron-quote-follow-ups",
+      "mountPath": "/api",
+      "method": "GET",
+      "module": [
+        "api/cron-quote-follow-ups.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/cron-recurring-reminders",
+      "mountPath": "/api",
+      "method": "GET",
+      "module": [
+        "api/cron-recurring-reminders.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/feedback-notify",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/feedback-notify.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/resend-webhook",
+      "mountPath": "/api",
+      "method": "GET",
+      "module": [
+        "api/resend-webhook.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/resend-webhook",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/resend-webhook.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/stripe-connect-onboard",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/stripe-connect-onboard.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/stripe-webhook",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/stripe-webhook.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/book/payment-cancelled",
+      "mountPath": "/book",
+      "method": "GET",
+      "module": [
+        "book/payment-cancelled.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/book/payment-success",
+      "mountPath": "/book",
+      "method": "GET",
+      "module": [
+        "book/payment-success.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/book/:slug*",
+      "mountPath": "/book",
+      "method": "",
+      "module": [
+        "book/[[slug]].js:onRequest"
+      ]
+    },
+    {
+      "routePath": "/unsubscribe",
+      "mountPath": "/",
+      "method": "GET",
+      "module": [
+        "unsubscribe.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/unsubscribe",
+      "mountPath": "/",
+      "method": "POST",
+      "module": [
+        "unsubscribe.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/",
+      "mountPath": "/",
+      "method": "",
+      "middleware": [
+        "_middleware.js:onRequest"
+      ]
+    }
+  ],
+  "baseURL": "/"
+}

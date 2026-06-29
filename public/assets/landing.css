@@ -138,7 +138,8 @@ main::after {
 }
 main > * { position: relative; z-index: 1; }
 
-/* Hero section gets dashed outer lines — softer, less rigid */
+/* Hero section gets dashed outer lines — softer, less rigid.
+   Hero is now max-width 1120px centered, so left:0/right:0 aligns to grid lines. */
 .hero::after {
   content: '';
   position: absolute;
@@ -169,11 +170,12 @@ main > * { position: relative; z-index: 1; }
   pointer-events: none;
   z-index: 2;
 }
-.section:not(.hero)::before { left: 24.5px; }
-.section:not(.hero)::after { right: 24.5px; }
+.section:not(.hero)::before { left: -3.5px; }
+.section:not(.hero)::after { right: -3.5px; }
 
 /* Internal column dividers — vertical lines between grid columns */
 /* Two-column grids: left column gets a right border, consistent 48px cell padding */
+.hero-grid > *:first-child,
 .problem-grid > *:first-child,
 .feat > *:first-child,
 .compare-grid > *:first-child,
@@ -182,6 +184,7 @@ main > * { position: relative; z-index: 1; }
   border-right: 1px solid #ebebeb;
   padding-right: 48px;
 }
+.hero-grid > *:last-child,
 .problem-grid > *:last-child,
 .feat > *:last-child,
 .compare-grid > *:last-child,
@@ -230,6 +233,15 @@ main > * { position: relative; z-index: 1; }
   .fgrid > .fcard:nth-child(5) {
     border-right: none;
   }
+}
+
+/* Empty spacer between sections — maintains grid template with breathing room */
+.grid-spacer {
+  max-width: var(--container);
+  margin: 0 auto;
+  height: 64px;
+  border-left: 1px solid #ebebeb;
+  border-right: 1px solid #ebebeb;
 }
 
 /* ---------- Buttons ---------- */
@@ -306,8 +318,8 @@ main > * { position: relative; z-index: 1; }
 .mobile-menu a:last-child { border-bottom: none; }
 
 /* ---------- Hero ---------- */
-.hero { padding: clamp(48px, 7vw, 84px) 0 clamp(56px, 7vw, 88px); position: relative; overflow: hidden; }
-.hero-grid { display: grid; grid-template-columns: 520px 520px; gap: clamp(32px, 4vw, 64px); align-items: center; justify-content: center; }
+.hero { padding: clamp(48px, 7vw, 84px) 28px clamp(56px, 7vw, 88px); position: relative; overflow: hidden; max-width: var(--container); margin: 0 auto; }
+.hero-grid { display: grid; grid-template-columns: 520px 520px; gap: 0; align-items: center; justify-content: center; }
 .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: var(--r-pill); background: var(--surface-card); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 22px; white-space: nowrap; }
 .hero-eyebrow .tag { background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--r-pill); }
 .hero h1 { margin-bottom: 22px; }
