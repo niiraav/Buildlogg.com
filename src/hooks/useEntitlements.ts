@@ -41,7 +41,8 @@ export function useEntitlements(): Entitlements {
         setIsPro(false);
       } else {
         // undefined or null — beta user with no subscription field
-        setIsPro(true);
+        // VITE_BETA_MODE defaults to true. Set to 'false' in Cloudflare to go live.
+        setIsPro(import.meta.env.VITE_BETA_MODE !== 'false');
       }
     });
   }, [userId]);

@@ -72,12 +72,17 @@ export async function onRequestPost(context) {
       'metadata[type]': type || 'deposit',
     });
 
+    // Stripe Connect: route payment to merchant's connected account
+    const connectAccountId = merchant.stripe_account_id && merchant.stripe_account_id !== 'buildlogg-shared' ? merchant.stripe_account_id : null;
+    const stripeHeaders = {
+      'Authorization': `Bearer ${STRIPE_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+    if (connectAccountId) stripeHeaders['Stripe-Account'] = connectAccountId;
+
     const stripeResp = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${STRIPE_KEY}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: stripeHeaders,
       body: sessionBody.toString(),
     });
 

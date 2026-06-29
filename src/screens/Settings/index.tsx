@@ -51,6 +51,7 @@ export default function Settings() {
   const { can, upgradeUrl, isPro } = useEntitlements();
   const location = useLocation();
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,10 +230,15 @@ export default function Settings() {
         {/* Subscription redirect toast */}
         {(() => {
           const subParam = new URLSearchParams(location.search).get('subscription');
+          const stripeParam = new URLSearchParams(location.search).get('stripe');
           if (subParam === 'success') {
             showToast('Welcome to Pro! Your subscription is active.', 'success', 4000);
           } else if (subParam === 'cancelled') {
             showToast('Subscription cancelled — you\'re still on the free plan', 'info', 3000);
+          } else if (stripeParam === 'return') {
+            showToast('Stripe setup complete — checking status...', 'success', 3000);
+          } else if (stripeParam === 'refresh') {
+            showToast('Stripe setup incomplete — try again', 'info', 3000);
           }
           return null;
         })()}
@@ -947,14 +953,31 @@ export default function Settings() {
             <Button
               variant="primary"
               fullWidth
+              disabled={stripeLoading}
               onClick={async () => {
-                await updateProfile({ stripe_connected: true, stripe_account_id: 'buildlogg-shared' });
-                setShowCardPaymentsSheet(false);
-                showToast('Card payments enabled', 'success');
+                if (!userId) return;
+                setStripeLoading(true);
+                try {
+                  const resp = await fetch('/api/stripe-connect-onboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId }),
+                  });
+                  const data = await resp.json();
+                  if (resp.ok && data.url) {
+                    window.location.href = data.url;
+                  } else {
+                    showToast(data.error || 'Could not start Stripe onboarding', 'error');
+                  }
+                } catch {
+                  showToast('Could not start Stripe onboarding', 'error');
+                } finally {
+                  setStripeLoading(false);
+                }
               }}
             >
               <CreditCard size={18} className="mr-2" />
-              Enable card payments
+              {stripeLoading ? 'Starting...' : 'Enable card payments'}
             </Button>
 
           </div>
