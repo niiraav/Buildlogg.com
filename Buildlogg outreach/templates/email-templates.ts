@@ -440,11 +440,11 @@ export function isGenericEmail(email: string): boolean {
 
 export const templates: Record<string, EmailTemplate> = {
   email1: {
-    subject: 'The admin you do at 9pm',
+    subject: 'Quick question about your quotes',
     subjectVariants: [
-      { label: 'A', subject: 'The admin you do at 9pm' },
-      { label: 'B', subject: 'Quick question about your quotes' },
-      { label: 'C', subject: (lead: Lead) => `${capFirst(tradeLabel(lead.subcategory))} quotes from your phone?` },
+      { label: 'A', subject: 'Quick question about your quotes' },
+      { label: 'B', subject: 'How fast can you send a quote?' },
+      { label: 'C', subject: (lead: Lead) => `${lead.company || 'Your business'} — quotes from your phone?` },
     ],
     body: (lead: Lead) => {
       const trade = tradeLabel(lead.subcategory);
@@ -537,7 +537,7 @@ export const beautyTemplates: Record<string, EmailTemplate> = {
     subject: 'Quick question about your bookings',
     subjectVariants: [
       { label: 'A', subject: 'Quick question about your bookings' },
-      { label: 'B', subject: 'Your empty chair is costing you' },
+      { label: 'B', subject: 'How do you handle no-shows?' },
       { label: 'C', subject: (lead: Lead) => `${lead.company || 'Your salon'} — deposits for no-shows?` },
     ],
     body: (lead: Lead) => {

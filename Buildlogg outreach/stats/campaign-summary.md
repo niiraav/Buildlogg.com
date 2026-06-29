@@ -28,7 +28,9 @@ This is the first sign-up from cold outreach in the entire campaign. It came fro
 | 2026-06-26 | beauty | 1 | v1 | 100 | 1 | TBD | TBD | 0 | 54 deferred + 46 fresh |
 | 2026-06-27 | beauty | 1 | v11+hero | 100 | 7 | TBD | 1→signup | 0 | **First v11 production batch + hero image** |
 | 2026-06-28 | trades | 2 | v11+hero | 100 | 0 | TBD | TBD | 0 | Step 2 follow-ups — rewritten pain-driven copy |
-| **Total** | | | | **600** | **13** | **1+TBD** | **2+TBD** | **10** | |
+| 2026-06-29 | trades | 2 | v11+hero | 45 | 0 | TBD | TBD | 0 | Remaining step 2 follow-ups — hero image now working |
+| 2026-06-29 | beauty | 1 | v11+hero | 55 | TBD | TBD | TBD | 0 | Microsoft domains included (warm-up complete) |
+| **Total** | | | | **700** | **13** | **32+TBD** | **58+TBD** | **10** | |
 
 ## Design Version Sent to Leads
 
@@ -107,8 +109,11 @@ This is the first sign-up from cold outreach in the entire campaign. It came fro
 
 ## Next Actions
 
-1. **48h after v11 batch (Jun 29)**: full open/click comparison vs v1
-2. **Jun 28**: send next 100 beauty leads (v11+hero) — 1,221 remaining
-3. **Jun 28**: send step 2 follow-ups to trades leads (overdue since Jun 25)
-4. **Microsoft warm-up**: 20 MS leads/day now included in batches
-5. **Monitor Hotmail**: check if DMARC fix + "not junk" signals improve placement
+1. **Tomorrow (Jun 30)**: send 100 beauty step 1 leads — 1,645 remaining
+2. **Jun 30–Jul 1**: beauty step 2 follow-ups for Jun 27 batch (Day 3 cadence)
+3. **Jul 1**: trades step 3 (case study) for Jun 22–23 batch (Day 7 cadence)
+4. **Monitor Hotmail**: today's beauty batch included many MS domains — check placement
+5. **Kill "The admin you do at 9pm"** — ✅ Done (replaced with "How fast can you send a quote?")
+6. **Kill "Your empty chair is costing you"** — ✅ Done (replaced with "How do you handle no-shows?")
+7. **Fix root domain SPF** — add Resend/AWS SES include to buildlogg.com SPF record
+8. **Set up inbound reply monitoring** — forward team@mail.buildlogg.com to readable inbox
