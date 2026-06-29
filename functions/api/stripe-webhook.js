@@ -238,5 +238,22 @@ export async function onRequestPost(context) {
     return new Response('OK', { status: 200 });
   }
 
+  // ── Stripe Connect: account onboarding complete ──
+  if (event.type === 'account.updated') {
+    const acct = event.data.object;
+    const userId = acct.metadata?.user_id;
+    if (!userId) return new Response('OK', { status: 200 }); // skip if no user_id
+    try {
+      const connected = acct.details_submitted && acct.payouts_enabled;
+      await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'profiles',
+        `?id=eq.${userId}`, 'PATCH',
+        { stripe_connected: connected });
+      console.log('[stripe-webhook] Account updated:', userId, 'connected:', connected);
+    } catch (err) {
+      console.error('[stripe-webhook] Account update failed:', err);
+    }
+    return new Response('OK', { status: 200 });
+  }
+
   return new Response('OK', { status: 200 });
 }
