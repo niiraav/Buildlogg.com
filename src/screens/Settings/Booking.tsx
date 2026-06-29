@@ -253,6 +253,7 @@ export default function Booking() {
     haptic('light');
     const updated = await updateProfileFields(userId, { booking_enabled: !current });
     setProfile(updated);
+    showSuccess(!current ? 'Booking page live' : 'Booking page paused');
     if (!current) captureBookingPageEnabled();
     else captureBookingPageDisabled();
   }, [userId, profile]);
@@ -261,13 +262,16 @@ export default function Booking() {
     if (!userId) return;
     const updated = await updateProfileFields(userId, { booking_buffer_hours: value });
     setProfile(updated);
+    showSuccess('Booking buffer updated');
   }, [userId]);
 
   const handleTogglePhone = useCallback(async () => {
     if (!userId || !profile) return;
+    haptic('light');
     const current = profile.booking_show_phone ?? true;
     const updated = await updateProfileFields(userId, { booking_show_phone: !current });
     setProfile(updated);
+    showSuccess(!current ? 'Phone number visible on booking page' : 'Phone number hidden from booking page');
   }, [userId, profile]);
 
   const handleCopyLink = useCallback(() => {
@@ -329,37 +333,46 @@ export default function Booking() {
 
   const handleToggleBreak = useCallback(async () => {
     if (!userId) return;
+    haptic('light');
     if (hasBreak) {
       // Turn off — clear break times
       const updated = await updateProfileFields(userId, { booking_break_start: undefined, booking_break_end: undefined });
       setProfile(updated);
+      showSuccess('Lunch break disabled');
     } else {
       // Turn on — set default 12:00-13:00
       const updated = await updateProfileFields(userId, { booking_break_start: '12:00', booking_break_end: '13:00' });
       setProfile(updated);
+      showSuccess('Lunch break enabled — 12:00 to 13:00');
     }
   }, [userId, hasBreak]);
 
   const handleTogglePerDayHours = useCallback(async () => {
     if (!userId) return;
+    haptic('light');
     if (hasPerDayHours) {
       const updated = await updateProfileFields(userId, { booking_hours_per_day: undefined });
       setProfile(updated);
+      showSuccess('Custom hours per day disabled');
     } else {
       // Turn on — empty object, user will fill in
       const updated = await updateProfileFields(userId, { booking_hours_per_day: {} });
       setProfile(updated);
+      showSuccess('Custom hours per day enabled');
     }
   }, [userId, hasPerDayHours]);
 
   const handleToggleBlockedDates = useCallback(async () => {
     if (!userId) return;
+    haptic('light');
     if (hasBlockedDates) {
       const updated = await updateProfileFields(userId, { booking_blocked_dates: undefined });
       setProfile(updated);
+      showSuccess('Blocked dates disabled');
     } else {
       const updated = await updateProfileFields(userId, { booking_blocked_dates: [] });
       setProfile(updated);
+      showSuccess('Blocked dates enabled');
     }
   }, [userId, hasBlockedDates]);
 
@@ -548,7 +561,7 @@ export default function Booking() {
                             const next = isActive
                               ? current.filter(d => d !== day)
                               : [...current, day].sort();
-                            if (userId) { const updated = await updateProfileFields(userId, { booking_working_days: next }); setProfile(updated); }
+                            if (userId) { const updated = await updateProfileFields(userId, { booking_working_days: next }); setProfile(updated); showSuccess('Working days updated'); }
                             haptic('light');
                           }}
                           className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-colors ${
@@ -570,7 +583,7 @@ export default function Booking() {
                       type="time"
                       value={profile?.booking_hours_start || '09:00'}
                       onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_start: e.target.value }); setProfile(updated); } }}
+                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_start: e.target.value }); setProfile(updated); showSuccess('Working hours updated'); } }}
                       className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                     />
                     <span className="text-sm text-brand-muted">to</span>
@@ -578,7 +591,7 @@ export default function Booking() {
                       type="time"
                       value={profile?.booking_hours_end || '17:00'}
                       onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_end: e.target.value }); setProfile(updated); } }}
+                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_hours_end: e.target.value }); setProfile(updated); showSuccess('Working hours updated'); } }}
                       className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                     />
                   </div>
@@ -596,7 +609,7 @@ export default function Booking() {
                       type="time"
                       value={profile?.booking_break_start || '12:00'}
                       onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_start: e.target.value || undefined }); setProfile(updated); } }}
+                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_start: e.target.value || undefined }); setProfile(updated); showSuccess('Lunch break updated'); } }}
                       className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                     />
                     <span className="text-sm text-brand-muted">to</span>
@@ -604,7 +617,7 @@ export default function Booking() {
                       type="time"
                       value={profile?.booking_break_end || '13:00'}
                       onClick={(e) => { try { (e.currentTarget as HTMLInputElement).showPicker(); } catch {} }}
-                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_end: e.target.value || undefined }); setProfile(updated); } }}
+                      onChange={async (e) => { if (userId) { const updated = await updateProfileFields(userId, { booking_break_end: e.target.value || undefined }); setProfile(updated); showSuccess('Lunch break updated'); } }}
                       className="flex-1 h-12 px-3 border border-brand-border rounded-lg text-base font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                     />
                   </div>
@@ -643,6 +656,7 @@ export default function Booking() {
                                   const updated = await updateProfileFields(userId, { booking_hours_per_day: { ...current, [dayKey]: { start: e.target.value, end } } });
                                   setProfile(updated);
                                 }
+                                showSuccess(`${label} hours updated`);
                               }}
                               className="flex-1 h-10 px-2 border border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                             />
@@ -663,6 +677,7 @@ export default function Booking() {
                                   const updated = await updateProfileFields(userId, { booking_hours_per_day: { ...current, [dayKey]: { start, end: e.target.value } } });
                                   setProfile(updated);
                                 }
+                                showSuccess(`${label} hours updated`);
                               }}
                               className="flex-1 h-10 px-2 border border-brand-border rounded-lg text-sm font-medium text-brand-black outline-none focus:border-brand-black bg-white"
                             />
@@ -674,6 +689,7 @@ export default function Booking() {
                                   const { [dayKey]: _, ...rest } = current;
                                   const updated = await updateProfileFields(userId, { booking_hours_per_day: Object.keys(rest).length > 0 ? rest : undefined });
                                   setProfile(updated);
+                                  showSuccess(`${label} reset to default hours`);
                                 }}
                                 className="text-brand-muted cursor-pointer text-xs underline shrink-0"
                               >Reset</button>
@@ -704,7 +720,7 @@ export default function Booking() {
                         <button
                           onClick={async () => {
                             const current = profile?.booking_blocked_dates || [];
-                            if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: current.filter(d => d !== date) }); setProfile(updated); }
+                            if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: current.filter(d => d !== date) }); setProfile(updated); showSuccess('Date unblocked'); }
                           }}
                           className="text-brand-muted cursor-pointer"
                           aria-label="Remove"
@@ -728,7 +744,7 @@ export default function Booking() {
                         if (!input || !input.value) return;
                         const current = profile?.booking_blocked_dates || [];
                         if (current.includes(input.value)) { showToast('Date already blocked', 'info'); return; }
-                        if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: [...current, input.value].sort() }); setProfile(updated); }
+                        if (userId) { const updated = await updateProfileFields(userId, { booking_blocked_dates: [...current, input.value].sort() }); setProfile(updated); showSuccess('Date blocked'); }
                         input.value = '';
                         haptic('light');
                       }}
