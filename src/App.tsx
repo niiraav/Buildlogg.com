@@ -387,7 +387,7 @@ function UpdateBanner() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] bg-brand-black text-white px-4 shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)', paddingBottom: '12px' }}>
+    <div className="fixed top-0 left-0 right-0 z-[60] bg-[#111827] text-white px-4 shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)', paddingBottom: '12px' }}>
       <div className="flex items-center justify-between gap-4 max-w-sm mx-auto">
         <span className="text-sm font-medium">A new version is available</span>
         <div className="flex items-center gap-4 shrink-0">
