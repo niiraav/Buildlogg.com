@@ -1973,7 +1973,7 @@ export default function Home() {
             {profile?.stripe_connected && (() => {
               const j = jobs.find(x => x.id === selectedJobId);
               if (!j) return null;
-              const balance = totalFor(selectedJobId) - (j.deposit_pct ? (j.deposit_pct / 100) * totalFor(selectedJobId) : 0);
+              const balance = totalFor(j.id) - (j.deposit_pct ? (j.deposit_pct / 100) * totalFor(j.id) : 0);
               if (balance <= 0) return null;
               return (
                 <SheetRow

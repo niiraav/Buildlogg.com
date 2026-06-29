@@ -1618,7 +1618,12 @@ export default function JobDetail() {
             {job && job.status !== 'quoted' && <StatusBadge status={job.status} />}
           </div>
           <div className="flex items-center gap-2"><p className="text-sm font-medium text-brand-mid truncate">{job?.title}</p>{job?.is_sample && <span className="text-xs font-bold text-brand-mid bg-brand-surface px-2 py-0.5 rounded-full shrink-0">Sample</span>}</div>
-          <p className="text-xs font-medium text-brand-muted mt-0.5">{job?.job_number}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-xs font-medium text-brand-muted">{job?.job_number}</p>
+            {job?.deposit_status === 'requested' && job?.deposit_stripe_url && (
+              <span className="text-[10px] font-semibold text-status-blue bg-status-blueBg px-1.5 py-0.5 rounded-full shrink-0">Card link sent</span>
+            )}
+          </div>
         </div>
         {hasContactButtons && (
           <div className="flex gap-1.5 shrink-0">
