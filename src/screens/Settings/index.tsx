@@ -963,37 +963,11 @@ export default function Settings() {
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-brand-dark leading-relaxed">
-              Accept card payments from clients — deposits at booking, full payments after a job, or balance chases. Money lands in your bank account automatically.
+              Take deposits at booking, send payment links via WhatsApp, and get paid by card. Money lands in your bank automatically.
             </p>
-
-            {/* Outcome-focused — what they get */}
-            <div className="bg-brand-surface border border-brand-border rounded-lg p-3">
-              <p className="text-xs font-semibold text-brand-mid mb-2">What you can do with card payments</p>
-              <ul className="text-xs text-brand-dark space-y-1.5">
-                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Take deposits when clients book online</li>
-                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Send payment links via WhatsApp from any job</li>
-                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Automatically chase overdue payments by card</li>
-                <li className="flex items-start gap-2"><span className="text-status-green shrink-0">✓</span> Money paid into your bank — no manual invoicing</li>
-              </ul>
-            </div>
-
-            {/* Setup expectation — what they'll need */}
             <div className="bg-status-blueBg border border-status-blueBorder rounded-lg p-3">
-              <p className="text-xs font-semibold text-status-blue mb-1.5">One-time setup with Stripe (2–3 minutes)</p>
-              <p className="text-xs text-status-blue leading-relaxed mb-2">
-                Stripe is our payment partner — they handle card processing and send money to your bank. You'll create a free Stripe account to receive payouts.
-              </p>
-              <div className="text-xs text-status-blue leading-relaxed">
-                <p className="font-medium mb-1">Before you start, have ready:</p>
-                <ul className="space-y-0.5 ml-3">
-                  <li>• Bank account sort code & account number</li>
-                  <li>• Your date of birth</li>
-                  <li>• Home address</li>
-                  <li>• Photo ID (driving licence or passport)</li>
-                </ul>
-              </div>
-              <p className="text-xs text-status-blue/70 mt-2 border-t border-status-blueBorder/50 pt-2">
-                Stripe handles all payment processing securely. Buildlogg never sees your bank or card details.
+              <p className="text-xs text-status-blue leading-relaxed">
+                You'll set up a free <strong>Stripe</strong> account — our payment partner. Takes 2–3 minutes. Have your bank details and photo ID ready.
               </p>
             </div>
 
