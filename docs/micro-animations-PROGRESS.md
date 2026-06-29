@@ -16,8 +16,8 @@
 | Task | Description | Status | Commit |
 |------|-------------|--------|--------|
 | T2-1 | useCountUp hook | ✅ DONE | c88edc6 |
-| T2-2 | Home "owed to you" count-up | PENDING | — |
-| T2-3 | Dashboard stat cards count-up | PENDING | — |
-| T2-4 | Exit animation CSS (item-exit) | PENDING | — |
-| T2-5 | AnimatedRemove wrapper component | PENDING | — |
-| T2-6 | Final verification and deploy | PENDING | — |
+| T2-2 | Home "owed to you" count-up | ✅ DONE | 2059968 |
+| T2-3 | Dashboard stat cards count-up | ✅ DONE | 2059968 |
+| T2-4 | Exit animation CSS (item-exit) | ✅ DONE | 2059968 |
+| T2-5 | AnimatedRemove wrapper component | ✅ DONE | 2059968 |
+| T2-6 | Final verification and deploy | IN PROGRESS | — |
