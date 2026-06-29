@@ -286,9 +286,8 @@ export default function Reminders() {
             )}
           </div>
           {showToggle && pushEnabled && (
-            <div className="flex items-start gap-2 bg-status-amberBg border border-amber-200 rounded-lg p-3 mt-2">
-              <AlertCircle size={16} className="text-status-amber shrink-0 mt-0.5" />
-              <p className="text-xs text-status-amber leading-relaxed">Push is subscribed, but automated sending isn't active yet. You'll still get in-app task cards for all reminders.</p>
+            <div className="flex items-start gap-2 bg-status-greenBg border border-green-200 rounded-lg p-3 mt-2">
+              <p className="text-xs text-status-green leading-relaxed">Push notifications are on. You'll get alerts when recurring jobs are due, quotes go stale, or payments need chasing.</p>
             </div>
           )}
         </div>
