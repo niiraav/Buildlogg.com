@@ -56,22 +56,26 @@ export async function onRequestPost(context) {
 
     // Look up profile
     const profiles = await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'profiles',
-      `?id=eq.${userId}&select=stripe_account_id,business_name,full_name`);
+      `?id=eq.${userId}&select=stripe_account_id,stripe_connected,business_name,full_name`);
 
     if (!profiles || profiles.length === 0) return json({ error: 'User not found' }, 404);
 
     const profile = profiles[0];
     const origin = new URL(request.url).origin;
     let accountId = profile.stripe_account_id;
-    let needsNewAccount = !accountId || accountId === 'buildlogg-shared';
 
-    // If an existing account ID is present, verify it belongs to this Stripe account
-    if (!needsNewAccount) {
+    // Always create a fresh account if:
+    // - No account ID
+    // - Account ID is the old shared placeholder
+    // - stripe_connected is false (account may be stale from old platform)
+    let needsNewAccount = !accountId || accountId === 'buildlogg-shared' || !profile.stripe_connected;
+
+    // If we have an existing account ID and stripe_connected is true, verify it's accessible
+    if (!needsNewAccount && accountId) {
       const checkResp = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, {
         headers: { 'Authorization': `Bearer ${STRIPE_KEY}` },
       });
       if (!checkResp.ok) {
-        // Account belongs to a different Stripe account (e.g. migrated platforms) — discard and create fresh
         console.log('[stripe-connect] Existing account not accessible, creating new one:', accountId);
         needsNewAccount = true;
         accountId = null;
