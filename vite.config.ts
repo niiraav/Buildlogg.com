@@ -15,6 +15,9 @@ export default defineConfig({
           if (req.url?.startsWith('/app/')) {
             req.url = '/pwa/index.html';
           }
+          // Clean URLs for static legal pages (/privacy → /privacy.html)
+          if (req.url === '/privacy' || req.url === '/privacy/') req.url = '/privacy.html';
+          if (req.url === '/terms' || req.url === '/terms/') req.url = '/terms.html';
           next();
         });
       },
@@ -23,6 +26,8 @@ export default defineConfig({
           if (req.url?.startsWith('/app/')) {
             req.url = '/pwa/index.html';
           }
+          if (req.url === '/privacy' || req.url === '/privacy/') req.url = '/privacy.html';
+          if (req.url === '/terms' || req.url === '/terms/') req.url = '/terms.html';
           next();
         });
       },
