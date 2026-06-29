@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
@@ -48,7 +48,9 @@ function isValidGoogleReviewUrl(url: string): boolean {
 
 export default function Settings() {
   const userId = useAppStore((s) => s.userId);
-  const { can, upgradeUrl } = useEntitlements();
+  const { can, upgradeUrl, isPro } = useEntitlements();
+  const location = useLocation();
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,6 +226,82 @@ export default function Settings() {
 
       {/* Body */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))]">
+        {/* Subscription redirect toast */}
+        {(() => {
+          const subParam = new URLSearchParams(location.search).get('subscription');
+          if (subParam === 'success') {
+            showToast('Welcome to Pro! Your subscription is active.', 'success', 4000);
+          } else if (subParam === 'cancelled') {
+            showToast('Subscription cancelled — you\'re still on the free plan', 'info', 3000);
+          }
+          return null;
+        })()}
+
+        {/* Your plan section */}
+        <div className="mb-6">
+          <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
+            Your plan
+          </div>
+          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <div>
+                {isPro ? (
+                  <>
+                    <span className="text-sm font-bold text-brand-black">Pro</span>
+                    <p className="text-xs text-brand-muted mt-0.5">
+                      {profile?.subscription_status === 'active' ? '£14/month — active' : 'Free during beta'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-bold text-brand-black">Free plan</span>
+                    <p className="text-xs text-brand-muted mt-0.5">Upgrade to unlock all features</p>
+                  </>
+                )}
+              </div>
+              {isPro ? (
+                <span className="w-2 h-2 rounded-full bg-status-green shrink-0" />
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={subscriptionLoading}
+                  onClick={async () => {
+                    if (!userId) return;
+                    setSubscriptionLoading(true);
+                    try {
+                      const resp = await fetch('/api/create-subscription-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId }),
+                      });
+                      const data = await resp.json();
+                      if (resp.ok && data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        showToast(data.error || 'Could not start checkout', 'error');
+                      }
+                    } catch {
+                      showToast('Could not start checkout', 'error');
+                    } finally {
+                      setSubscriptionLoading(false);
+                    }
+                  }}
+                >
+                  Upgrade to Pro
+                </Button>
+              )}
+            </div>
+            {!isPro && (
+              <div className="px-4 py-3 border-t border-brand-surface bg-brand-surface/50">
+                <p className="text-xs text-brand-muted leading-relaxed">
+                  Pro includes: online booking page, card payments, PDF quotes, auto-reminders, payment chasing, revenue dashboard, and more.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Add to Home Screen — dismissible inline banner */}
         <AddToHomeScreen banner />
 

@@ -83,6 +83,24 @@ export async function onRequestPost(context) {
   // Handle checkout.session.completed
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+
+    // ── Subscription checkout — update profile, not job ──
+    if (session.mode === 'subscription') {
+      const userId = session.metadata?.user_id || session.client_reference_id;
+      if (userId) {
+        try {
+          await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'profiles',
+            `?id=eq.${userId}`, 'PATCH',
+            { subscription_status: 'active', stripe_customer_id: session.customer });
+          console.log('[stripe-webhook] Subscription activated for user:', userId);
+        } catch (err) {
+          console.error('[stripe-webhook] Subscription profile update failed:', err);
+        }
+      }
+      return new Response('OK', { status: 200 });
+    }
+
+    // ── One-time payment checkout — existing job payment logic ──
     const sessionId = session.id;
     const metadata = session.metadata || {};
     const merchantId = metadata.merchant_id;
@@ -164,6 +182,60 @@ export async function onRequestPost(context) {
       console.error('[stripe-webhook] Processing error:', err);
       return new Response('OK (error logged)', { status: 200 });
     }
+  }
+
+  // ── Subscription lifecycle events ──
+  if (event.type === 'customer.subscription.updated') {
+    const sub = event.data.object;
+    const userId = sub.metadata?.user_id;
+    if (userId) {
+      try {
+        const status = sub.status; // active, trialing, past_due, canceled, unpaid
+        const endsAt = sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null;
+        const patch = {};
+        if (status === 'active' || status === 'trialing') {
+          patch.subscription_status = status;
+        } else if (status === 'canceled') {
+          patch.subscription_status = 'canceled';
+        } else if (status === 'unpaid' || status === 'past_due') {
+          patch.subscription_status = 'expired';
+        }
+        if (endsAt) patch.subscription_ends_at = endsAt;
+        if (Object.keys(patch).length > 0) {
+          await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'profiles',
+            `?id=eq.${userId}`, 'PATCH', patch);
+          console.log('[stripe-webhook] Subscription updated:', userId, status);
+        }
+      } catch (err) {
+        console.error('[stripe-webhook] Subscription update failed:', err);
+      }
+    }
+    return new Response('OK', { status: 200 });
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object;
+    const userId = sub.metadata?.user_id;
+    if (userId) {
+      try {
+        await supabaseQuery(SUPABASE_URL, SUPABASE_KEY, 'profiles',
+          `?id=eq.${userId}`, 'PATCH',
+          { subscription_status: 'canceled' });
+        console.log('[stripe-webhook] Subscription canceled:', userId);
+      } catch (err) {
+        console.error('[stripe-webhook] Subscription cancel failed:', err);
+      }
+    }
+    return new Response('OK', { status: 200 });
+  }
+
+  // ── Dispute logging ──
+  if (event.type === 'charge.dispute.created') {
+    const dispute = event.data.object;
+    console.error('[stripe-webhook] Dispute created:', dispute.id, 'amount:', dispute.amount, 'reason:', dispute.reason);
+    return new Response('OK', { status: 200 });
   }
 
   return new Response('OK', { status: 200 });

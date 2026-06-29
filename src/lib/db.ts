@@ -46,6 +46,7 @@ export interface Profile {
   // W2-2: Stripe
   stripe_account_id?: string;
   stripe_connected?: boolean;
+  stripe_customer_id?: string;  // Stripe Customer ID for subscriptions
   deposit_pct?: number;      // default 20 — percentage for deposit payment terms
   // Entitlements
   subscription_status?: 'active' | 'trialing' | 'expired' | 'canceled' | null;
