@@ -749,6 +749,67 @@ input[type="datetime-local"] {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Micro-animation keyframes ──────────────────────────────────────── */
+
+/* Page transition — subtle fade + 4px rise */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Success check — scale-in with overshoot */
+@keyframes checkPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* List item stagger — fade in + 6px rise */
+@keyframes listEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility classes */
+.page-enter {
+  animation: pageEnter 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.check-pop {
+  animation: checkPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.list-enter > * {
+  animation: listEnter 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.list-enter > *:nth-child(1) { animation-delay: 0ms; }
+.list-enter > *:nth-child(2) { animation-delay: 40ms; }
+.list-enter > *:nth-child(3) { animation-delay: 80ms; }
+.list-enter > *:nth-child(4) { animation-delay: 120ms; }
+.list-enter > *:nth-child(5) { animation-delay: 160ms; }
+.list-enter > *:nth-child(6) { animation-delay: 200ms; }
+.list-enter > *:nth-child(7) { animation-delay: 240ms; }
+.list-enter > *:nth-child(8) { animation-delay: 280ms; }
+
+/* Expand/collapse — used by DaySummaryCard */
+.expand-collapse {
+  overflow: hidden;
+  transition: max-height 250ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms ease-out;
+}
+
+/* ── Reduced motion: disable all non-essential animation ─── */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .check-pop,
+  .list-enter > *,
+  .expand-collapse,
+  .lc-fade-in {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Form focus + hover affordances used by the auth reference design */
 input.auth-input:focus {
   border-color: var(--ink);
