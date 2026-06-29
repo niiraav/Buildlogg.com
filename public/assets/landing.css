@@ -115,9 +115,14 @@ a { color: inherit; text-decoration: none; }
 .container { max-width: var(--container); margin: 0 auto; padding: 0 28px; }
 
 /* ---------- Grid border template (Enginy/Cal.com style) ---------- */
-/* Vertical lines sit exactly on the section borders.
-   Since sections are max-width 1120px centered, the lines match. */
+/* Three-layer grid system:
+   1. Outer vertical lines (page edges) — solid #ebebeb, dashed on hero
+   2. Horizontal section dividers — solid #ebebeb with + marks
+   3. Internal column dividers — solid #ebebeb between grid columns */
+
 main { position: relative; }
+
+/* Outer grid lines — solid for all sections */
 main::after {
   content: '';
   position: absolute;
@@ -134,11 +139,24 @@ main::after {
 }
 main > * { position: relative; z-index: 1; }
 
+/* Hero section gets dashed outer lines — softer, less rigid */
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-left: 1px dashed #e6e6e6;
+  border-right: 1px dashed #e6e6e6;
+  pointer-events: none;
+}
+
 /* Horizontal dividers between sections */
 .section { border-top: 1px solid #ebebeb; }
 .hero { border-top: none; }
 
-/* Plus marks at grid line intersections */
+/* + marks at grid line intersections */
 .section:not(.hero)::before,
 .section:not(.hero)::after {
   content: '';
@@ -155,12 +173,64 @@ main > * { position: relative; z-index: 1; }
 .section:not(.hero)::before { left: 24.5px; }
 .section:not(.hero)::after { right: 24.5px; }
 
-/* On mobile, hide the grid lines and + marks */
+/* Internal column dividers — vertical lines between grid columns */
+/* Two-column grids: left column gets a right border */
+.problem-grid > *:first-child,
+.feat > *:first-child,
+.compare-grid > *:first-child,
+.persona-grid > *:first-child,
+.booking-preview > *:first-child {
+  border-right: 1px solid #ebebeb;
+  padding-right: clamp(32px, 5vw, 72px);
+}
+.problem-grid > *:last-child,
+.feat > *:last-child,
+.compare-grid > *:last-child,
+.persona-grid > *:last-child,
+.booking-preview > *:last-child {
+  padding-left: clamp(32px, 5vw, 72px);
+}
+
+/* Three-column grids: first and second cards get right border */
+.steps > .step:nth-child(1),
+.steps > .step:nth-child(2),
+.fgrid > .fcard:nth-child(1),
+.fgrid > .fcard:nth-child(2),
+.fgrid > .fcard:nth-child(4),
+.fgrid > .fcard:nth-child(5) {
+  border-right: 1px solid #ebebeb;
+}
+
+/* On mobile, hide all grid lines */
 @media (max-width: 720px) {
   main::after { display: none; }
-  .section { border-top: none; }
+  .hero::after { display: none; }
+  .section { border-top: none; max-width: 100%; }
   .section:not(.hero)::before,
   .section:not(.hero)::after { display: none; }
+  .problem-grid > *:first-child,
+  .feat > *:first-child,
+  .compare-grid > *:first-child,
+  .persona-grid > *:first-child,
+  .booking-preview > *:first-child {
+    border-right: none;
+    padding-right: 0;
+  }
+  .problem-grid > *:last-child,
+  .feat > *:last-child,
+  .compare-grid > *:last-child,
+  .persona-grid > *:last-child,
+  .booking-preview > *:last-child {
+    padding-left: 0;
+  }
+  .steps > .step:nth-child(1),
+  .steps > .step:nth-child(2),
+  .fgrid > .fcard:nth-child(1),
+  .fgrid > .fcard:nth-child(2),
+  .fgrid > .fcard:nth-child(4),
+  .fgrid > .fcard:nth-child(5) {
+    border-right: none;
+  }
 }
 
 /* ---------- Buttons ---------- */
