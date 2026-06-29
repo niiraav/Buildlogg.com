@@ -2308,7 +2308,7 @@ export default function JobDetail() {
                       showToast('Could not copy link', 'error', 3000);
                     });
                   }}
-                  className="text-sm font-medium text-brand-mid underline underline-offset-2 cursor-pointer text-center min-h-11"
+                  className="text-sm font-medium text-brand-mid underline underline-offset-2 cursor-pointer text-center min-h-11 mt-1"
                 >
                   Copy booking link
                 </button>
@@ -3502,7 +3502,7 @@ export default function JobDetail() {
               </div>
             ))}
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <Button variant="primary" onClick={handleConfirmWithConflicts} fullWidth>
               Keep both
             </Button>
@@ -3526,7 +3526,7 @@ export default function JobDetail() {
         title="Ask for a Google review?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {/* Full message preview — tap to edit */}
           {editingReview ? (
             <textarea
@@ -3635,7 +3635,7 @@ export default function JobDetail() {
         title="Is this a recurring job?"
         subtitle={customer ? `${customer.name} · ${job?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {job?.title === 'Callout charge' ? null : (
             <>
               {customer && !customer.email && (
@@ -3736,7 +3736,7 @@ export default function JobDetail() {
         <p className="text-sm text-brand-dark mb-5">
           You haven't added any priced items yet. Add them now or start the job and add charges as you go.
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="primary" fullWidth onClick={() => {
             setSheet(null);
             capture('zero_value_job_add_items', { source: 'job_detail' });

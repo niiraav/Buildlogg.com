@@ -1471,7 +1471,7 @@ export default function Home() {
               <span className="text-brand-muted">{recurringListExpanded ? 'Hide' : 'Show'}</span>
             </button>
             {recurringListExpanded && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {allRecurring.map((r) => {
                   const c = customerFor(r.customer_id);
                   const intervalLabels: Record<string, string> = { monthly: 'Monthly', quarterly: 'Quarterly', six_monthly: '6-monthly', annual: 'Annual' };
@@ -1660,7 +1660,7 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
                   <p className="text-sm font-medium text-status-blue">Ready to try it yourself?</p>
                   <button onClick={() => navigate('/quote')} className="w-full h-10 bg-status-blue text-white text-sm font-semibold rounded-lg cursor-pointer active:opacity-80">
                     Create your first real quote
@@ -1747,7 +1747,7 @@ export default function Home() {
             rows={3}
           />
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button
             variant="primary"
             onClick={() => handleSendLate('whatsapp')}
@@ -1940,7 +1940,7 @@ export default function Home() {
         title="Dismiss this missed call?"
         subtitle="The phone number will be lost"
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button
             variant="secondary"
             onClick={() => setSheet(null)}
@@ -1976,7 +1976,7 @@ export default function Home() {
             : undefined
         }
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button
             variant="primary"
             onClick={() => {
@@ -2041,7 +2041,7 @@ export default function Home() {
         title="Ask for a Google review?"
         subtitle={selectedCustomer ? `${selectedCustomer.name} · ${selectedJob?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button
             variant="primary"
             onClick={async () => {
@@ -2089,7 +2089,7 @@ export default function Home() {
         title="Is this a recurring job?"
         subtitle={selectedJobId ? `${customerFor(selectedJobId)?.name || ''} · ${jobs.find(x => x.id === selectedJobId)?.title || ''}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {selectedJobId && (() => {
             const c = customerFor(selectedJobId);
             return c && !c.email ? (
@@ -2191,7 +2191,7 @@ export default function Home() {
           const firstName = c?.name?.split(' ')[0] || 'there';
           const followUpMsg = `Hi ${firstName}, just following up on the quote I sent for ${selectedFollowUp.job.title}. Happy to answer any questions. — ${businessName}`;
           return (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
                 <p className="text-sm text-brand-dark">Quote sent {days}d ago · £{total.toFixed(2)}</p>
               </div>
@@ -2250,7 +2250,7 @@ export default function Home() {
           const isPaused = selectedChase.status === 'paused';
           const isSmallClaims = selectedChase.stage === 'small_claims';
           return (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
                 <p className="text-sm text-brand-dark">£{total.toFixed(2)} · {daysOverdue}d overdue · {selectedChase.stage}{isPaused ? ' (paused)' : ''}</p>
               </div>
@@ -2386,7 +2386,7 @@ export default function Home() {
           const intervalLabels: Record<string, string> = { monthly: 'Monthly', quarterly: 'Quarterly', six_monthly: '6-monthly', annual: 'Annual' };
           const nextDue = new Date(selectedRecurring.next_due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
           return (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="bg-brand-surface border border-brand-border rounded-lg p-3 mb-2">
                 <p className="text-sm text-brand-dark">Next due: {nextDue} · {intervalLabels[selectedRecurring.interval] || selectedRecurring.interval}</p>
                 {selectedRecurring.status === 'dormant' && <p className="text-xs text-status-amber mt-1">Dormant — no response after multiple attempts</p>}
@@ -2480,7 +2480,7 @@ export default function Home() {
         title="Booking requests"
         subtitle={`${pendingBookings.length} pending`}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {pendingBookings.map((b) => (
             <div
               key={b.id}
@@ -2514,7 +2514,7 @@ export default function Home() {
           const hasOverlap = !!bookingConflict.overlap;
           const hasSoft = bookingConflict.soft.length > 0;
           return (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {/* Client name — primary heading */}
               <h3 className="text-xl font-extrabold text-brand-black px-1">{selectedBooking.client_name}</h3>
 
@@ -2711,7 +2711,7 @@ export default function Home() {
         <p className="text-sm text-brand-dark mb-5">
           You haven't added any priced items yet. Add them now or start the job and add charges as you go.
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="primary" fullWidth onClick={() => {
             const j = jobs.find(x => x.id === selectedJobId);
             setSheet(null);
@@ -2738,7 +2738,7 @@ export default function Home() {
         title="Reminder mode"
         subtitle={selectedRecurring ? `${customerFor(selectedRecurring.customer_id)?.name || ''} xc2xb7 ${selectedRecurring.title}` : undefined}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'remind_me'); captureReminderModeChanged('remind_me', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Remind me'); } }}>Remind me xe2x80x94 push notification only</Button>
           <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'remind_client'); captureReminderModeChanged('remind_client', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Auto-message client'); } }}>Auto-message client xe2x80x94 email them automatically</Button>
           <Button variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await setReminderMode(selectedRecurring.id, 'both'); captureReminderModeChanged('both', 'task_card', selectedRecurring.id); setSheet('recurring_actions'); showToast('Mode: Both'); } }}>Both xe2x80x94 notify me and email the client</Button>
@@ -2754,7 +2754,7 @@ export default function Home() {
         subtitle={selectedRecurring ? `Currently ${selectedRecurring.reminder_lead_days} days before due` : undefined}
       >
         <p className="text-sm text-brand-dark mb-4">How many days before the due date should the reminder fire? (1xe2x80x9390)</p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {[7, 14, 30].map(d => (
             <Button key={d} variant="secondary" fullWidth onClick={async () => { if (selectedRecurring) { await updateReminderLeadDays(selectedRecurring.id, d); captureReminderLeadDaysChanged(d, selectedRecurring.id); setSheet('recurring_actions'); showToast(`Reminder set to ${d} days before`); } }}>{d} days before</Button>
           ))}

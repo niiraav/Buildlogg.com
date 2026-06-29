@@ -248,7 +248,7 @@ export function SendSheet({
                 {attachPDF ? 'Text' : 'SMS'}
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-4 mt-2">
+            <div className="flex items-center justify-center gap-4 mt-4">
               <button
                 onClick={handleCopyMessage}
                 className="flex items-center gap-1.5 text-sm font-medium text-brand-mid cursor-pointer"
