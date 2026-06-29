@@ -19,6 +19,7 @@
   height: 100% !important;
   max-width: 240px;
   max-height: 240px;
+  border-radius: 12px;
 }
 
 /* Screen title — responsive font sizing for headers */

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ExternalLink, Copy, Download, Share2, Clock, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Copy, Download, Share2, Clock, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { createPrettyQR } from '../../lib/prettyQr';
 import type QRCodeStyling from 'qr-code-styling';
 import { db, type Profile } from '../../lib/db';
@@ -288,6 +288,28 @@ export default function Booking() {
       showToast('Could not download QR', 'error', 3000);
     }
   }, [profile?.booking_slug]);
+
+  // Platform detection for Save to Photos vs Download
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  const handleSaveToPhotos = useCallback(async () => {
+    if (!qrCodeRef.current || !profile?.booking_slug) return;
+    try {
+      const blob = await qrCodeRef.current.getRawData('png');
+      if (!blob) { showToast('Could not generate QR image', 'error'); return; }
+      const file = new File([blob as Blob], `booking-qr-${profile.booking_slug}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Save your booking QR' });
+        showSuccess('QR saved');
+      } else {
+        // Fallback: download the file
+        await qrCodeRef.current.download({ name: `booking-qr-${profile.booking_slug}`, extension: 'png' });
+        showSuccess(isIOS ? 'QR saved to Downloads — add to Photos from there' : 'QR downloaded');
+      }
+    } catch {
+      // User cancelled share sheet — no error toast
+    }
+  }, [profile?.booking_slug, isIOS]);
 
   const handleShareLink = useCallback(async () => {
     if (!profile?.booking_slug) return;
@@ -747,16 +769,25 @@ export default function Booking() {
             {hasSlug && (
               <div>
                 <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">QR code</div>
-                <div className="bg-white border border-brand-border rounded-2xl p-4">
-                  <div className="flex flex-col items-center mb-4">
+                <div className="bg-white border border-brand-border rounded-3xl p-6 shadow-sm dark:shadow-lg dark:shadow-black/20">
+                  <div className="flex flex-col items-center">
                     <div ref={qrContainerRef} style={{ width: '240px', height: '240px' }} className="qr-container flex items-center justify-center" />
-                    <button
-                      onClick={handleDownloadQR}
-                      className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-lg text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
-                    >
-                      <Download size={14} />
-                      Download QR
-                    </button>
+                    <div className="flex flex-col gap-2 mt-4 w-full">
+                      <button
+                        onClick={handleSaveToPhotos}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-brand-black text-brand-surface rounded-xl text-sm font-semibold cursor-pointer active:opacity-70 transition-opacity"
+                      >
+                        <ImageIcon size={14} />
+                        {isIOS ? 'Save to Photos' : 'Save image'}
+                      </button>
+                      <button
+                        onClick={handleDownloadQR}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-xl text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                      >
+                        <Download size={14} />
+                        Download
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
