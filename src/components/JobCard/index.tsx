@@ -3,6 +3,7 @@ import { Clock, MapPin, ArrowRight, Phone, MessageCircle } from 'lucide-react';
 import type { Job, Customer } from '../../lib/db';
 import { FlagBadge, type FlagType } from '../FlagBadge';
 import { haptic } from '../../lib/haptics';
+import { phoneForWhatsApp, normalizePhone } from '../../lib/phone';
 
 export interface JobCardProps {
   job: Job;
@@ -77,12 +78,12 @@ export const JobCard: React.FC<JobCardProps> = ({
 
   const handleCall = () => {
     haptic('light');
-    if (customer.phone) window.open(`tel:${customer.phone}`, '_self');
+    if (customer.phone) window.open(`tel:${normalizePhone(customer.phone)}`, '_self');
   };
 
   const handleMessage = () => {
     haptic('light');
-    const phone = customer.phone?.replace(/\D/g, '');
+    const phone = customer.phone ? phoneForWhatsApp(customer.phone) : '';
     if (!phone) return;
     const text = encodeURIComponent(`Hi ${customer.name}, I'm on my way to you now for the ${job.title}.`);
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');

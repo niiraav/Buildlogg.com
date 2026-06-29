@@ -7,6 +7,7 @@ import { showToast } from '../Toast/store';
 import PDFPreview from '../../screens/Quote/PDFPreview';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import { ProBadge } from '../ProBadge';
+import { phoneForWhatsApp, normalizePhone } from '../../lib/phone';
 
 export type SendMethod = 'whatsapp' | 'whatsapp_pdf' | 'sms' | 'text_pdf';
 
@@ -147,7 +148,7 @@ export function SendSheet({
   const handleWhatsApp = () => {
     if (!customerPhone) return;
     haptic('light');
-    const phone = customerPhone.replace(/\D/g, '');
+    const phone = phoneForWhatsApp(customerPhone);
     const encoded = encodeURIComponent(fullSendText);
     const waUrl = `https://wa.me/${phone}?text=${encoded}`;
 
@@ -190,7 +191,7 @@ export function SendSheet({
         onSend('text_pdf', false);
       }
     } else {
-      window.location.href = `sms:${customerPhone}?body=${encodeURIComponent(fullSendText)}`;
+      window.location.href = `sms:${normalizePhone(customerPhone)}?body=${encodeURIComponent(fullSendText)}`;
       onSend('sms', false);
     }
   };

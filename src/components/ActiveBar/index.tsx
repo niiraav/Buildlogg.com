@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Clock, Phone, MessageCircle, Check } from 'lucide-react';
 import type { Job, Customer } from '../../lib/db';
+import { normalizePhone } from '../../lib/phone';
 
 export interface ActiveBarProps {
   customer: Customer;
@@ -47,13 +48,13 @@ export const ActiveBar: React.FC<ActiveBarProps> = ({
 
   const handleCall = () => {
     if (customer.phone) {
-      window.location.href = `tel:${encodeURIComponent(customer.phone)}`;
+      window.location.href = `tel:${normalizePhone(customer.phone)}`;
     }
   };
 
   const handleMessage = () => {
     if (customer.phone) {
-      window.location.href = `sms:${encodeURIComponent(customer.phone)}`;
+      window.location.href = `sms:${normalizePhone(customer.phone)}`;
     }
   };
 
