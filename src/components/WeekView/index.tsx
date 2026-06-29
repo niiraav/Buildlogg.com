@@ -164,7 +164,7 @@ export function WeekView({ jobs, customers, lineItems, onDayTap }: WeekViewProps
                 <p className="text-xs text-brand-muted text-center">No jobs</p>
               ) : (
                 <>
-                  <div className="flex flex-col items-center gap-1 mb-2">
+                  <div className="flex flex-col items-start gap-1 mb-2">
                     {bookedCount > 0 && (
                       <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-black" />
