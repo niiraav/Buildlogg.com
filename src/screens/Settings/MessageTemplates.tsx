@@ -11,7 +11,7 @@ import { getAvailablePlaceholders, setDefaultForCategory, hasDefaultForCategory 
 import { captureTemplateEdited } from '../../lib/analytics';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { Button } from '../../components/Button';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useUnsavedChanges, useDiscardGuard } from '../../hooks/useUnsavedChanges';
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   booking: 'Booking',
@@ -298,6 +298,7 @@ function TemplateEditor({
   /* Unsaved changes guard — warn when template has been modified */
   const templateDirty = name !== template.name || body !== template.body || category !== template.category || isDefault !== template.is_default;
   useUnsavedChanges(templateDirty, 'You have unsaved template changes. Leave without saving?');
+  const guardedCancel = useDiscardGuard(templateDirty, onCancel, 'You have unsaved template changes. Leave without saving?');
 
   const insertPlaceholder = (ph: string) => {
     setBody((prev) => prev + ph);
@@ -329,7 +330,7 @@ function TemplateEditor({
     <div className="bg-[var(--app-shell-bg)] flex flex-col min-h-[100dvh]">
       {/* Header — chevron back only, no save button */}
       <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-[var(--app-shell-bg)] border-b border-brand-borderLight">
-        <button onClick={onCancel} className="flex items-center gap-1 text-brand-dark cursor-pointer mb-2">
+        <button onClick={guardedCancel} className="flex items-center gap-1 text-brand-dark cursor-pointer mb-2">
           <ChevronLeft size={20} />
         </button>
         <h1 className="screen-title text-brand-black">{template.name ? 'Edit template' : 'New template'}</h1>

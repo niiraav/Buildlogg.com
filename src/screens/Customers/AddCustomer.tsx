@@ -8,7 +8,7 @@ import { findDuplicateByPhone } from '../../lib/customers';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { SkeletonInline } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useUnsavedChanges, useDiscardGuard } from '../../hooks/useUnsavedChanges';
 import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 
 export default function AddCustomer() {
@@ -27,6 +27,7 @@ export default function AddCustomer() {
   /* Unsaved changes guard — warn when user has entered customer data */
   const formIsDirty = name.trim().length > 0 || phone.trim().length > 0 || address.trim().length > 0 || email.trim().length > 0;
   useUnsavedChanges(formIsDirty, 'You have unsaved customer details. Leave without saving?');
+  const guardedBack = useDiscardGuard(formIsDirty, () => navigate('/customers'), 'You have unsaved customer details. Leave without saving?');
 
   const handleSave = async () => {
     if (!userId || !canSave) return;
@@ -91,7 +92,7 @@ export default function AddCustomer() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
-          onClick={() => navigate('/customers')}
+          onClick={guardedBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={22} className="-mt-px text-brand-muted" />

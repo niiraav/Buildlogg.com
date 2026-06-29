@@ -12,7 +12,7 @@ import { TRADE_TEMPLATES, BEAUTY_TEMPLATES, type TemplateSeed } from '../../lib/
 import { getPricingHistory, getJobTitlePricingHistory, clearPricingCache, type PricingHistory } from '../../lib/pricingHistory';
 import { capture } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useUnsavedChanges, useDiscardGuard } from '../../hooks/useUnsavedChanges';
 
 /* ─── helpers ─── */
 
@@ -106,6 +106,7 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
   /* Unsaved changes guard — warn when user navigates away with entered data */
   const builderIsDirty = !loading && (title.trim().length > 0 || items.length > 0 || notes.trim().length > 0 || date.trim().length > 0 || startTime.trim().length > 0);
   useUnsavedChanges(builderIsDirty, 'You have unsaved quote details. Leave without saving?');
+  const guardedBack = useDiscardGuard(builderIsDirty, onBack, 'You have unsaved quote details. Leave without saving?');
 
   /* custom items library */
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
@@ -732,7 +733,7 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
-          onClick={onBack}
+          onClick={guardedBack}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={24} className="-mt-px text-brand-muted" />

@@ -15,7 +15,7 @@ import {
   captureBookingSlugChanged,
 } from '../../lib/analytics';
 import { SkeletonBookingScreen } from '../../components/Skeleton';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useUnsavedChanges, useDiscardGuard } from '../../hooks/useUnsavedChanges';
 
 /* ─── helpers ─── */
 
@@ -131,6 +131,7 @@ export default function Booking() {
   /* Unsaved changes guard — warn when slug input has unsaved changes */
   const slugIsDirty = !loading && !slugSaved && slugStatus !== 'checking';
   useUnsavedChanges(slugIsDirty, 'You have unsaved link changes. Leave without saving?');
+  const guardedBack = useDiscardGuard(slugIsDirty, () => window.history.back(), 'You have unsaved link changes. Leave without saving?');
 
   /* Load profile + public item count */
   useEffect(() => {
@@ -394,7 +395,7 @@ export default function Booking() {
     <div className="flex flex-col min-h-[100dvh] bg-[var(--app-shell-bg)]">
       {/* Header */}
       <div className="sticky top-0 z-40 px-4 pt-2 pb-2 bg-[var(--app-shell-bg)] flex items-center gap-3 flex-shrink-0">
-        <button onClick={() => window.history.back()} className="p-1 -ml-1 text-brand-dark">
+        <button onClick={guardedBack} className="p-1 -ml-1 text-brand-dark">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>

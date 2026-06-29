@@ -7,7 +7,7 @@ import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone
 import { searchCustomers, findDuplicateByPhone } from '../../lib/customers';
 import type { Customer } from '../../lib/db';
 import { SkeletonInline } from '../../components/Skeleton';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useUnsavedChanges, useDiscardGuard } from '../../hooks/useUnsavedChanges';
 
 interface CustomerDetailsProps {
   customerId?: string;
@@ -37,6 +37,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
   /* Unsaved changes guard — warn when user has entered customer data */
   const formIsDirty = !loading && (name.trim().length > 0 || phone.trim().length > 0 || address.trim().length > 0 || email.trim().length > 0);
   useUnsavedChanges(formIsDirty, 'You have unsaved customer details. Leave without saving?');
+  const guardedCancel = useDiscardGuard(formIsDirty, onCancel, 'You have unsaved customer details. Leave without saving?');
 
   const FORM_KEY = 'buildlogg_quote_customer_form';
 
@@ -178,7 +179,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--app-shell-bg)] px-4 py-2 border-b border-brand-borderLight shrink-0 grid grid-cols-3 items-center">
         <button
-          onClick={onCancel}
+          onClick={guardedCancel}
           className="inline-flex items-center gap-1 min-h-11 pr-4 text-sm font-medium text-brand-mid cursor-pointer justify-self-start"
         >
           <ChevronLeft size={22} className="-mt-px text-brand-muted" />
@@ -186,7 +187,7 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
         </button>
         <span className="text-base font-bold text-brand-black text-center">New quote</span>
         <button
-          onClick={onCancel}
+          onClick={guardedCancel}
           className="min-h-11 flex items-center text-sm text-brand-muted cursor-pointer justify-self-end"
         >
           <X size={18} />
