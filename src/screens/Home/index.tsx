@@ -33,7 +33,6 @@ import { acceptBookingRequest, rejectBookingRequest, getPendingBookingRequests, 
 import { type SchedulingConflict } from '../../lib/scheduling';
 import { createCheckoutSession } from '../../lib/stripe';
 import { getFilledTemplateMessage } from '../../lib/templateEngine';
-import { createCheckoutSession } from '../../lib/stripe';
 import type { PaymentChase, QuoteFollowUp, RecurringJob, BookingRequest } from '../../lib/db';
 import { getStaleInProgressJobs, getOvernightAutoCompletableJobs, autoCompleteJob, markJobAsMultiDay, formatElapsed, daysBetween, } from '../../lib/jobStaleness';
 import { capturePhoto, pickPhotoFromLibrary, saveJobPhoto } from '../../lib/photoCapture';
@@ -884,7 +883,8 @@ export default function Home() {
     const j = jobs.find((x) => x.id === selectedJobId);
     if (!j) return;
     const total = totalFor(selectedJobId);
-    const summary = paymentSummary(j, paymentsFor(selectedJobId), total);
+    const allPayments = await db.payments.where('job_id').equals(selectedJobId).toArray();
+    const summary = paymentSummary(j, allPayments, total);
     const amount = type === 'deposit' ? summary.depositAmount : summary.amountDue;
     if (amount <= 0) { showToast('Nothing to charge', 'info', 2000); return; }
     setStripeLoading(true);
