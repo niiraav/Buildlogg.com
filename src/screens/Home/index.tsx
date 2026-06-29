@@ -2626,7 +2626,7 @@ export default function Home() {
             const dayJobs = jobs.filter(j =>
               j.scheduled_start &&
               new Date(j.scheduled_start).toDateString() === date.toDateString() &&
-              ['booked', 'in_progress'].includes(j.status) &&
+              ['booked', 'in_progress', 'quoted', 'enquiry'].includes(j.status) &&
               !j.is_sample
             );
             if (dayJobs.length === 1) {

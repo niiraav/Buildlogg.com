@@ -203,11 +203,15 @@ export default function Jobs() {
 
   const dateFilteredJobs = useMemo<JobWithTotal[]>(() => {
     if (!dateFilter) return filteredJobs;
-    return filteredJobs.filter(j =>
+    // When filtering by date, search ALL jobs (not chip-filtered) —
+    // WeekView/CompactWeekStrip show booked + quoted + enquiry,
+    // so the date filter must match that same set, otherwise jobs
+    // that appear in the calendar vanish when you tap the day.
+    return searchFilteredJobs.filter(j =>
       j.scheduled_start &&
       new Date(j.scheduled_start).toDateString() === new Date(dateFilter).toDateString()
     );
-  }, [filteredJobs, dateFilter]);
+  }, [searchFilteredJobs, dateFilter]);
 
   const groups = useMemo(() => {
     const g: Record<JobStatus, JobWithTotal[]> = {
