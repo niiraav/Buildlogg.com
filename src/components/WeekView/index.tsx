@@ -159,19 +159,23 @@ export function WeekView({ jobs, customers, lineItems, onDayTap }: WeekViewProps
                 </p>
               </div>
 
-              {/* Count badge: split booked vs quoted */}
+              {/* Count badge: stacked booked vs quoted */}
               {isEmpty ? (
                 <p className="text-xs text-brand-muted text-center">No jobs</p>
               ) : (
                 <>
-                  <div className="flex items-center justify-center gap-1.5 mb-2">
+                  <div className="flex flex-col items-center gap-1 mb-2">
                     {bookedCount > 0 && (
-                      <span className="text-xs font-bold text-brand-black">{bookedCount} booked</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-black" />
+                        <span className="text-xs font-bold text-brand-black">{bookedCount} booked</span>
+                      </div>
                     )}
                     {quotedCount > 0 && (
-                      <span className={`text-xs font-medium ${bookedCount > 0 ? 'text-brand-muted' : 'text-brand-mid'}`}>
-                        {bookedCount > 0 && '· '}{quotedCount} quoted
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full border border-brand-mid" />
+                        <span className="text-xs font-medium text-brand-mid">{quotedCount} quoted</span>
+                      </div>
                     )}
                   </div>
                   {totalRevenue > 0 && (
