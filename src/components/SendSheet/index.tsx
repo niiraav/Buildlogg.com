@@ -229,8 +229,7 @@ export function SendSheet({
         title={title}
         footer={
           <>
-            {/* Rows 1-2 — WhatsApp + SMS, stacked full width */}
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
               <Button
                 variant="primary"
                 onClick={handleWhatsApp}
@@ -250,7 +249,7 @@ export function SendSheet({
               </Button>
             </div>
 
-            {/* Row 3 — Copy + Save draft stacked, tertiary style with padding */}
+            {/* Copy + Save draft stacked, tertiary style with padding */}
             <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={handleCopyMessage}
