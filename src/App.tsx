@@ -161,6 +161,30 @@ function AuthGuard() {
         seedMissingTemplates(resolvedUserId).catch(() => {});
         // Fix: remove duplicate templates caused by the seed/sync race condition
         deduplicateTemplates(resolvedUserId).catch(() => {});
+        // One-time migration: normalise all local phone numbers to E.164
+        if (!localStorage.getItem('buildlogg_phone_migrated')) {
+          import('./lib/phone').then(({ normalizePhone }) => {
+            db.customers.toArray().then((customers) => {
+              for (const c of customers) {
+                if (c.phone) {
+                  const normalized = normalizePhone(c.phone);
+                  if (normalized !== c.phone) {
+                    db.customers.update(c.id, { phone: normalized });
+                  }
+                }
+              }
+            }).catch(() => {});
+            db.profiles.get(resolvedUserId).then((profile) => {
+              if (profile?.phone) {
+                const normalized = normalizePhone(profile.phone);
+                if (normalized !== profile.phone) {
+                  db.profiles.update(resolvedUserId, { phone: normalized });
+                }
+              }
+            }).catch(() => {});
+            localStorage.setItem('buildlogg_phone_migrated', 'true');
+          }).catch(() => {});
+        }
       }
       initialCheckDone.current = true;
       setChecking(false);
