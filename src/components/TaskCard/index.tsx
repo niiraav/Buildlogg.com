@@ -17,11 +17,13 @@ export interface TaskCardProps {
   staleNote?: string;
   title?: string;
   subtitle?: string;
+  tag?: string;
   jobNumber?: string;
   contextLine?: string;
   isSummary?: boolean;
   summaryCount?: number;
   summaryStats?: string;
+  urgencyOverride?: 'high' | 'medium' | 'low';
   onTap: () => void;
 }
 
@@ -63,11 +65,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   requestedDate,
   title: titleOverride,
   subtitle: subtitleOverride,
+  tag,
   jobNumber,
   contextLine,
   isSummary,
   summaryCount,
   summaryStats,
+  urgencyOverride,
   onTap,
 }) => {
   if (isSummary) {
@@ -95,6 +99,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   }
 
   const config = typeConfig[type];
+  const effectiveUrgency = urgencyOverride || config.urgency;
   const daysUntil = type === 'booking_request' ? getDaysUntil(requestedDate) : null;
   const urgencyBorder = (() => {
     if (type !== 'booking_request') {
@@ -102,7 +107,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         high: 'border-l-status-red',
         medium: 'border-l-amber-400',
         low: 'border-l-brand-mid',
-      }[config.urgency];
+      }[effectiveUrgency];
     }
     if (conflictText) return 'border-l-status-red';
     if (daysUntil === null) return 'border-l-brand-mid';
@@ -112,7 +117,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   })();
 
   const title = titleOverride || customer?.name || 'Task';
-  const subtitle = subtitleOverride || config.label;
+  const subtitle = subtitleOverride || tag || config.label;
   const displayJobNumber = jobNumber || job?.job_number;
 
   return (
@@ -127,8 +132,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <h3 className="text-base font-bold text-brand-black truncate">{title}</h3>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-micro ${urgencyChip[config.urgency].bg} ${urgencyChip[config.urgency].text}`}>
-            {urgencyChip[config.urgency].label}
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-semibold text-micro ${urgencyChip[effectiveUrgency].bg} ${urgencyChip[effectiveUrgency].text}`}>
+            {urgencyChip[effectiveUrgency].label}
           </span>
           {timeAgo && (
             <span className="text-sm font-medium text-brand-mid">{timeAgo}</span>

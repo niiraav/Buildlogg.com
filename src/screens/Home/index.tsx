@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type ReminderMode } from '../../lib/db';
+import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Payment, type ReminderMode } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
 import { JobCard } from '../../components/JobCard';
 import { ActiveBar } from '../../components/ActiveBar';
@@ -198,6 +198,9 @@ interface TaskItem {
   duration?: string;
   requestedDate?: string;
   conflictText?: string;
+  isSummary?: boolean;
+  summaryCount?: number;
+  summaryStats?: string;
 }
 
 /* --- component --- */
@@ -217,6 +220,7 @@ export default function Home() {
   const rawJobs = useLiveQuery(() => userId ? db.jobs.where('user_id').equals(userId).toArray() : [], [userId]);
   const rawCustomers = useLiveQuery(() => userId ? db.customers.where('user_id').equals(userId).toArray() : [], [userId]);
   const rawLineItems = useLiveQuery(() => db.line_items.toArray(), []);
+  const rawPayments = useLiveQuery(() => db.payments.toArray(), []);
   const rawWorkLog = useLiveQuery(() => db.work_log.toArray(), []);
   const rawProfile = useLiveQuery(() => userId ? db.profiles.get(userId) : undefined, [userId]);
   const staleJobs = useLiveQuery(() => userId ? getStaleInProgressJobs(userId) : [], [userId], []);
@@ -292,6 +296,14 @@ export default function Home() {
     });
     return map;
   }, [rawLineItems]);
+  const paymentsByJob = useMemo<Record<string, Payment[]>>(() => {
+    const map: Record<string, Payment[]> = {};
+    if (rawPayments) rawPayments.forEach((p) => {
+      if (!map[p.job_id]) map[p.job_id] = [];
+      map[p.job_id].push(p);
+    });
+    return map;
+  }, [rawPayments]);
   const workLog = useMemo<Record<string, WorkLogEntry[]>>(() => {
     const map: Record<string, WorkLogEntry[]> = {};
     if (rawWorkLog) rawWorkLog.forEach((w) => {
@@ -509,7 +521,7 @@ export default function Home() {
           isL2: true,
           type: 'no_show',
           timeAgo: timeAgo(noShowAge),
-          contextLine: c.phone || 'No-show logged',
+          contextLine: j.title || c.phone || 'No-show logged',
         });
       }
 
@@ -564,7 +576,7 @@ export default function Home() {
             isL2: false,
             type: 'urgent_new',
             timeAgo: timeAgo(ageMinutes),
-            contextLine: 'needs follow-up',
+            contextLine: j.title || 'needs follow-up',
           });
         }
       }
@@ -582,18 +594,21 @@ export default function Home() {
       const total = jobTotal(lineItems[f.job.id] || []);
       const days = f.job.quote_sent_at ? daysSince(f.job.quote_sent_at) : 0;
       const isExpired = f.job.quote_expires_at && new Date(f.job.quote_expires_at).getTime() < Date.now();
+      const followUpCount = f.nudge_count + 1;
       items.push({
         id: `followup_${f.id}`,
         jobId: f.job.id,
         customerName: c.name,
         jobTitle: f.job.title,
         jobNumber: f.job.job_number,
-        tag: isExpired ? 'Quote expired' : `Follow up · ${f.nudge_count + 1}`,
+        tag: isExpired ? 'Quote expired' : `Follow up · ${followUpCount}`,
         amount: `£${formatAmount(total)}`,
         isL2: false,
         type: 'quote_follow_up',
         timeAgo: `${days}d since quote`,
-        contextLine: isExpired ? 'Quote expired — resend or close' : 'no reply yet',
+        contextLine: isExpired
+          ? 'Quote expired — resend or close'
+          : `${followUpCount} ${followUpCount === 1 ? 'follow-up' : 'follow-ups'} sent · no reply`,
       });
     });
 
@@ -603,12 +618,15 @@ export default function Home() {
       const c = customers[chase.job.customer_id];
       if (!c) return;
       const total = jobTotal(lineItems[chase.job.id] || []);
+      const jobPayments = paymentsByJob[chase.job.id] || [];
+      const summary = paymentSummary(chase.job, jobPayments, total);
+      const amountDue = summary.amountDue;
       const clockStart = chase.job.actual_end || chase.job.updated_at;
       const daysOverdue = clockStart ? daysSince(clockStart) : 0;
       const isHighUrgency = chase.stage === 'final' || chase.stage === 'small_claims';
       const stageLabels: Record<string, string> = {
-        gentle: `Chase · ${daysOverdue}d`,
-        firm: `Chase · ${daysOverdue}d`,
+        gentle: `Gentle chase · ${daysOverdue}d`,
+        firm: `Firm chase · ${daysOverdue}d`,
         final: `Final chase · ${daysOverdue}d`,
         small_claims: `Small claims? · ${daysOverdue}d`,
       };
@@ -619,13 +637,13 @@ export default function Home() {
         jobTitle: chase.job.title,
         jobNumber: chase.job.job_number,
         tag: stageLabels[chase.stage] || `Chase · ${daysOverdue}d`,
-        amount: `£${formatAmount(total)}`,
+        amount: amountDue > 0 ? `£${formatAmount(amountDue)} owed` : `£${formatAmount(total)}`,
         isL2: isHighUrgency,
         type: 'payment_chase',
         flag: isHighUrgency ? 'overdue' : 'chase',
         flagDays: daysOverdue,
         timeAgo: `${daysOverdue}d since completed`,
-        contextLine: chase.stage === 'small_claims' ? 'Consider small claims court' : '',
+        contextLine: chase.job.title || '',
       });
     });
 
@@ -645,7 +663,7 @@ export default function Home() {
         isL2: false,
         type: 'recurring_reminder',
         timeAgo: isOverdue ? `${Math.abs(daysUntilDue)}d overdue` : `${daysUntilDue}d until due`,
-        contextLine: r.address || '',
+        contextLine: r.title || r.address || '',
       });
     });
 
@@ -655,6 +673,7 @@ export default function Home() {
         const days = getDaysUntil(b.requested_date);
         return days !== null && days <= 1;
       }).length;
+      summaryBookingStats.current = { count: pendingBookings.length, urgent: urgentCount };
       items.push({
         id: 'booking_summary',
         jobId: 'booking_summary',
@@ -667,8 +686,10 @@ export default function Home() {
         timeAgo: '',
         contextLine: '',
         requestedDate: '',
+        isSummary: true,
+        summaryCount: pendingBookings.length,
+        summaryStats: `${urgentCount} urgent (today/tomorrow)`,
       });
-      summaryBookingStats.current = { count: pendingBookings.length, urgent: urgentCount };
     } else {
       pendingBookings.forEach((b) => {
         const totalDur = b.total_duration || (b.service_items ? b.service_items.reduce((s, x) => s + (x.duration || 60), 0) : 60);
@@ -1218,9 +1239,11 @@ export default function Home() {
                 requestedDate={task.requestedDate}
                 conflictText={task.conflictText}
                 contextLine={task.contextLine}
-                isSummary={task.id === 'booking_summary'}
-                summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
-                summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
+                tag={task.tag}
+                urgencyOverride={task.isL2 && task.type === 'payment_chase' ? 'high' : undefined}
+                isSummary={task.isSummary}
+                summaryCount={task.summaryCount}
+                summaryStats={task.summaryStats}
                 onTap={() => handleTaskTap(task)}
               />
             );
@@ -1329,9 +1352,11 @@ export default function Home() {
                     requestedDate={task.requestedDate}
                     conflictText={task.conflictText}
                     contextLine={task.contextLine}
-                    isSummary={task.id === 'booking_summary'}
-                    summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
-                    summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
+                    tag={task.tag}
+                    urgencyOverride={task.isL2 && task.type === 'payment_chase' ? 'high' : undefined}
+                    isSummary={task.isSummary}
+                    summaryCount={task.summaryCount}
+                    summaryStats={task.summaryStats}
                     onTap={() => {
                     if (task.type === 'quote_follow_up') {
                       const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
@@ -1387,9 +1412,11 @@ export default function Home() {
                     requestedDate={task.requestedDate}
                     conflictText={task.conflictText}
                     contextLine={task.contextLine}
-                    isSummary={task.id === 'booking_summary'}
-                    summaryCount={task.id === 'booking_summary' ? summaryBookingStats.current.count : undefined}
-                    summaryStats={task.id === 'booking_summary' ? `${summaryBookingStats.current.urgent} urgent (today/tomorrow) · 0 conflicts` : undefined}
+                    tag={task.tag}
+                    urgencyOverride={task.isL2 && task.type === 'payment_chase' ? 'high' : undefined}
+                    isSummary={task.isSummary}
+                    summaryCount={task.summaryCount}
+                    summaryStats={task.summaryStats}
                     onTap={() => {
                     if (task.type === 'quote_follow_up') {
                       const fu = dueFollowUps.find(f => f.id === task.id.replace('followup_', ''));
@@ -1493,6 +1520,7 @@ export default function Home() {
                   jobNumber={task.jobNumber}
                   amount={task.amount}
                   contextLine={task.contextLine}
+                  tag={task.tag}
                   onTap={() => navigate('/quote', { state: { jobId: j?.id, customerId: j?.customer_id, entryPoint: 'new_quote' } })}
                 />
               );
