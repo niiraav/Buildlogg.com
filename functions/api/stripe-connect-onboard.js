@@ -27,7 +27,14 @@ async function supabaseQuery(url, key, table, query, method = 'GET', body = null
   const options = { method, headers };
   if (body) options.body = JSON.stringify(body);
   const resp = await fetch(fullUrl, options);
-  if (method === 'GET') return resp.json();
+  if (method === 'GET') {
+    const data = await resp.json();
+    if (!resp.ok) {
+      console.error(`[supabaseQuery] ${table} GET failed: ${resp.status}`, data);
+      return null;
+    }
+    return data;
+  }
   return resp;
 }
 
@@ -116,7 +123,7 @@ export async function onRequestPost(context) {
 
     return json({ url: link.url, accountId }, 200);
   } catch (err) {
-    console.error('[stripe-connect] Error:', err);
-    return json({ error: 'Something went wrong' }, 500);
+    console.error('[stripe-connect] Error:', err.message, err.stack);
+    return json({ error: err.message || 'Something went wrong' }, 500);
   }
 }
