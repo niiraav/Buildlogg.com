@@ -78,7 +78,8 @@ export async function onRequestPost(context) {
 
       if (!accountResp.ok) {
         console.error('[stripe-connect] Account creation failed:', account);
-        return json({ error: 'Could not create Stripe account' }, 500);
+        const errMsg = account.error?.message || 'Could not create Stripe account';
+        return json({ error: errMsg }, 500);
       }
 
       accountId = account.id;

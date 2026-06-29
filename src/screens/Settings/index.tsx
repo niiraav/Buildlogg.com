@@ -17,7 +17,7 @@ import { capturePDFGenerated } from '../../lib/analytics';
 import PDFPreview from '../Quote/PDFPreview';
 import { SkeletonSettingsScreen } from '../../components/Skeleton';
 import FeedbackSheet from '../../components/FeedbackSheet';
-import { showToast } from '../../components/Toast/store';
+import { showToast, showSuccess } from '../../components/Toast/store';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import { ProBadge } from '../../components/ProBadge';
 
@@ -895,7 +895,7 @@ export default function Settings() {
             return (
               <button
                 key={opt.value}
-                onClick={() => { saveField('payment_terms', opt.value); setPaymentSheetOpen(false); }}
+                onClick={() => { saveField('payment_terms', opt.value); setPaymentSheetOpen(false); showSuccess('Payment terms updated'); }}
                 className={`flex flex-col gap-0.5 min-h-13 rounded-xl border-2 px-4 py-2.5 transition-all cursor-pointer text-left ${
                   isSelected ? 'border-brand-black bg-brand-surface' : 'border-brand-border bg-white'
                 }`}
@@ -905,6 +905,29 @@ export default function Settings() {
               </button>
             );
           })}
+
+          {/* Deposit percentage — shown when payment_terms = deposit */}
+          {paymentTerms === 'deposit' && (
+            <div className="mt-4 pt-4 border-t border-brand-borderLight">
+              <p className="text-sm font-semibold text-brand-dark mb-2">Deposit percentage</p>
+              <p className="text-xs text-brand-muted mb-3">How much to charge upfront when a client books online. The rest is due on completion.</p>
+              <div className="flex gap-2">
+                {[10, 20, 30, 50].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => { saveField('deposit_pct', pct); showSuccess(`Deposit set to ${pct}%`); }}
+                    className={`flex-1 h-11 rounded-lg text-sm font-semibold cursor-pointer transition-colors ${
+                      (profile?.deposit_pct || 20) === pct
+                        ? 'bg-brand-black text-white'
+                        : 'bg-white text-brand-dark border border-brand-border'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </BottomSheet>
 
