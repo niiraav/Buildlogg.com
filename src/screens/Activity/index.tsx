@@ -144,7 +144,7 @@ export default function Activity() {
             </div>
           </div>
         ) : (
-          <div>
+          <div className="list-enter">
             {days.map((day) => (
               <DaySummaryCard
                 key={day.date.toISOString()}

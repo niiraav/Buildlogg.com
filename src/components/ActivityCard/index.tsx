@@ -103,8 +103,15 @@ export const DaySummaryCard: React.FC<{
         {expanded ? <ChevronDown size={18} className="text-brand-muted" /> : <ChevronRight size={18} className="text-brand-muted" />}
       </button>
 
-      {/* Events list — collapsible */}
-      {expanded && (
+      {/* Events list — collapsible with animation */}
+      <div
+        className="expand-collapse"
+        aria-hidden={!expanded}
+        style={{
+          maxHeight: expanded ? '500px' : '0px',
+          opacity: expanded ? 1 : 0,
+        }}
+      >
         <div className="border-l-2 border-brand-borderLight ml-3.5 pl-3">
           {day.events.map((event) => (
             <ActivityEventCard
@@ -114,7 +121,7 @@ export const DaySummaryCard: React.FC<{
             />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };

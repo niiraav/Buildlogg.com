@@ -457,7 +457,7 @@ export default function Jobs() {
     }
 
     return (
-      <div className="pt-2 pb-4">
+      <div className="pt-2 pb-4 list-enter">
         {expandedGroups.map((s) => renderExpandedGroup(s, groups[s]))}
         {collapsedGroups.map((s) => renderCollapsedGroup(s, groups[s].length))}
       </div>

@@ -103,7 +103,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
       {/* Body — centered */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 pb-6 text-center">
         {/* Green check circle */}
-        <div className="w-16 h-16 rounded-full bg-status-greenBg flex items-center justify-center mb-5">
+        <div className="w-16 h-16 rounded-full bg-status-greenBg flex items-center justify-center mb-5 check-pop">
           <Check size={28} strokeWidth={3} className="text-status-green" />
         </div>
 
