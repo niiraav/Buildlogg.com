@@ -18,13 +18,13 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ address, onTap }) => {
     if (onTap) {
       onTap();
     } else {
-      window.open(mapsUrl, '_blank');
+      window.location.href = mapsUrl;
     }
   };
 
   const handleDirections = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(address)}`, '_blank');
+    window.location.href = `https://maps.google.com/maps?daddr=${encodeURIComponent(address)}`;
   };
 
   // Fallback placeholder if iframe fails

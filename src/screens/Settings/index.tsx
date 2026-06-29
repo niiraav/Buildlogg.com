@@ -984,7 +984,7 @@ export default function Settings() {
                 <button
                   onClick={() => {
                     const normalized = normalizePhone(editPhone);
-                    window.open(`https://wa.me/${phoneForWhatsApp(normalized)}?text=${encodeURIComponent('Test message from Buildlogg — your phone number is correct!')}`, '_blank');
+                    window.location.href = `https://wa.me/${phoneForWhatsApp(normalized)}?text=${encodeURIComponent('Test message from Buildlogg — your phone number is correct!')}`;
                   }}
                   className="flex items-center gap-1.5 text-sm font-medium text-status-green"
                 >

@@ -1724,9 +1724,9 @@ export default function JobDetail() {
                   <span className="text-sm text-brand-dark font-medium truncate">{customer.address}</span>
                 </div>
                 <button
-                  onClick={() =>
-                    window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`, '_blank')
-                  }
+                  onClick={() => {
+                    window.location.href = `https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`;
+                  }}
                   className="flex items-center gap-1 text-sm font-semibold text-brand-black shrink-0 ml-2"
                 >
                   <Navigation size={14} />
@@ -2160,7 +2160,7 @@ export default function JobDetail() {
                   <span className="text-sm text-brand-dark font-medium truncate">{customer.address}</span>
                 </div>
                 <button
-                  onClick={() => window.open(`https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`, '_blank')}
+                  onClick={() => window.location.href = `https://maps.google.com/maps?daddr=${encodeURIComponent(customer.address || '')}`}
                   className="flex items-center gap-1 text-sm font-semibold text-brand-black shrink-0 ml-2"
                 >
                   <Navigation size={14} />

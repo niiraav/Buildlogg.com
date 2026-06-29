@@ -856,7 +856,7 @@ export default function Home() {
       method === 'whatsapp'
         ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encoded}`
         : `sms:${c.phone}?body=${encoded}`;
-    window.open(url, '_blank');
+    window.location.href = url;
 
     const n = now();
     await db.work_log.add({
@@ -2050,7 +2050,7 @@ export default function Home() {
               const msg = encodeURIComponent(
                 `Hi ${selectedCustomer.name.split(' ')[0]}, glad the ${selectedJob?.title || 'job'} is sorted! If you were happy with the work, a quick Google review helps me a lot: ${profile.google_business_url}. Only takes 30 seconds. Thanks! — ${profile.business_name || profile.full_name}`
               );
-              window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+              window.location.href = `https://wa.me/${phone}?text=${msg}`;
               if (selectedJobId) {
                 const now = new Date().toISOString();
                 db.jobs.update(selectedJobId, { review_requested_at: now, _sync_status: 'pending' });

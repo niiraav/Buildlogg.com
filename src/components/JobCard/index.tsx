@@ -86,13 +86,13 @@ export const JobCard: React.FC<JobCardProps> = ({
     const phone = customer.phone ? phoneForWhatsApp(customer.phone) : '';
     if (!phone) return;
     const text = encodeURIComponent(`Hi ${customer.name}, I'm on my way to you now for the ${job.title}.`);
-    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+    window.location.href = `https://wa.me/${phone}?text=${text}`;
   };
 
   const handleNavigate = () => {
     haptic('light');
     if (address) {
-      window.open(`https://maps.google.com/?q=${encodeURIComponent(address)}`, '_blank');
+      window.location.href = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
     }
   };
 

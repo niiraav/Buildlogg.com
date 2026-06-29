@@ -180,7 +180,7 @@ export default function CustomerDetail() {
             )}
             {customer.address && (
               <button
-                onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address!)}`, '_blank')}
+                onClick={() => window.location.href = `https://maps.google.com/?q=${encodeURIComponent(customer.address!)}`}
                 className="flex items-center gap-2 text-sm text-brand-dark cursor-pointer"
               >
                 <MapPin size={14} className="text-brand-muted" />
@@ -345,7 +345,7 @@ export default function CustomerDetail() {
               const customerFirstName = customer.name.split(' ')[0] || 'there';
               if (customer.phone) {
                 const phone = phoneForWhatsApp(customer.phone);
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${customerFirstName}, book your next appointment online: ${url}`)}`, '_blank');
+                window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${customerFirstName}, book your next appointment online: ${url}`)}`;
               } else {
                 navigator.clipboard?.writeText(url).then(() => {
                   showSuccess('Booking link copied');
