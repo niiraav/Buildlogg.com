@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight } from 'lucide-react';
+import { Check, MessageCircle, Banknote, CreditCard, AlertTriangle, Clock, Calendar, CheckCircle, Camera, Image as ImageIcon, X, Phone, Coffee, ChevronRight, Building2, Pencil } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { db, type Job, type Customer, type LineItem, type WorkLogEntry, type Payment, type ReminderMode } from '../../lib/db';
 import { HomeTabSwitcher } from '../../components/HomeTabSwitcher';
@@ -933,7 +933,7 @@ export default function Home() {
     }
   };
 
-  const handlePayment = async (method: 'cash' | 'terminal' | 'bank_transfer' | 'not_yet') => {
+  const handlePayment = async (method: 'cash' | 'terminal' | 'bank_transfer' | 'other' | 'not_yet') => {
     if (!selectedJobId || !userId) return;
     const j = jobs.find((x) => x.id === selectedJobId);
     if (!j) return;
@@ -1876,14 +1876,34 @@ export default function Home() {
               onTap={() => handlePayment('cash')}
             />
             <SheetRow
+              icon={<Building2 size={18} className="text-brand-dark" />}
+              label="Bank Transfer"
+              onTap={() => handlePayment('bank_transfer')}
+            />
+            <SheetRow
               icon={<CreditCard size={18} className="text-brand-dark" />}
               label="Terminal"
               onTap={() => handlePayment('terminal')}
             />
+            {profile?.stripe_connected && (() => {
+              const j = jobs.find(x => x.id === selectedJobId);
+              if (!j) return null;
+              const total = totalFor(j.id);
+              if (total <= 0) return null;
+              return (
+                <SheetRow
+                  icon={<CreditCard size={18} className="text-brand-dark" />}
+                  label={`Send card payment link (£${formatAmount(total)})`}
+                  onTap={() => handleStripePayment('full')}
+                  disabled={stripeLoading}
+                />
+              );
+            })()}
             <SheetRow
-              icon={<CreditCard size={18} className="text-brand-dark" />}
-              label="Bank Transfer"
-              onTap={() => handlePayment('bank_transfer')}
+              icon={<Pencil size={18} className="text-brand-dark" />}
+              label="Other"
+              sublabel="Entered manually"
+              onTap={() => handlePayment('other')}
             />
             <SheetRow
               icon={<AlertTriangle size={18} className="text-status-red" />}
@@ -1961,14 +1981,19 @@ export default function Home() {
         ) : (
           <div className="flex flex-col">
             <SheetRow
-              icon={<CreditCard size={18} className="text-brand-dark" />}
-              label="Terminal"
-              onTap={() => handlePayment('terminal')}
-            />
-            <SheetRow
               icon={<Banknote size={18} className="text-brand-dark" />}
               label="Cash"
               onTap={() => handlePayment('cash')}
+            />
+            <SheetRow
+              icon={<Building2 size={18} className="text-brand-dark" />}
+              label="Bank Transfer"
+              onTap={() => handlePayment('bank_transfer')}
+            />
+            <SheetRow
+              icon={<CreditCard size={18} className="text-brand-dark" />}
+              label="Terminal"
+              onTap={() => handlePayment('terminal')}
             />
             {profile?.stripe_connected && (() => {
               const j = jobs.find(x => x.id === selectedJobId);
@@ -1984,6 +2009,12 @@ export default function Home() {
                 />
               );
             })()}
+            <SheetRow
+              icon={<Pencil size={18} className="text-brand-dark" />}
+              label="Other"
+              sublabel="Entered manually"
+              onTap={() => handlePayment('other')}
+            />
             <SheetRow
               icon={<AlertTriangle size={18} className="text-status-red" />}
               label="Not yet"
