@@ -211,7 +211,7 @@ main > * { position: relative; z-index: 1; }
 
 /* ---------- Hero ---------- */
 .hero { padding: clamp(48px, 7vw, 84px) 0 clamp(56px, 7vw, 88px); position: relative; overflow: hidden; }
-.hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(32px, 4vw, 64px); align-items: center; }
+.hero-grid { display: grid; grid-template-columns: 520px 520px; gap: clamp(32px, 4vw, 64px); align-items: center; justify-content: center; }
 .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: var(--r-pill); background: var(--surface-card); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 22px; white-space: nowrap; }
 .hero-eyebrow .tag { background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--r-pill); }
 .hero h1 { margin-bottom: 22px; }
@@ -375,8 +375,8 @@ main > * { position: relative; z-index: 1; }
 .logos-cap { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 22px; }
 
 /* ---------- Problem band ---------- */
-.problem { background: var(--surface-soft); }
-.problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+.problem { background: transparent; }
+.problem-grid { display: grid; grid-template-columns: 520px 520px; gap: clamp(32px, 5vw, 72px); align-items: center; justify-content: center; }
 .pain-list { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; }
 .pain { display: flex; gap: 14px; align-items: flex-start; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-card); }
 .pain .ic { width: 38px; height: 38px; border-radius: 10px; background: var(--surface-card); color: var(--ink); display: grid; place-items: center; flex: none; }
@@ -385,8 +385,7 @@ main > * { position: relative; z-index: 1; }
 .pain p { font-size: 14px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
 /* ---------- Steps (how it works) ---------- */
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 52px; }
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 52px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 52px auto 0; max-width: 1080px; }
 .step {
   background: #fff;
   border: 1px solid var(--line);
@@ -401,7 +400,7 @@ main > * { position: relative; z-index: 1; }
 .step p { font-size: 14.5px; line-height: 1.55; color: var(--muted); }
 
 /* ---------- Feature bands ---------- */
-.feat { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(36px, 6vw, 88px); align-items: center; }
+.feat { display: grid; grid-template-columns: 520px 520px; gap: clamp(36px, 6vw, 88px); align-items: center; justify-content: center; }
 .feat.flip .feat-media { order: -1; }
 .feat-copy .eyebrow { margin-bottom: 16px; display: block; }
 .feat-copy h2 { margin-bottom: 18px; }
@@ -434,7 +433,7 @@ main > * { position: relative; z-index: 1; }
 .panel-callout .ct .s { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
 
 /* ---------- Feature grid (secondary) ---------- */
-.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 52px; }
+.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 52px auto 0; max-width: 1080px; }
 .fcard { background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); padding: 28px; box-shadow: var(--sh-card); transition: border-color var(--ease) .2s, box-shadow var(--ease) .2s, transform var(--ease) .2s; }
 .fcard:hover { border-color: var(--line-cool); box-shadow: var(--sh-soft); transform: translateY(-2px); }
 .fcard .ic { width: 42px; height: 42px; border-radius: 11px; background: var(--surface-card); color: var(--ink); display: grid; place-items: center; margin-bottom: 18px; }
@@ -622,10 +621,9 @@ main > * { position: relative; z-index: 1; }
 /* ---------- Before vs After comparison ---------- */
 .compare-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  grid-template-columns: 520px 520px;
+  gap: 20px;
+  justify-content: center;
 }
 .compare-col {
   border-radius: var(--r-2xl);
@@ -693,10 +691,9 @@ main > * { position: relative; z-index: 1; }
 /* ---------- Persona grid (Who is this for?) ---------- */
 .persona-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  max-width: 800px;
-  margin: 0 auto;
+  grid-template-columns: 520px 520px;
+  gap: 20px;
+  justify-content: center;
 }
 .persona-card {
   background: #fff;
@@ -739,26 +736,29 @@ main > * { position: relative; z-index: 1; }
 /* ---------- Booking page preview ---------- */
 .booking-preview {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 520px 520px;
   gap: 48px;
   align-items: center;
+  justify-content: center;
 }
 .booking-preview-copy { max-width: 480px; }
 .booking-preview-phone { display: flex; justify-content: center; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 980px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
-  .problem-grid { grid-template-columns: 1fr; }
-  .feat { grid-template-columns: 1fr; gap: 40px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; justify-content: normal; }
+  .problem-grid { grid-template-columns: 1fr; gap: 40px; justify-content: normal; }
+  .feat { grid-template-columns: 1fr; gap: 40px; justify-content: normal; }
   .feat.flip .feat-media { order: 0; }
   .steps { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
   .fgrid { grid-template-columns: 1fr 1fr; }
   .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin-left: auto; margin-right: auto; }
   .early-grid { grid-template-columns: 1fr; }
   .footer-top { grid-template-columns: 1fr 1fr; }
-  .booking-preview { grid-template-columns: 1fr; gap: 32px; }
+  .booking-preview { grid-template-columns: 1fr; gap: 32px; justify-content: normal; }
   .booking-preview-phone { order: -1; }
+  .compare-grid { grid-template-columns: 1fr; gap: 16px; justify-content: normal; }
+  .persona-grid { grid-template-columns: 1fr; gap: 16px; justify-content: normal; }
 }
 @media (max-width: 720px) {
   .nav-links, .nav-signin { display: none; }
@@ -770,9 +770,9 @@ main > * { position: relative; z-index: 1; }
   .hero-stage { margin-bottom: -100px; }
   .panel { padding: 16px; }
   .panel-callout { right: 8px; }
-  .compare-grid { grid-template-columns: 1fr; gap: 16px; }
-  .persona-grid { grid-template-columns: 1fr; gap: 16px; }
   .steps { grid-template-columns: 1fr; gap: 24px; }
+  main::after { display: none; }
+  .section { border-top: none; }
 }
 
 /* ---------- Beta pricing display ---------- */
