@@ -2016,7 +2016,7 @@ export default function JobDetail() {
             </div>
             <div className="flex items-center justify-between px-4 py-3 bg-status-blueBg">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-status-blue animate-pulse" />
                 <span className="text-sm font-medium text-status-blue">In progress</span>
               </div>
               <span className="text-sm font-bold text-status-blue font-mono">

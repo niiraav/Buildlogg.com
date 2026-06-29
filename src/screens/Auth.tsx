@@ -422,7 +422,7 @@ export default function Auth() {
                     const domain = emailInput.trim().toLowerCase().split('@')[1] || '';
                     const isOutlook = ['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain);
                     return isOutlook ? (
-                      <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mt-2">
+                      <div className="bg-status-blueBg border border-status-blueBorder rounded-lg px-3.5 py-2.5 mt-2">
                         <p className="text-sm text-status-blue text-left leading-relaxed">
                           Outlook sometimes sends new senders to <strong>Junk</strong>. Check there if you don't see it in your inbox.
                         </p>

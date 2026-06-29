@@ -77,7 +77,7 @@ export function CompactWeekStrip({ jobs, selectedDate, onDayTap }: CompactWeekSt
             <span className={`w-1.5 h-1.5 rounded-full mt-1 ${
               isEmpty ? 'bg-brand-border'
               : hasBooked ? 'bg-status-blue'
-              : 'bg-purple-500'
+              : 'bg-status-violet'
             }`} />
           </button>
         );

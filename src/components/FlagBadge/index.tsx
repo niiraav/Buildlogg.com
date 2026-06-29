@@ -8,7 +8,7 @@ export interface FlagBadgeProps {
 }
 
 const flagClasses: Record<FlagType, { bg: string; text: string; border: string }> = {
-  urgent_new: { bg: 'bg-status-blueBg', text: 'text-status-blue', border: 'border-blue-200' },
+  urgent_new: { bg: 'bg-status-blueBg', text: 'text-status-blue', border: 'border-status-blueBorder' },
   chase:      { bg: 'bg-status-amberBg', text: 'text-status-amber', border: 'border-amber-200' },
   overdue:    { bg: 'bg-status-redBg', text: 'text-status-red', border: 'border-red-200' },
   stale:      { bg: 'bg-brand-surface', text: 'text-brand-mid', border: 'border-brand-border' },

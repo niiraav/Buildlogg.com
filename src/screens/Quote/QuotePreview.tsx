@@ -238,7 +238,7 @@ export default function QuotePreview({ jobId, onSend, onSaveDraft, onBack }: Quo
       <div className="flex-1 px-4 md:px-6 pt-4 md:pt-6 pb-6">
         {/* Business name nudge */}
         {isUsingFallbackName && (
-          <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
+          <div className="bg-status-blueBg border border-status-blueBorder rounded-lg px-3.5 py-2.5 mb-4 flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-status-blue">
                 Using your name on the quote. Add a business name in Settings for a more professional look.

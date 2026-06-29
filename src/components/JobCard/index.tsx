@@ -101,8 +101,8 @@ export const JobCard: React.FC<JobCardProps> = ({
       <div onClick={() => { haptic('light'); onBodyTap?.(); }} className="cursor-pointer active:opacity-80 transition-opacity duration-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-            <span className="text-micro font-bold tracking-[0.7px] text-blue-600">
+            <span className="w-2 h-2 rounded-full bg-status-blue inline-block" />
+            <span className="text-micro font-bold tracking-[0.7px] text-status-blue">
               NEXT UP
             </span>
           </div>
@@ -125,8 +125,8 @@ export const JobCard: React.FC<JobCardProps> = ({
             onClick={(e) => { e.stopPropagation(); handleNavigate(); }}
             className="mt-2 flex items-center gap-1.5 text-left w-full cursor-pointer active:opacity-70 transition-opacity duration-100"
           >
-            <MapPin size={14} className="text-blue-500 shrink-0" />
-            <span className="text-sm text-blue-600 underline underline-offset-2 truncate">{address}</span>
+            <MapPin size={14} className="text-status-blue shrink-0" />
+            <span className="text-sm text-status-blue underline underline-offset-2 truncate">{address}</span>
           </button>
         )}
 

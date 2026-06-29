@@ -172,8 +172,8 @@ export default function Reminders() {
                 onClick={() => updateMode(opt.value)}
                 className={`w-full px-4 min-h-13 flex items-start gap-3 text-left cursor-pointer transition-colors ${i > 0 ? 'border-t border-brand-surface' : ''} ${currentMode === opt.value ? 'bg-status-blueBg/50' : 'active:bg-brand-surface'}`}
               >
-                <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${currentMode === opt.value ? 'border-status-blue' : 'border-brand-border'}`}>
-                  {currentMode === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-status-blue" />}
+                <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${currentMode === opt.value ? 'border-brand-primary' : 'border-brand-border'}`}>
+                  {currentMode === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />}
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-brand-dark">{opt.label}</p>
@@ -278,7 +278,7 @@ export default function Reminders() {
                 <button
                   onClick={togglePush}
                   disabled={pushLoading}
-                  className={`w-11 h-6.5 rounded-full transition-colors cursor-pointer ${pushEnabled ? 'bg-status-blue' : 'bg-brand-border'} ${pushLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-11 h-6.5 rounded-full transition-colors cursor-pointer ${pushEnabled ? 'bg-brand-primary' : 'bg-brand-border'} ${pushLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${pushEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                 </button>

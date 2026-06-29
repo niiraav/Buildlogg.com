@@ -883,8 +883,8 @@ export default function Settings() {
           </div>
 
           {showTermsHelp && (
-            <div className="bg-sky-50 rounded-lg p-3 border border-sky-200">
-              <p className="text-sm text-sky-700 leading-relaxed">
+            <div className="bg-status-blueBg rounded-lg p-3 border border-status-blueBorder">
+              <p className="text-sm text-status-blue leading-relaxed">
                 This is the default way you ask to be paid. It appears on every quote you send. You can change it for any individual job.
               </p>
             </div>

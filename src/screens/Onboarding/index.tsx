@@ -578,7 +578,7 @@ export default function Onboarding() {
 
                   {showTermsHelp && (
                     <div className="bg-brand-surface rounded-lg p-3 mb-2 border border-brand-border">
-                      <p className="text-sm text-sky-700 leading-relaxed">
+                      <p className="text-sm text-status-blue leading-relaxed">
                         This is the default way you ask to be paid. It appears on every quote you send. You can change it for any individual job.
                       </p>
                     </div>

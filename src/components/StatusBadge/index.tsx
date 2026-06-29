@@ -19,13 +19,13 @@ const statusLabelMap: Record<JobStatus, string> = {
 };
 
 const statusClasses: Record<JobStatus, { bg: string; text: string; dot: string }> = {
-  enquiry:       { bg: 'bg-status-blueBg', text: 'text-status-blue', dot: 'bg-blue-300' },
-  quoted:        { bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-500' },
-  booked:        { bg: 'bg-status-blueBg', text: 'text-status-blue', dot: 'bg-blue-500' },
-  in_progress:   { bg: 'bg-status-blueBg', text: 'text-status-blue', dot: 'bg-blue-500' },
+  enquiry:       { bg: 'bg-status-slateBg', text: 'text-status-slate', dot: 'bg-status-slate' },
+  quoted:        { bg: 'bg-status-violetBg', text: 'text-status-violet', dot: 'bg-status-violet' },
+  booked:        { bg: 'bg-status-blueBg', text: 'text-status-blue', dot: 'bg-status-blue' },
+  in_progress:   { bg: 'bg-status-blueBg', text: 'text-status-blue', dot: 'bg-status-blue' },
   awaiting_payment: { bg: 'bg-status-amberBg', text: 'text-status-amber', dot: 'bg-status-warning' },
-  paid:          { bg: 'bg-status-greenBg', text: 'text-status-green', dot: 'bg-green-500' },
-  no_show:       { bg: 'bg-status-amberMid', text: 'text-status-amberDark', dot: 'bg-orange-500' },
+  paid:          { bg: 'bg-status-greenBg', text: 'text-status-green', dot: 'bg-status-success' },
+  no_show:       { bg: 'bg-status-amberMid', text: 'text-status-amberDark', dot: 'bg-status-orange' },
   cancelled:     { bg: 'bg-brand-surface', text: 'text-brand-mid', dot: 'bg-brand-muted' },
   written_off:   { bg: 'bg-brand-surface', text: 'text-brand-mid', dot: 'bg-brand-mid' },
 };

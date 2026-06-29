@@ -1615,7 +1615,7 @@ export default function Home() {
 
           {/* W1-2: End-of-day review banner */}
           {showEodReview && !eodDismissedToday && todaysActiveCount > 0 && (
-            <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
+            <div className="bg-status-blueBg border border-status-blueBorder rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
               <Clock size={18} className="text-status-blue shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-status-blue">
@@ -1647,7 +1647,7 @@ export default function Home() {
 
           {/* Sample job banner — shows when user has no real jobs yet */}
           {showSampleBanner && (
-            <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4">
+            <div className="bg-status-blueBg border border-status-blueBorder rounded-lg px-3.5 py-3 mb-4">
               {!sampleExplored ? (
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">

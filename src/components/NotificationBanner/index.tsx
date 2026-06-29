@@ -82,7 +82,7 @@ export function NotificationBanner() {
   capture('notification_banner_shown', { variant: contextual ? 'contextual' : 'initial' });
 
   return (
-    <div className="bg-status-blueBg border border-blue-200 rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
+    <div className="bg-status-blueBg border border-status-blueBorder rounded-lg px-3.5 py-3 mb-4 flex items-start gap-3">
       <Bell size={18} className="text-status-blue shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-status-blue leading-relaxed">{copy}</p>

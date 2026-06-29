@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buildlogg — Design Colour System v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #f9fafb; color: #111827; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 48px; }
+  h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; margin-top: 56px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
+  h2 .meta { font-size: 12px; font-weight: 500; color: #9ca3af; float: right; }
+  h3 { font-size: 14px; font-weight: 600; color: #374151; margin-top: 32px; margin-bottom: 12px; }
+  .desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 20px; }
+
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .swatch { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fff; }
+  .swatch-chip { height: 64px; display: flex; align-items: flex-end; padding: 8px 12px; }
+  .swatch-chip .hex { font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.85); padding: 2px 8px; border-radius: 6px; backdrop-filter: blur(4px); }
+  .swatch-info { padding: 10px 12px 14px; }
+  .swatch-name { font-size: 13px; font-weight: 600; color: #111827; }
+  .swatch-token { font-size: 11px; color: #6b7280; font-family: 'SF Mono', ui-monospace, monospace; margin-top: 2px; }
+  .swatch-class { font-size: 11px; color: #9ca3af; font-family: 'SF Mono', ui-monospace, monospace; margin-top: 1px; }
+
+  .status-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; border-radius: 12px; margin-bottom: 12px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+  .status-dot { width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+
+  .toggle-row { display: flex; align-items: center; gap: 24px; padding: 16px 20px; border-radius: 12px; }
+  .toggle-label { font-size: 13px; font-weight: 500; flex: 1; }
+  .toggle { width: 44px; height: 26px; border-radius: 9999px; position: relative; transition: background 0.2s; }
+  .toggle-knob { width: 20px; height: 20px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15); position: absolute; top: 3px; transition: transform 0.2s; }
+  .toggle.on { background: #111827; }
+  .toggle.on .toggle-knob { transform: translateX(22px); }
+  .toggle.off { background: #e5e7eb; }
+  .toggle.off .toggle-knob { transform: translateX(3px); }
+  .toggle.on.blue { background: #1D4ED8; }
+
+  .banner { border-radius: 8px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .banner-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; border-radius: 50%; }
+  .banner-text { font-size: 13px; font-weight: 500; line-height: 1.5; }
+
+  .note { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 13px; color: #1e40af; line-height: 1.5; }
+  .note strong { font-weight: 700; }
+  .legend { font-size: 11px; color: #9ca3af; margin-top: 8px; }
+
+  /* Inversion diagram */
+  .invert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  .invert-col { padding: 16px 20px; }
+  .invert-col.light { background: #fff; color: #111827; }
+  .invert-col.dark { background: #0a0a0a; color: #fff; }
+  .invert-col h4 { font-size: 12px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .invert-col.light h4 { color: #6b7280; }
+  .invert-col.dark h4 { color: #a1a1aa; }
+  .invert-pair { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+  .invert-chip { width: 48px; height: 28px; border-radius: 6px; flex-shrink: 0; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .invert-label { flex: 1; }
+  .invert-col.light .invert-label { color: #374151; }
+  .invert-col.dark .invert-label { color: #a1a1aa; }
+
+  /* Side-by-side comparison */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .compare-card { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  .compare-header { font-size: 12px; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #f3f4f6; }
+  .compare-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Buildlogg — Design Colour System v2</h1>
+<p class="subtitle">Revised pass: inversion-based dark mode, Jade replaced, #0a1f3d as the dark canvas candidate.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>1. How Dark Mode Works — The Inversion Pattern</h2>
+<p class="desc">Buildlogg uses CSS variables that <strong>swap values</strong> between light and dark mode. The same Tailwind class (<code>bg-status-blueBg</code>) resolves to a light tint in light mode and a dark tint in dark mode. This is the core mechanism — any new colour must follow it.</p>
+
+<div class="invert-grid">
+  <div class="invert-col light">
+    <h4>Light Mode</h4>
+    <div class="invert-pair"><div class="invert-chip" style="background:#fff;border:1px solid #e5e7eb">FFF</div><div class="invert-label">app-shell-bg (canvas)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#EFF6FF">EFF6</div><div class="invert-label">blue-bg (info tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#F0FDF4">F0FD</div><div class="invert-label">green-bg (success tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#FFFBEB">FFFB</div><div class="invert-label">amber-bg (warning tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#FEF2F2">FEF2</div><div class="invert-label">red-bg (error tint)</div></div>
+  </div>
+  <div class="invert-col dark">
+    <h4>Dark Mode</h4>
+    <div class="invert-pair"><div class="invert-chip" style="background:#0a0a0a;border:1px solid #333">0a0a</div><div class="invert-label">app-shell-bg (canvas)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#0a1f3d">0a1f</div><div class="invert-label">blue-bg (info tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#0a2f1f">0a2f</div><div class="invert-label">green-bg (success tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#3d2a0a">3d2a</div><div class="invert-label">amber-bg (warning tint)</div></div>
+    <div class="invert-pair"><div class="invert-chip" style="background:#3d0a0a">3d0a</div><div class="invert-label">red-bg (error tint)</div></div>
+  </div>
+</div>
+<div class="legend">Light = pastel wash on white. Dark = same hue, darkened to ~5-10% luminance on black. Same CSS variable, different value per mode.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>2. The #0a1f3d Question — Dark Canvas Candidate</h2>
+<p class="desc">You asked about <code>#0a1f3d</code> (the current dark-mode blue-bg) as a potential app background. It's a deep navy — sits between the current pure black <code>#0a0a0a</code> and a tinted dark. Here's how it compares:</p>
+
+<div class="compare-grid">
+  <div class="compare-card">
+    <div class="compare-header" style="background:#0a0a0a;color:#a1a1aa">Current — #0a0a0a (pure black)</div>
+    <div class="compare-body" style="background:#0a0a0a">
+      <div style="background:#1a1a1a;border-radius:8px;padding:12px;color:#e5e5e5;font-size:12px">Card on #0a0a0a → #1a1a1a surface</div>
+      <div style="background:#0a1f3d;border-radius:8px;padding:12px;color:#60a5fa;font-size:12px">Blue-bg banner on #0a0a0a</div>
+      <div style="background:#262626;border-radius:8px;padding:12px;color:#a1a1aa;font-size:11px">Nested card #262626 on #1a1a1a</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">Pure black. Maximum contrast. OLED-friendly. Blue-bg reads as a tinted overlay, not the canvas.</div>
+    </div>
+  </div>
+  <div class="compare-card">
+    <div class="compare-header" style="background:#0a1f3d;color:#93c5fd">Proposed — #0a1f3d (deep navy)</div>
+    <div class="compare-body" style="background:#0a1f3d">
+      <div style="background:#0e2a52;border-radius:8px;padding:12px;color:#e5e5e5;font-size:12px">Card on #0a1f3d → #0e2a52 surface</div>
+      <div style="background:#112a4a;border-radius:8px;padding:12px;color:#60a5fa;font-size:12px">Blue-bg banner on #0a1f3d</div>
+      <div style="background:#11335e;border-radius:8px;padding:12px;color:#a1a1aa;font-size:11px">Nested card on elevated surface</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">Tinted navy. Blue-bg barely visible — it's the canvas. Cards need lighter navy surfaces. Everything feels "blue".</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Recommendation:</strong> Keep <code>#0a0a0a</code> as the dark canvas. If you switch to <code>#0a1f3d</code>, the blue-bg tint disappears INTO the canvas — you can't put a blue info banner on a blue background. The whole point of the tinted bg colours is that they're visible <em>against</em> the canvas. On pure black, <code>#0a1f3d</code> pops as a clear "info blue" zone. On <code>#0a1f3d</code> itself, it's invisible.<br><br>
+  <strong>However</strong> — if you want a <em>slightly tinted</em> dark canvas (not pure black, not full navy), <code>#0d1117</code> (GitHub dark) or <code>#0f1419</code> (X/Twitter dark) are good middle grounds. They're dark enough that <code>#0a1f3d</code> still reads as blue, but warmer than pure black.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>3. Replacing Jade — New Options for "Enquiry"</h2>
+<p class="desc">Jade (#0d9488) is too close to success green (#10B981). Enquiry needs a colour that reads as "new / incoming / unconfirmed" and is clearly distinct from green (Paid), blue (Booked), violet (Quoted), and amber (Awaiting Payment). Three alternatives:</p>
+
+<div class="compare-grid">
+  <div class="compare-card">
+    <div class="compare-header" style="background:#F5F3FF;color:#7c3aed">Option 1 — Slate (#475569)</div>
+    <div class="compare-body">
+      <div class="status-row" style="background:#fff;border:1px solid #e5e7eb;margin:0">
+        <span class="status-badge" style="background:#F1F5F9;color:#475569;"><span class="status-dot" style="background:#64748b"></span>Enquiry</span>
+        <span class="status-badge" style="background:#F5F3FF;color:#7c3aed;"><span class="status-dot" style="background:#8b5cf6"></span>Quoted</span>
+        <span class="status-badge" style="background:#EFF6FF;color:#1D4ED8;"><span class="status-dot" style="background:#1D4ED8"></span>Booked</span>
+        <span class="status-badge" style="background:#FFFBEB;color:#B45309;"><span class="status-dot" style="background:#F59E0B"></span>Awaiting Payment</span>
+        <span class="status-badge" style="background:#F0FDF4;color:#15803D;"><span class="status-dot" style="background:#10B981"></span>Paid</span>
+      </div>
+      <div style="font-size:11px;color:#6b7280;line-height:1.5">Slate is neutral — reads as "unprocessed, sitting in queue". Pairs with the existing <code>--brand-dark</code> family. Zero chromatic clash. Dark mode: <code>#1e293b</code> bg, <code>#94a3b8</code> text.</div>
+    </div>
+  </div>
+  <div class="compare-card">
+    <div class="compare-header" style="background:#F5F3FF;color:#7c3aed">Option 2 — Indigo (#4f46e5)</div>
+    <div class="compare-body">
+      <div class="status-row" style="background:#fff;border:1px solid #e5e7eb;margin:0">
+        <span class="status-badge" style="background:#EEF2FF;color:#4338ca;"><span class="status-dot" style="background:#6366f1"></span>Enquiry</span>
+        <span class="status-badge" style="background:#F5F3FF;color:#7c3aed;"><span class="status-dot" style="background:#8b5cf6"></span>Quoted</span>
+        <span class="status-badge" style="background:#EFF6FF;color:#1D4ED8;"><span class="status-dot" style="background:#1D4ED8"></span>Booked</span>
+        <span class="status-badge" style="background:#FFFBEB;color:#B45309;"><span class="status-dot" style="background:#F59E0B"></span>Awaiting Payment</span>
+        <span class="status-badge" style="background:#F0FDF4;color:#15803D;"><span class="status-dot" style="background:#10B981"></span>Paid</span>
+      </div>
+      <div style="font-size:11px;color:#6b7280;line-height:1.5">Indigo is between blue and violet — cool, professional. Distinct from both. But enquiry→quoted→booked becomes indigo→violet→blue, which is a very close hue family. Dark mode: <code>#1e1b4b</code> bg.</div>
+    </div>
+  </div>
+</div>
+
+<div class="compare-grid" style="grid-template-columns:1fr">
+  <div class="compare-card">
+    <div class="compare-header" style="background:#F5F3FF;color:#7c3aed">Option 3 — Rose (#e11d48) — for "new lead" energy</div>
+    <div class="compare-body">
+      <div class="status-row" style="background:#fff;border:1px solid #e5e7eb;margin:0">
+        <span class="status-badge" style="background:#FFF1F2;color:#be123c;"><span class="status-dot" style="background:#f43f5e"></span>Enquiry</span>
+        <span class="status-badge" style="background:#F5F3FF;color:#7c3aed;"><span class="status-dot" style="background:#8b5cf6"></span>Quoted</span>
+        <span class="status-badge" style="background:#EFF6FF;color:#1D4ED8;"><span class="status-dot" style="background:#1D4ED8"></span>Booked</span>
+        <span class="status-badge" style="background:#FFFBEB;color:#B45309;"><span class="status-dot" style="background:#F59E0B"></span>Awaiting Payment</span>
+        <span class="status-badge" style="background:#F0FDF4;color:#15803D;"><span class="status-dot" style="background:#10B981"></span>Paid</span>
+      </div>
+      <div style="font-size:11px;color:#6b7280;line-height:1.5;margin-top:8px">Rose is warm and attention-grabbing — reads as "new lead, act on this". Very distinct from every other status. Risk: could feel urgent when enquiry is just "someone called, not yet qualified". Dark mode: <code>#1f0a0e</code> bg, <code>#fb7185</code> text. Related to DESIGN.md's <code>badge-pink</code> (#ec4899) but darker for readability.</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Recommendation:</strong> <strong>Option 1 — Slate</strong>. It's the safest: no chromatic clash with any existing status, reads as "neutral / pending", and uses the same grey family as your brand surface tokens. Indigo (Option 2) is too close to blue+violet. Rose (Option 3) is distinctive but may feel too urgent for a simple enquiry. Slate lets the <em>workflow</em> colours (violet, blue, amber, green) do the talking while enquiry sits quietly as "not yet started".
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>4. Revised Full Status Mapping</h2>
+<p class="desc">Using Slate for enquiry + Violet for quoted. The full pipeline reads as a cool→warm progression: Slate (neutral) → Violet (pending) → Blue (confirmed) → Blue (active) → Amber (waiting) → Green (done).</p>
+
+<h3>Light mode</h3>
+<div class="status-row" style="background:#fff;border:1px solid #e5e7eb">
+  <span class="status-badge" style="background:#F1F5F9;color:#475569;"><span class="status-dot" style="background:#64748b"></span>Enquiry</span>
+  <span class="status-badge" style="background:#F5F3FF;color:#7c3aed;"><span class="status-dot" style="background:#8b5cf6"></span>Quoted</span>
+  <span class="status-badge" style="background:#EFF6FF;color:#1D4ED8;"><span class="status-dot" style="background:#1D4ED8"></span>Booked</span>
+  <span class="status-badge" style="background:#EFF6FF;color:#1D4ED8;"><span class="status-dot" style="background:#1D4ED8"></span>In Progress</span>
+  <span class="status-badge" style="background:#FFFBEB;color:#B45309;"><span class="status-dot" style="background:#F59E0B"></span>Awaiting Payment</span>
+  <span class="status-badge" style="background:#F0FDF4;color:#15803D;"><span class="status-dot" style="background:#10B981"></span>Paid</span>
+  <span class="status-badge" style="background:#FEF3C7;color:#92400E;"><span class="status-dot" style="background:#F59E0B"></span>No-Show</span>
+  <span class="status-badge" style="background:#F9FAFB;color:#6B7280;"><span class="status-dot" style="background:#9ca3af"></span>Cancelled</span>
+</div>
+
+<h3>Dark mode</h3>
+<div class="status-row" style="background:#0a0a0a;border:1px solid #333">
+  <span class="status-badge" style="background:#1e293b;color:#94a3b8;"><span class="status-dot" style="background:#64748b"></span>Enquiry</span>
+  <span class="status-badge" style="background:#1e1033;color:#c4b5fd;"><span class="status-dot" style="background:#8b5cf6"></span>Quoted</span>
+  <span class="status-badge" style="background:#0a1f3d;color:#60a5fa;"><span class="status-dot" style="background:#3b82f6"></span>Booked</span>
+  <span class="status-badge" style="background:#0a1f3d;color:#60a5fa;"><span class="status-dot" style="background:#3b82f6"></span>In Progress</span>
+  <span class="status-badge" style="background:#3d2a0a;color:#fbbf24;"><span class="status-dot" style="background:#f59e0b"></span>Awaiting Payment</span>
+  <span class="status-badge" style="background:#0a2f1f;color:#34d399;"><span class="status-dot" style="background:#10b981"></span>Paid</span>
+  <span class="status-badge" style="background:#3d2a0a;color:#fbbf24;"><span class="status-dot" style="background:#f59e0b"></span>No-Show</span>
+  <span class="status-badge" style="background:#1a1a1a;color:#a1a1aa;"><span class="status-dot" style="background:#6b7280"></span>Cancelled</span>
+</div>
+<div class="legend">7 distinct states across 6 hues. No colour confusion. Each status is identifiable in both modes.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>5. New Tokens to Add</h2>
+<p class="desc">Two new colour families: Slate (enquiry) and Violet (quoted). Each needs a text colour, a bg tint, and a dark-mode bg override.</p>
+
+<div class="swatch-grid">
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#475569"><span class="hex">#475569</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Slate Text (NEW)</div>
+      <div class="swatch-token">--color-slate</div>
+      <div class="swatch-class">status.slate</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#F1F5F9"><span class="hex">#F1F5F9</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Slate BG Light (NEW)</div>
+      <div class="swatch-token">--color-slate-bg</div>
+      <div class="swatch-class">status.slateBg</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#1e293b"><span class="hex">#1e293b</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Slate BG Dark (NEW)</div>
+      <div class="swatch-token">--color-slate-bg (.dark)</div>
+      <div class="swatch-class">status.slateBg in dark</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#8b5cf6"><span class="hex">#8b5cf6</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Violet Text (NEW)</div>
+      <div class="swatch-token">--badge-violet (exists)</div>
+      <div class="swatch-class">status.violet</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#F5F3FF"><span class="hex">#F5F3FF</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Violet BG Light (NEW)</div>
+      <div class="swatch-token">--color-violet-bg</div>
+      <div class="swatch-class">status.violetBg</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#1e1033"><span class="hex">#1e1033</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Violet BG Dark (NEW)</div>
+      <div class="swatch-token">--color-violet-bg (.dark)</div>
+      <div class="swatch-class">status.violetBg in dark</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>6. Toggle Fix</h2>
+<p class="desc">Reminders push toggle must use <code>brand.primary</code> (#111827) — same as every other toggle. No accent colour on action components per DESIGN.md.</p>
+
+<div class="toggle-row" style="background:#fff;border:1px solid #e5e7eb">
+  <span class="toggle-label" style="color:#374151">Correct — brand.primary (all toggles)</span>
+  <div class="toggle on"><div class="toggle-knob"></div></div>
+  <div class="toggle off"><div class="toggle-knob"></div></div>
+</div>
+<div class="toggle-row" style="background:#fff;border:1px solid #e5e7eb;margin-top:8px">
+  <span class="toggle-label" style="color:#374151">Wrong — status.blue (Reminders currently)</span>
+  <div class="toggle on blue"><div class="toggle-knob"></div></div>
+  <div class="toggle off"><div class="toggle-knob"></div></div>
+</div>
+
+<div class="toggle-row" style="background:#0a0a0a;border:1px solid #333;margin-top:8px">
+  <span class="toggle-label" style="color:#e5e5e5">Dark mode — brand.primary flips to #ffffff</span>
+  <div class="toggle on" style="background:#fff"><div class="toggle-knob" style="background:#111827"></div></div>
+  <div class="toggle off" style="background:#333"><div class="toggle-knob"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>7. Optional — Tinted Dark Canvas</h2>
+<p class="desc">If pure black feels too harsh, here are three alternatives that keep <code>#0a1f3d</code> visible as a blue tint (not the canvas itself):</p>
+
+<div class="swatch-grid">
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#0a0a0a"><span class="hex">#0a0a0a</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Current (pure black)</div>
+      <div class="swatch-token">--app-shell-bg (.dark)</div>
+      <div class="swatch-class">Max contrast, OLED-friendly</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#0d1117"><span class="hex">#0d1117</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">GitHub Dark (NEW)</div>
+      <div class="swatch-token">--app-shell-bg (.dark)</div>
+      <div class="swatch-class">Slight blue undertone, warmer</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#0f1419"><span class="hex">#0f1419</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Twitter Dark (NEW)</div>
+      <div class="swatch-token">--app-shell-bg (.dark)</div>
+      <div class="swatch-class">Neutral dark, slightly warm</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-chip" style="background:#0a1f3d"><span class="hex">#0a1f3d</span></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Full Navy (NOT recommended)</div>
+      <div class="swatch-token">--app-shell-bg (.dark)</div>
+      <div class="swatch-class">Blue-bg invisible on canvas</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Why not #0a1f3d as canvas:</strong> Your info banners, enquiry/booked badges, and blue tints all use <code>--color-blue-bg</code>. On pure black, <code>#0a1f3d</code> is clearly a blue zone. On <code>#0a1f3d</code> canvas, a <code>#0a1f3d</code> banner is invisible. You'd need a <em>lighter</em> navy for blue-bg, which then looks washed out. The inversion system works best when the canvas is neutral and the tints carry the hue.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>8. All Existing Colours (Complete Reference)</h2>
+<p class="desc">Every colour currently in the system, for reference. New additions are marked.</p>
+
+<h3>Brand Core</h3>
+<div class="swatch-grid">
+  <div class="swatch"><div class="swatch-chip" style="background:#111827"><span class="hex">#111827</span></div><div class="swatch-info"><div class="swatch-name">Primary / Ink</div><div class="swatch-token">--surface-primary</div><div class="swatch-class">brand.primary / brand.black</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#374151"><span class="hex">#374151</span></div><div class="swatch-info"><div class="swatch-name">Body Text</div><div class="swatch-token">--brand-dark</div><div class="swatch-class">brand.dark</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#6B7280"><span class="hex">#6B7280</span></div><div class="swatch-info"><div class="swatch-name">Muted Text</div><div class="swatch-token">--brand-mid</div><div class="swatch-class">brand.mid / brand.muted</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#E5E7EB"><span class="hex">#E5E7EB</span></div><div class="swatch-info"><div class="swatch-name">Hairline Border</div><div class="swatch-token">--brand-border</div><div class="swatch-class">brand.border</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#F3F4F6"><span class="hex">#F3F4F6</span></div><div class="swatch-info"><div class="swatch-name">Border Light</div><div class="swatch-token">--brand-border-light</div><div class="swatch-class">brand.borderLight</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#F9FAFB"><span class="hex">#F9FAFB</span></div><div class="swatch-info"><div class="swatch-name">Surface Soft</div><div class="swatch-token">--brand-surface</div><div class="swatch-class">brand.surface</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#F5F5F5"><span class="hex">#F5F5F5</span></div><div class="swatch-info"><div class="swatch-name">Surface Card</div><div class="swatch-token">--brand-surface-card</div><div class="swatch-class">brand.surfaceCard</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#0E1828"><span class="hex">#0E1828</span></div><div class="swatch-info"><div class="swatch-name">Deep Navy</div><div class="swatch-token">--brand-deep</div><div class="swatch-class">QR codes, app icon</div></div></div>
+</div>
+
+<h3>Semantic — Success / Warning / Error</h3>
+<div class="swatch-grid">
+  <div class="swatch"><div class="swatch-chip" style="background:#10B981"><span class="hex">#10B981</span></div><div class="swatch-info"><div class="swatch-name">Success</div><div class="swatch-token">--success</div><div class="swatch-class">status.success</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#15803D"><span class="hex">#15803D</span></div><div class="swatch-info"><div class="swatch-name">Green Text</div><div class="swatch-token">--color-green</div><div class="swatch-class">status.green</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#F0FDF4"><span class="hex">#F0FDF4</span></div><div class="swatch-info"><div class="swatch-name">Green BG</div><div class="swatch-token">--color-green-bg</div><div class="swatch-class">status.greenBg</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#F59E0B"><span class="hex">#F59E0B</span></div><div class="swatch-info"><div class="swatch-name">Warning</div><div class="swatch-token">--warning</div><div class="swatch-class">status.warning</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#B45309"><span class="hex">#B45309</span></div><div class="swatch-info"><div class="swatch-name">Amber Text</div><div class="swatch-token">--color-amber</div><div class="swatch-class">status.amber</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#FFFBEB"><span class="hex">#FFFBEB</span></div><div class="swatch-info"><div class="swatch-name">Amber BG</div><div class="swatch-token">--color-amber-bg</div><div class="swatch-class">status.amberBg</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#EF4444"><span class="hex">#EF4444</span></div><div class="swatch-info"><div class="swatch-name">Error</div><div class="swatch-token">--error</div><div class="swatch-class">status.error</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#DC2626"><span class="hex">#DC2626</span></div><div class="swatch-info"><div class="swatch-name">Red Text</div><div class="swatch-token">--color-red</div><div class="swatch-class">status.red</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#FEF2F2"><span class="hex">#FEF2F2</span></div><div class="swatch-info"><div class="swatch-name">Red BG</div><div class="swatch-token">--color-red-bg</div><div class="swatch-class">status.redBg</div></div></div>
+</div>
+
+<h3>Blue — Info Accent</h3>
+<div class="swatch-grid">
+  <div class="swatch"><div class="swatch-chip" style="background:#1D4ED8"><span class="hex">#1D4ED8</span></div><div class="swatch-info"><div class="swatch-name">Blue Text</div><div class="swatch-token">--color-blue</div><div class="swatch-class">status.blue</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#EFF6FF"><span class="hex">#EFF6FF</span></div><div class="swatch-info"><div class="swatch-name">Blue BG Light</div><div class="swatch-token">--color-blue-bg</div><div class="swatch-class">status.blueBg</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#0a1f3d"><span class="hex">#0a1f3d</span></div><div class="swatch-info"><div class="swatch-name">Blue BG Dark</div><div class="swatch-token">--color-blue-bg (.dark)</div><div class="swatch-class">status.blueBg in dark</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#3b82f6"><span class="hex">#3b82f6</span></div><div class="swatch-info"><div class="swatch-name">Brand Accent</div><div class="swatch-token">--brand-accent</div><div class="swatch-class">brand.accent (NEEDS MAPPING)</div></div></div>
+</div>
+
+<h3>Defined in tokens.css but not mapped to Tailwind</h3>
+<div class="swatch-grid">
+  <div class="swatch"><div class="swatch-chip" style="background:#8b5cf6"><span class="hex">#8b5cf6</span></div><div class="swatch-info"><div class="swatch-name">Badge Violet</div><div class="swatch-token">--badge-violet</div><div class="swatch-class">NEEDS MAPPING → status.violet</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#fb923c"><span class="hex">#fb923c</span></div><div class="swatch-info"><div class="swatch-name">Badge Orange</div><div class="swatch-token">--badge-orange</div><div class="swatch-class">NEEDS MAPPING → status.orange</div></div></div>
+  <div class="swatch"><div class="swatch-chip" style="background:#ec4899"><span class="hex">#ec4899</span></div><div class="swatch-info"><div class="swatch-name">Badge Pink</div><div class="swatch-token">--badge-pink</div><div class="swatch-class">Unmapped, currently unused</div></div></div>
+</div>
+
+<div class="note" style="margin-top:32px">
+  <strong>Decisions needed:</strong><br>
+  1. <strong>Enquiry colour</strong> — Slate (#475569, recommended), Indigo (#4f46e5), or Rose (#e11d48)?<br>
+  2. <strong>Dark canvas</strong> — keep #0a0a0a (recommended), or switch to #0d1117 / #0f1419?<br>
+  3. <strong>Then I implement</strong> — add tokens, map Tailwind, fix all 16 hardcoded colours.
+</div>
+
+</div>
+</body>
+</html>

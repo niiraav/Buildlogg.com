@@ -21,6 +21,7 @@ export default {
           darkBg:      'var(--brand-dark-bg)',
           primary:     'var(--surface-primary)',
           primaryText: 'var(--surface-primary-text)',
+          accent:      'var(--brand-accent)',
         },
         status: {
           success:     '#10B981',
@@ -33,10 +34,16 @@ export default {
           amberMid:    '#FEF3C7',
           error:       '#EF4444',
           red:         '#DC2626',
-          redText:     'var(--color-red-text)',   // WCAG 1.4.3 safe: #B91C1C on redBg
+          redText:     'var(--color-red-text)',
           redBg:       'var(--color-red-bg)',
           blue:        '#1D4ED8',
           blueBg:      'var(--color-blue-bg)',
+          blueBorder:  'var(--color-blue-border)',
+          slate:       'var(--color-slate)',
+          slateBg:     'var(--color-slate-bg)',
+          violet:      'var(--color-violet)',
+          violetBg:    'var(--color-violet-bg)',
+          orange:      'var(--color-orange)',
         }
       },
       fontSize: {

@@ -52,6 +52,18 @@
   --color-red-text:     #B91C1C;  /* WCAG 1.4.3: 5.76:1 on #FEF2F2 — passes AA */
   --color-blue:         #1D4ED8;
   --color-blue-bg:      #EFF6FF;
+  --color-blue-border:  #BFDBFE;
+
+  /* ── Slate — enquiry status (neutral, "not yet started") ─────────── */
+  --color-slate:         #475569;
+  --color-slate-bg:      #F1F5F9;
+
+  /* ── Violet — quoted status (pending decision) ───────────────────── */
+  --color-violet:        #7c3aed;
+  --color-violet-bg:     #F5F3FF;
+
+  /* ── Orange — no-show dot, urgent flags ──────────────────────────── */
+  --color-orange:        #fb923c;
 
   --app-bg:             #F3F4F6;
   --app-shell-bg:       #FFFFFF;
@@ -113,6 +125,10 @@
   --color-amber-bg:     #3d2a0a;
   --color-red-bg:       #3d0a0a;
   --color-blue-bg:      #0a1f3d;
+
+  /* ── Slate + Violet dark-mode bg tints ──────────────────────────── */
+  --color-slate-bg:     #1e293b;
+  --color-violet-bg:    #1e1033;
 
   --shadow-sheet:       0 -4px 12px rgba(0,0,0,.60);
   --shadow-seg:         0 1px 3px rgba(0,0,0,.50);
