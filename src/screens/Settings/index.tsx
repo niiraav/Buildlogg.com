@@ -973,6 +973,16 @@ export default function Settings() {
                 <li>3. Job updates automatically — deposit marked as paid</li>
               </ol>
             </div>
+            <div className="bg-status-blueBg border border-status-blueBorder rounded-lg p-3">
+              <p className="text-xs font-semibold text-status-blue mb-1.5">What happens when you tap Enable</p>
+              <ol className="text-xs text-status-blue leading-relaxed space-y-1">
+                <li>1. You'll be redirected to Stripe's secure onboarding page</li>
+                <li>2. Enter your bank details so Stripe knows where to send payouts</li>
+                <li>3. Stripe verifies your identity (takes 2–3 minutes)</li>
+                <li>4. You'll be sent back to Buildlogg — card payments turn on automatically</li>
+              </ol>
+              <p className="text-xs text-status-blue/70 mt-2">Stripe handles all payment processing securely. Buildlogg never sees your card or bank details.</p>
+            </div>
             <Button
               variant="primary"
               fullWidth
