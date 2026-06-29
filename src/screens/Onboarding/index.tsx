@@ -20,6 +20,7 @@ import { captureVerticalSelected } from '../../lib/analytics';
 import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { seedSampleJob } from '../../lib/seedSampleJob';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
+import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -68,6 +69,7 @@ export default function Onboarding() {
   // Form data
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [trade, setTrade] = useState<TradeType | undefined>();
   const [businessType, setBusinessType] = useState<BusinessType>('trades');
   const [beautySpecialty, setBeautySpecialty] = useState<BeautySpecialty | undefined>();
@@ -124,7 +126,7 @@ export default function Onboarding() {
     const profile: Profile = {
       id: resolvedUserId,
       full_name: fullName.trim(),
-      phone: '',
+      phone: normalizePhone(phone),
       business_name: businessName.trim() || undefined,
       trade,
       business_type: businessType,
@@ -192,7 +194,7 @@ export default function Onboarding() {
       retry_count: 0,
     });
     return resolvedUserId;
-  }, [userId, fullName, businessName, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
+  }, [userId, fullName, businessName, phone, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
 
   const nextStep = () => setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
   const skip = () => nextStep();
@@ -206,6 +208,8 @@ export default function Onboarding() {
     if (businessType === 'trades' && !trade) return;
     if (businessType === 'beauty' && !beautySpecialty) return;
     if (trade === 'other' && tradeOther.trim().length === 0) return;
+    // Phone is optional; only validate non-empty values
+    if (phone.trim().length > 0 && validatePhone(phone) !== null) return;
     nextStep();
   };
 
@@ -246,7 +250,8 @@ export default function Onboarding() {
       } else if (
         step === 2 &&
         trade &&
-        (trade !== 'other' || tradeOther.trim().length > 0)
+        (trade !== 'other' || tradeOther.trim().length > 0) &&
+        (phone.trim().length === 0 || validatePhone(phone) === null)
       ) {
         handleContinueS2();
       } else if (step === 3) {
@@ -362,6 +367,24 @@ export default function Onboarding() {
                       autoCapitalize="words"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
+                      className="flex-1 text-base text-brand-black outline-none min-h-13 px-4 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                    Phone <span className="font-normal normal-case tracking-normal text-label ml-1">(optional)</span>
+                  </label>
+                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="e.g. 07700 900123 or +353 86 123 4567"
+                      value={phone}
+                      onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                      onBlur={() => { const err = validatePhone(phone); if (err) { /* optional visual error can be added here */ } }}
                       className="flex-1 text-base text-brand-black outline-none min-h-13 px-4 bg-transparent"
                     />
                   </div>

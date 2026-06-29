@@ -6,23 +6,11 @@ import { useAppStore } from '../../store/useAppStore';
 import { captureJobCreated } from '../../lib/analytics';
 import { nextJobNumber } from '../../lib/jobNumbers';
 import { Button } from '../../components/Button';
+import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 
 /* ─── helpers ─── */
 
 function now() { return new Date().toISOString(); }
-
-const UK_PHONE_RE = /^(\+44|0)7\d{9}$/;
-
-function isValidUkPhone(phone: string): boolean {
-  const cleaned = phone.replace(/\s/g, '');
-  return UK_PHONE_RE.test(cleaned);
-}
-
-function normalisePhone(phone: string): string {
-  const cleaned = phone.replace(/\s/g, '');
-  if (cleaned.startsWith('0')) return '+44' + cleaned.slice(1);
-  return cleaned;
-}
 
 interface LogMissedCallProps {
   onDone: () => void;
@@ -43,8 +31,8 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
 
   const saveAndCreate = useCallback(async (shouldDial: boolean) => {
     if (!userId) return;
-    const cleaned = phone.replace(/\s/g, '');
-    if (!isValidUkPhone(cleaned)) {
+    const err = validatePhone(phone);
+    if (err !== null) {
       setPhoneError(true);
       return;
     }
@@ -52,7 +40,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
     setSaving(true);
 
     const n = now();
-    const normalised = normalisePhone(cleaned);
+    const normalised = normalizePhone(phone);
     const customerId = crypto.randomUUID();
     const jobId = crypto.randomUUID();
     const jobNumber = await nextJobNumber(userId);
@@ -127,7 +115,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
     onDone();
   }, [phone, name, userId, onDone]);
 
-  const phoneValid = phone.replace(/\s/g, '').length >= 10;
+  const phoneValid = validatePhone(phone) === null;
   const canSave = phoneValid && !saving;
 
   return (
@@ -161,15 +149,15 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
               type="tel"
               inputMode="tel"
               value={phone}
-              onChange={(e) => { setPhone(e.target.value); setPhoneError(false); }}
-              placeholder="e.g. 07700 900123"
+              onChange={(e) => { setPhone(formatPhoneInput(e.target.value)); setPhoneError(false); }}
+              placeholder="e.g. 07700 900123 or +353 86 123 4567"
               autoFocus
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none ${
                 phoneError ? 'border-status-error' : 'border-brand-border focus:border-brand-black'
               }`}
             />
             {phoneError && (
-              <p className="text-sm text-status-error mt-1">Enter a valid UK mobile number</p>
+              <p className="text-sm text-status-error mt-1">{validatePhone(phone) || 'Enter a valid phone number'}</p>
             )}
           </div>
           <div>

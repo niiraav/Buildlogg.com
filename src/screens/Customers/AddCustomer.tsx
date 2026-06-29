@@ -9,18 +9,7 @@ import { addToSyncQueue } from '../../lib/syncQueue';
 import { SkeletonInline } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-
-const UK_PHONE_RE = /^(\+44|0)7\d{9}$/;
-
-function normalisePhone(phone: string): string {
-  const cleaned = phone.replace(/\s/g, '');
-  if (cleaned.startsWith('0')) return '+44' + cleaned.slice(1);
-  return cleaned;
-}
-
-function isValidUkPhone(phone: string): boolean {
-  return UK_PHONE_RE.test(phone.replace(/\s/g, ''));
-}
+import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 
 export default function AddCustomer() {
   const navigate = useNavigate();
@@ -33,7 +22,7 @@ export default function AddCustomer() {
   const [phoneError, setPhoneError] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
 
-  const canSave = name.trim().length > 0 && isValidUkPhone(phone);
+  const canSave = name.trim().length > 0 && (phone.trim().length === 0 || validatePhone(phone) === null);
 
   /* Unsaved changes guard — warn when user has entered customer data */
   const formIsDirty = name.trim().length > 0 || phone.trim().length > 0 || address.trim().length > 0 || email.trim().length > 0;
@@ -44,7 +33,7 @@ export default function AddCustomer() {
     setSaving(true);
     try {
       // Check for duplicate phone
-      const dup = await findDuplicateByPhone(userId, phone);
+      const dup = await findDuplicateByPhone(userId, normalizePhone(phone));
       if (dup) {
         setDuplicateWarning(dup);
         setSaving(false);
@@ -57,7 +46,7 @@ export default function AddCustomer() {
         id,
         user_id: userId,
         name: name.trim(),
-        phone: normalisePhone(phone),
+        phone: normalizePhone(phone),
         address: address.trim() || undefined,
         email: email.trim() || undefined,
         created_at: n,
@@ -67,7 +56,7 @@ export default function AddCustomer() {
 
       await db.customers.add(customer);
       await addToSyncQueue('customers', id, {
-        id, user_id: userId, name: name.trim(), phone: normalisePhone(phone),
+        id, user_id: userId, name: name.trim(), phone: normalizePhone(phone),
         address: address.trim() || null, email: email.trim() || null,
         created_at: n, updated_at: n,
       }, 'insert');
@@ -135,13 +124,14 @@ export default function AddCustomer() {
               type="tel"
               inputMode="numeric"
               value={phone}
-              onChange={(e) => { setPhone(e.target.value); setPhoneError(false); setDuplicateWarning(null); }}
-              placeholder="e.g. 07700 900123"
+              onChange={(e) => { setPhone(formatPhoneInput(e.target.value)); setPhoneError(false); setDuplicateWarning(null); }}
+              onBlur={() => { const err = validatePhone(phone); setPhoneError(err !== null); }}
+              placeholder="e.g. 07700 900123 or +353 86 123 4567"
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted placeholder:italic outline-none ${
                 phoneError ? 'border-status-error' : 'border-brand-border'
               } focus:border-brand-black`}
             />
-            {phoneError && <p className="text-sm text-status-error mt-1">Enter a valid UK mobile number</p>}
+            {phoneError && <p className="text-sm text-status-error mt-1">Enter a valid phone number</p>}
             {duplicateWarning && (
               <div className="mt-2 p-3 bg-status-amberBg border border-amber-200 rounded-lg flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
