@@ -31,9 +31,6 @@ export const TabBar: React.FC<TabBarProps> = ({ activeTab, onNavigate }) => {
               <span className={`text-micro font-medium ${isActive ? 'text-brand-black' : 'text-brand-muted'}`}>
                 {tab.label}
               </span>
-              {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-black" />
-              )}
             </button>
           );
         })}
