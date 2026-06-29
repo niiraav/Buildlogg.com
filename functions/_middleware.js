@@ -24,6 +24,16 @@ export async function onRequest(context) {
     return context.next();
   }
 
+  // Clean URLs for static legal pages
+  if (path === '/privacy' || path === '/privacy/') {
+    url.pathname = '/privacy.html';
+    return context.env.ASSETS.fetch(url);
+  }
+  if (path === '/terms' || path === '/terms/') {
+    url.pathname = '/terms.html';
+    return context.env.ASSETS.fetch(url);
+  }
+
   // For any other path, try serving the static asset, fall back to landing page
   try {
     const resp = await context.env.ASSETS.fetch(context.request);
