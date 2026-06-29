@@ -460,7 +460,19 @@ export default function JobDetail() {
     showToast('Job cancelled', 'success', 2000);
     captureJobCancelled(reason);
     setSheet(null);
-    refresh();
+    if (customer && profile && userId && job) {
+      const business = profile.business_name || profile.full_name;
+      const scheduledStr = job.scheduled_start ? formatShortDate(new Date(job.scheduled_start)) : 'the planned date';
+      const fallback = `Hi ${customer.name.split(' ')[0]}, sorry but I need to cancel the ${job.title} scheduled for ${scheduledStr}. Let me know when works to reschedule.\n— ${business}`;
+      const msg = await getFilledTemplateMessage(userId, 'update', job, customer, profile, total, fallback);
+      setSendSheetConfig({
+        title: `Inform ${customer.name} about cancellation?`,
+        messageText: msg,
+        onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+      });
+    } else {
+      refresh();
+    }
   };
 
   const handleNotHome = async () => {
@@ -483,11 +495,23 @@ export default function JobDetail() {
     });
     await addToSyncQueue('jobs', job.id, { status: 'no_show', actual_end: n, updated_at: n }, 'update');
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Customer not home — no-show logged', created_at: n }, 'insert');
-    refresh();
+    if (customer && profile && userId && job) {
+      const business = profile.business_name || profile.full_name;
+      const fallback = `Hi ${customer.name.split(' ')[0]}, I called today but no one was home. Can we reschedule the ${job.title}?\n— ${business}`;
+      const msg = await getFilledTemplateMessage(userId, 'update', job, customer, profile, total, fallback);
+      setSendSheetConfig({
+        title: `Inform ${customer.name} about no-show?`,
+        messageText: msg,
+        onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+      });
+    } else {
+      refresh();
+    }
   };
 
   const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'other' | 'not_yet') => {
     if (!job || !userId || paymentProcessing) return;
+    let pendingSendSheetConfig: { title: string; messageText: string; onSend: (method: SendMethod, pdfShared: boolean) => void; pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string } } | null = null;
 
     // £0.00 jobs: skip payment flow entirely, mark as paid
     if (total === 0) {
@@ -516,9 +540,23 @@ export default function JobDetail() {
         setContextualFlag();
         captureJobMarkedPaid();
         setSheet(null);
+        if (customer && profile && userId) {
+          const business = profile.business_name || profile.full_name;
+          const fallback = `Hi ${customer.name.split(' ')[0]}, the ${job.title} is all done — no charge. Thanks for having me!\n— ${business}`;
+          const msg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile, 0, fallback);
+          pendingSendSheetConfig = {
+            title: `Tell ${customer.name} it's all done?`,
+            messageText: msg,
+            onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+          };
+        }
       } finally {
         setPaymentProcessing(false);
-        refresh();
+        if (pendingSendSheetConfig) {
+          setSendSheetConfig(pendingSendSheetConfig);
+        } else {
+          refresh();
+        }
       }
       return;
     }
@@ -547,6 +585,23 @@ export default function JobDetail() {
         await addToSyncQueue('jobs', job.id, { status: 'awaiting_payment', actual_end: n, invoice_sent_at: n, updated_at: n }, 'update');
         await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Job completed — payment pending', created_at: n }, 'insert');
         createPaymentChases(job.id, userId!, n).catch(() => {});
+        // Open SendSheet to inform customer the job is done + invoice is due
+        if (customer && profile && userId) {
+          const business = profile.business_name || profile.full_name;
+          const summary = paymentSummary(job, payments, total);
+          const fallback = `Hi ${customer.name.split(' ')[0]}, the ${job.title} is all done. The invoice of £${total.toFixed(2)} is now due. Let me know if you need the payment link.\n— ${business}`;
+          const msg = await getFilledTemplateMessage(userId, 'invoice', job, customer, profile, total, fallback);
+          pendingSendSheetConfig = {
+            title: `Send invoice to ${customer.name}?`,
+            messageText: msg,
+            pdfOptions: {
+              label: 'Attach PDF invoice',
+              generatePdf: async () => generateInvoicePDF({ profile, customer, job, lineItems, total, payments, amountDue: summary.amountDue }),
+              fileName: `invoice-${job.job_number || job.id.slice(0,8)}.pdf`,
+            },
+            onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+          };
+        }
       } else {
         const summary = paymentSummary(job, payments, total);
         if (summary.isFullyPaid || job.status === 'paid') {
@@ -577,13 +632,29 @@ export default function JobDetail() {
           showSuccess('Job marked as paid');
           setContextualFlag();
           captureJobMarkedPaid();
+          resolveChases(job.id).catch(() => {});
 
-          // P2-08: Show review prompt if Google reviews are enabled
-          if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
-            setTimeout(() => {
-              setSheet('review_prompt');
-              captureReviewRequestShown({ jobId: job.id });
-            }, 500);
+          // Auto-open receipt SendSheet, then chain to review/recurring
+          if (customer && profile && userId) {
+            const business = profile.business_name || profile.full_name;
+            const fallback = `Hi ${customer.name.split(' ')[0]}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business!\n— ${business}`;
+            const receiptMsg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile, total, fallback);
+            pendingSendSheetConfig = {
+              title: `Send receipt to ${customer.name}?`,
+              messageText: receiptMsg,
+              onSend: (method, _pdfShared) => {
+                logCustomerNotified(method, receiptMsg);
+                setSendSheetConfig(null);
+                if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
+                  setTimeout(() => { setSheet('review_prompt'); captureReviewRequestShown({ jobId: job.id }); }, 500);
+                } else if (job.title !== 'Callout charge') {
+                  setTimeout(() => setSheet('recurring_prompt'), 500);
+                }
+              },
+            };
+          } else if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
+            // No customer — still show review prompt
+            setTimeout(() => { setSheet('review_prompt'); captureReviewRequestShown({ jobId: job.id }); }, 500);
           }
         } else {
           showToast('Deposit recorded — balance still due', 'info', 2500);
@@ -606,12 +677,17 @@ export default function JobDetail() {
       setSheet(null);
     } finally {
       setPaymentProcessing(false);
-      refresh();
+      if (pendingSendSheetConfig) {
+        setSendSheetConfig(pendingSendSheetConfig);
+      } else {
+        refresh();
+      }
     }
   };
 
   const handleMarkAsPaid = async (method: 'cash' | 'bank_transfer' | 'other') => {
     if (!job || !userId || paymentProcessing) return;
+    let pendingReceiptConfig: { title: string; messageText: string; onSend: (method: SendMethod, pdfShared: boolean) => void } | null = null;
 
     // £0.00 jobs: skip payment, mark as paid directly
     if (total === 0) {
@@ -638,8 +714,20 @@ export default function JobDetail() {
         setContextualFlag();
         captureJobMarkedPaid();
         setSheet(null);
+        if (customer && profile && userId) {
+          const business = profile.business_name || profile.full_name;
+          const fallback = `Hi ${customer.name.split(' ')[0]}, the ${job.title} is all done — no charge. Thanks for having me!\n— ${business}`;
+          const msg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile, 0, fallback);
+          setSendSheetConfig({
+            title: `Tell ${customer.name} it's all done?`,
+            messageText: msg,
+            onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+          });
+        } else {
+          refresh();
+        }
       } finally {
-        refresh();
+        setPaymentProcessing(false);
       }
       return;
     }
@@ -676,12 +764,27 @@ export default function JobDetail() {
         captureJobMarkedPaid();
         resolveChases(job.id).catch(() => {});
 
-        // P2-08: Show review prompt if Google reviews are enabled
-        if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
-          setTimeout(() => {
-            setSheet('review_prompt');
-            captureReviewRequestShown({ jobId: job.id });
-          }, 500);
+        // Auto-open receipt SendSheet, then chain to review/recurring
+        if (customer && profile && userId) {
+          const business = profile.business_name || profile.full_name;
+          const fallback = `Hi ${customer.name.split(' ')[0]}, payment of £${total.toFixed(2)} for ${job.title} has been confirmed. Thanks for your business!\n— ${business}`;
+          const receiptMsg = await getFilledTemplateMessage(userId, 'receipt', job, customer, profile, total, fallback);
+          // Don't close sheet yet — receipt SendSheet will open after setSheet(null)
+          pendingReceiptConfig = {
+            title: `Send receipt to ${customer.name}?`,
+            messageText: receiptMsg,
+            onSend: (method, _pdfShared) => {
+              logCustomerNotified(method, receiptMsg);
+              setSendSheetConfig(null);
+              if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
+                setTimeout(() => { setSheet('review_prompt'); captureReviewRequestShown({ jobId: job.id }); }, 500);
+              } else if (job.title !== 'Callout charge') {
+                setTimeout(() => setSheet('recurring_prompt'), 500);
+              }
+            },
+          };
+        } else if (profile?.google_business_url && profile?.reviews_enabled !== false && can('google_reviews')) {
+          setTimeout(() => { setSheet('review_prompt'); captureReviewRequestShown({ jobId: job.id }); }, 500);
         }
       }
       const logId = crypto.randomUUID();
@@ -701,9 +804,11 @@ export default function JobDetail() {
         // Don't close sheet — review prompt will open, then chains to recurring
       } else if (fullyPaidNow && job.title !== 'Callout charge') {
         setSheet(null);
-        setTimeout(() => setSheet('recurring_prompt'), 500);
+        if (pendingReceiptConfig) { setSendSheetConfig(pendingReceiptConfig); }
+        else { setTimeout(() => setSheet('recurring_prompt'), 500); }
       } else {
         setSheet(null);
+        if (pendingReceiptConfig) setSendSheetConfig(pendingReceiptConfig);
       }
     } finally {
       setPaymentProcessing(false);
@@ -716,7 +821,7 @@ export default function JobDetail() {
         return;
       }
 
-      refresh();
+      if (!pendingReceiptConfig) refresh();
     }
   };
 
@@ -1065,9 +1170,26 @@ export default function JobDetail() {
     });
     await addToSyncQueue('jobs', job.id, { status: 'booked', scheduled_start: rescheduleDate, updated_at: n }, 'update');
     await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'note', description: `Rescheduled to ${formatShortDate(new Date(rescheduleDate))} · ${formatTime(new Date(rescheduleDate))}`, created_at: n }, 'insert');
+    // Capture new date BEFORE clearing state
+    const newDateStr = formatShortDate(new Date(rescheduleDate));
+    const newTimeStr = formatTime(new Date(rescheduleDate));
+    const capturedRescheduleDate = rescheduleDate;
     setRescheduleDate('');
     setSheet(null);
-    refresh();
+    // Open SendSheet to inform customer of new date
+    if (customer && profile && userId && job) {
+      const business = profile.business_name || profile.full_name;
+      const fallback = `Hi ${customer.name.split(' ')[0]}, I've rescheduled your ${job.title} to ${newDateStr} at ${newTimeStr}. Does that still work for you?\n— ${business}`;
+      const updatedJob = { ...job, scheduled_start: capturedRescheduleDate };
+      const msg = await getFilledTemplateMessage(userId, 'booking', updatedJob, customer, profile, total, fallback);
+      setSendSheetConfig({
+        title: `Inform ${customer.name} about reschedule?`,
+        messageText: msg,
+        onSend: (method, _pdfShared) => { logCustomerNotified(method, msg); setSendSheetConfig(null); refresh(); },
+      });
+    } else {
+      refresh();
+    }
   };
 
   const handleChangeStatus = async (newStatus: 'booked' | 'in_progress' | 'awaiting_payment') => {
@@ -1104,6 +1226,23 @@ export default function JobDetail() {
     }
     setSheet(null);
     refresh();
+  };
+
+  /* ─── Shared helper: log customer notification to work log ─── */
+  const logCustomerNotified = async (method: SendMethod, message: string) => {
+    if (!jobId) return;
+    const n = now();
+    const logId = crypto.randomUUID();
+    const channel = method === 'whatsapp' || method === 'whatsapp_pdf' ? 'WhatsApp' : 'SMS';
+    await db.work_log.add({
+      id: logId, job_id: jobId, type: 'customer_notified',
+      description: `[${channel}] ${message}`,
+      created_at: n, _sync_status: 'pending',
+    });
+    await addToSyncQueue('work_log', logId, {
+      id: logId, job_id: jobId, type: 'customer_notified',
+      description: `[${channel}] ${message}`, created_at: n,
+    }, 'insert');
   };
 
   const handleChangePaymentMethod = async (newMethod: 'cash' | 'bank_transfer' | 'terminal' | 'other') => {
