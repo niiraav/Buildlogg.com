@@ -63,9 +63,23 @@ export async function onRequestPost(context) {
     const profile = profiles[0];
     const origin = new URL(request.url).origin;
     let accountId = profile.stripe_account_id;
+    let needsNewAccount = !accountId || accountId === 'buildlogg-shared';
 
-    // If no real connected account, create one
-    if (!accountId || accountId === 'buildlogg-shared') {
+    // If an existing account ID is present, verify it belongs to this Stripe account
+    if (!needsNewAccount) {
+      const checkResp = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, {
+        headers: { 'Authorization': `Bearer ${STRIPE_KEY}` },
+      });
+      if (!checkResp.ok) {
+        // Account belongs to a different Stripe account (e.g. migrated platforms) — discard and create fresh
+        console.log('[stripe-connect] Existing account not accessible, creating new one:', accountId);
+        needsNewAccount = true;
+        accountId = null;
+      }
+    }
+
+    // Create a new Express connected account if needed
+    if (needsNewAccount) {
       const accountParams = new URLSearchParams({
         'type': 'express',
         'country': 'GB',
