@@ -2622,7 +2622,8 @@ export default function Home() {
           lineItems={lineItems}
           onDayTap={(date) => {
             setSheet(null);
-            const dateStr = date.toISOString().split('T')[0];
+            // Use local date (not toISOString) to avoid timezone shifting the day
+            const dateStr = date.toLocaleDateString('en-CA');
             const dayJobs = jobs.filter(j =>
               j.scheduled_start &&
               new Date(j.scheduled_start).toDateString() === date.toDateString() &&

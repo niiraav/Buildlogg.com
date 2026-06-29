@@ -45,7 +45,8 @@ export function CompactWeekStrip({ jobs, selectedDate, onDayTap }: CompactWeekSt
     <div className="flex items-center gap-1.5 px-4 pb-2">
       {weekDays.map((date, i) => {
         const isToday = date.toDateString() === todayStr;
-        const dateStr = date.toISOString().split('T')[0];
+        // Use local date (not toISOString) to match the URL param format
+        const dateStr = date.toLocaleDateString('en-CA');
         const isSelected = selectedDate === dateStr;
         const dayJobs = jobs.filter(j => {
           const statusMatch = BOOKED_STATUSES.includes(j.status) || QUOTED_STATUSES.includes(j.status);

@@ -486,15 +486,16 @@ export default function Jobs() {
             jobs={jobs}
             selectedDate={dateFilter || undefined}
             onDayTap={(date) => {
-              const dateStr = date.toISOString().split('T')[0];
+              // Use local date (not toISOString) to avoid timezone shifting the day
+              const localDateStr = date.toLocaleDateString('en-CA');
               const params = new URLSearchParams(searchParams);
-              if (dateFilter === dateStr) {
+              if (dateFilter === localDateStr) {
                 params.delete('date');
               } else {
-                params.set('date', dateStr);
+                params.set('date', localDateStr);
               }
               setSearchParams(params);
-              capture('week_strip_day_tapped', { date: dateStr, action: dateFilter === dateStr ? 'clear' : 'select' });
+              capture('week_strip_day_tapped', { date: localDateStr, action: dateFilter === localDateStr ? 'clear' : 'select' });
             }}
           />
         </div>
@@ -586,9 +587,10 @@ export default function Jobs() {
           lineItems={lineItemsMap}
           onDayTap={(date) => {
             setShowWeekSheet(false);
-            const dateStr = date.toISOString().split('T')[0];
+            // Use local date (not toISOString) to avoid timezone shifting the day
+            const localDateStr = date.toLocaleDateString('en-CA');
             const params = new URLSearchParams(searchParams);
-            params.set('date', dateStr);
+            params.set('date', localDateStr);
             setSearchParams(params);
             capture('week_view_day_tapped', { source: 'jobs' });
           }}
