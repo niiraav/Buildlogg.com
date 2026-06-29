@@ -103,7 +103,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- Layout ---------- */
 .container { max-width: var(--container); margin: 0 auto; padding: 0 28px; }
-.section { padding: clamp(64px, 9vw, 104px) 0; }
+.section { padding: clamp(64px, 9vw, 104px) 0; position: relative; }
 .section.tight { padding: clamp(48px, 6vw, 72px) 0; }
 
 /* ---------- Grid border template (Enginy/Cal.com style) ---------- */
@@ -130,10 +130,37 @@ main > * { position: relative; z-index: 1; }
 .section { border-top: 1px solid #ebebeb; }
 .section:first-child { border-top: none; }
 
-/* On mobile, hide the grid lines — they're too close to content */
+/* Plus marks at grid line intersections */
+/* Each section with a border-top gets + marks at both corners where the
+   horizontal divider meets the vertical side lines */
+.section:not(:first-child)::before,
+.section:not(:first-child)::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 0H5.5V10H4.5V0Z' fill='%237D7D7D'/%3E%3Cpath d='M0 5.5V4.5H10V5.5H0Z' fill='%237D7D7D'/%3E%3C/svg%3E");
+  background-size: 7px 7px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Left + mark — at the left grid line */
+.section:not(:first-child)::before {
+  left: calc(50% - var(--container) / 2 - 3.5px);
+}
+/* Right + mark — at the right grid line */
+.section:not(:first-child)::after {
+  right: calc(50% - var(--container) / 2 - 3.5px);
+}
+
+/* On mobile, hide the grid lines and + marks — they're too close to content */
 @media (max-width: 720px) {
   main::after { display: none; }
   .section { border-top: none; }
+  .section:not(:first-child)::before,
+  .section:not(:first-child)::after { display: none; }
 }
 
 /* ---------- Buttons ---------- */
