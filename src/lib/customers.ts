@@ -4,25 +4,8 @@
  */
 import { db, type Customer, type Job, type Payment } from './db';
 import { addToSyncQueue } from './syncQueue';
-
-/**
- * Normalize a UK phone number to +44XXXXXXXXXX format.
- * Handles: 07..., 0..., +44..., 447..., spaces, dashes.
- */
-export function normalizePhone(phone: string): string {
-  if (!phone) return '';
-  const cleaned = phone.replace(/[\s-]/g, '').replace(/^\+/, '');
-  if (/^0?7\d{9}$/.test(cleaned)) {
-    return '+44' + cleaned.replace(/^0/, '');
-  }
-  if (/^447\d{9}$/.test(cleaned)) {
-    return '+' + cleaned;
-  }
-  if (/^0\d{10}$/.test(cleaned)) {
-    return '+44' + cleaned.slice(1);
-  }
-  return phone.trim();
-}
+import { normalizePhone } from './phone';
+export { normalizePhone };
 
 export async function searchCustomers(userId: string, query: string): Promise<Customer[]> {
   if (!query.trim()) return [];
