@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check, X } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -70,9 +70,6 @@ export default function Settings() {
   const [editTradeOther, setEditTradeOther] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  
-  // Detect active quote draft for quick resume
-  const [draftInfo, setDraftInfo] = useState<{ customerName: string; step: string; jobId: string } | null>(null);
   const [customItemCount, setCustomItemCount] = useState(0);
 
 
@@ -84,34 +81,6 @@ export default function Settings() {
     });
     db.custom_items.where('user_id').equals(userId).count().then(setCustomItemCount);
   }, [userId]);
-  
-  // Check for active quote draft in localStorage (always check, not just when redirected)
-  useEffect(() => {
-    const saved = localStorage.getItem('buildlogg_quote_state');
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved);
-      const TTL = 24 * 60 * 60 * 1000; // 24 hours
-      if (!parsed.timestamp || Date.now() - parsed.timestamp > TTL) return;
-      if (!parsed.jobId || parsed.step === 'sent' || parsed.step === 'missed_call') return;
-      
-      // Look up customer name from the job's customer
-      db.jobs.get(parsed.jobId).then((job) => {
-        if (!job) return;
-        db.customers.get(job.customer_id).then((customer) => {
-          if (customer) {
-            setDraftInfo({
-              customerName: customer.name,
-              step: parsed.step,
-              jobId: parsed.jobId,
-            });
-          }
-        });
-      });
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
 
   const saveField = useCallback(
     async (field: keyof Profile, value: string | number) => {
@@ -255,43 +224,6 @@ export default function Settings() {
 
       {/* Body */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-[calc(44px + env(safe-area-inset-bottom))]">
-        {/* Resume draft banner */}
-        {draftInfo && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-amber-800">
-                Draft quote for {draftInfo.customerName}
-              </p>
-              <p className="text-sm text-amber-700 mt-0.5">
-                {draftInfo.step === 'builder'
-                  ? 'In progress — add items or preview'
-                  : draftInfo.step === 'preview'
-                  ? 'Ready to send'
-                  : 'Continue where you left off'}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('buildlogg_redirected_from_quote');
-                setDraftInfo(null);
-              }}
-              className="shrink-0 w-7 h-7 flex items-center justify-center text-amber-700 cursor-pointer"
-              aria-label="Dismiss"
-            >
-              <X size={16} />
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('buildlogg_redirected_from_quote');
-                navigate(`/quote?step=${draftInfo.step}&jobId=${draftInfo.jobId}`);
-              }}
-              className="shrink-0 h-9 px-3 bg-amber-700 text-white text-sm font-semibold rounded-lg active:opacity-80 transition-opacity"
-            >
-              Resume →
-            </button>
-          </div>
-        )}
-
         {/* Add to Home Screen — dismissible inline banner */}
         <AddToHomeScreen banner />
 
