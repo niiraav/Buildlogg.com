@@ -1040,6 +1040,30 @@ export default function JobDetail() {
       }
     }
 
+    // If deposit terms, show deposit collection sheet BEFORE booking
+    if (job.payment_terms === 'deposit' && job.deposit_pct) {
+      const n = now();
+      await db.jobs.update(job.id, {
+        status: 'booked',
+        updated_at: n,
+        _sync_status: 'pending',
+      });
+      const logId = crypto.randomUUID();
+      await db.work_log.add({
+        id: logId, job_id: job.id, type: 'status_change',
+        description: 'Quote accepted — marked as booked',
+        created_at: n, _sync_status: 'pending',
+      });
+      await addToSyncQueue('jobs', job.id, { status: 'booked', updated_at: n }, 'update');
+      await addToSyncQueue('work_log', logId, { id: logId, job_id: job.id, type: 'status_change', description: 'Quote accepted — marked as booked', created_at: n }, 'insert');
+      hapticSuccess();
+      captureJobBooked();
+      refresh();
+      // Show deposit collection sheet
+      setSheet('record_deposit');
+      return;
+    }
+
     const n = now();
     await db.jobs.update(job.id, {
       status: 'booked',
@@ -3043,14 +3067,6 @@ export default function JobDetail() {
           onTap={() => handleMarkAsPaid('bank_transfer')}
           disabled={paymentProcessing}
         />
-        {profile?.stripe_connected && summary && summary.amountDue > 0 && (
-          <SheetRow
-            icon={<CreditCard size={18} className="text-brand-dark" />}
-            label={`Send card payment link (£${formatAmount(summary.amountDue)})`}
-            onTap={() => handleRequestStripePayment('full')}
-            disabled={paymentProcessing || stripeLoading}
-          />
-        )}
         <SheetRow
           icon={<Pencil size={18} className="text-brand-dark" />}
           label="Other"

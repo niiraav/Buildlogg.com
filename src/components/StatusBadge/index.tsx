@@ -10,8 +10,8 @@ const statusLabelMap: Record<JobStatus, string> = {
   enquiry: 'Enquiry',
   quoted: 'Quoted',
   booked: 'Booked',
-  in_progress: 'In Progress',
-  awaiting_payment: 'Awaiting Payment',
+  in_progress: 'Active',
+  awaiting_payment: 'Awaiting',
   paid: 'Paid',
   no_show: 'No-Show',
   cancelled: 'Cancelled',
@@ -37,7 +37,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold tracking-wide ${classes.bg} ${classes.text} ${sizeClass}`}
+      className={`inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full font-semibold tracking-wide ${classes.bg} ${classes.text} ${sizeClass}`}
     >
       <span className={`w-2 h-2 rounded-full shrink-0 ${classes.dot}`} />
       {label}

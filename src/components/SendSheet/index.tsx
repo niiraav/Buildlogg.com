@@ -283,7 +283,7 @@ export function SendSheet({
               onClick={() => setEditingMessage(true)}
               className="bg-brand-surface border border-brand-border rounded-lg p-3 cursor-text"
             >
-              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text">
+              <p className="text-sm text-brand-dark leading-relaxed whitespace-pre-line select-text break-all">
                 {messageText}
               </p>
               {/* Non-editable signature line — only for free tier */}
