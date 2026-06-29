@@ -363,15 +363,17 @@ function UpdateBanner() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[60] bg-brand-black text-white rounded-xl p-4 shadow-lg flex items-center justify-between max-w-sm mx-auto">
-      <span className="text-sm font-medium">A new version is available</span>
-      <div className="flex items-center gap-3">
-        <button onClick={dismiss} className="text-xs font-medium text-white/60 underline">
-          Later
-        </button>
-        <button onClick={applyUpdate} className="text-sm font-bold underline">
-          Refresh
-        </button>
+    <div className="fixed top-0 left-0 right-0 z-[60] bg-brand-black text-white px-4 shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)', paddingBottom: '12px' }}>
+      <div className="flex items-center justify-between gap-4 max-w-sm mx-auto">
+        <span className="text-sm font-medium">A new version is available</span>
+        <div className="flex items-center gap-4 shrink-0">
+          <button onClick={dismiss} className="text-sm font-medium text-white/60 underline underline-offset-2 cursor-pointer">
+            Later
+          </button>
+          <button onClick={applyUpdate} className="text-sm font-bold text-white bg-white/15 px-3 py-1.5 rounded-lg cursor-pointer active:opacity-70 transition-opacity">
+            Refresh
+          </button>
+        </div>
       </div>
     </div>
   );
