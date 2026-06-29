@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check, X } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check, X } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
 import { useDiscardGuard } from '../../hooks/useUnsavedChanges';
 import { supabase } from '../../lib/supabase';
+import { validatePhone, normalizePhone, phoneForWhatsApp } from '../../lib/phone';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { InlineEditRow } from '../../components/InlineEditRow';
@@ -32,25 +33,6 @@ const PAYMENT_OPTIONS: Array<{ value: string; label: string; description: string
   { value: 'deposit', label: 'Deposit', description: 'Ask for a deposit upfront, then balance on completion' },
   { value: 'invoice', label: 'Invoice', description: 'Send an invoice after the job is done' },
 ];
-
-function normalizeUKPhone(value: string): string {
-  const cleaned = value.replace(/[\s-]/g, '').replace(/^\+/, '');
-  if (/^0?7\d{9}$/.test(cleaned)) {
-    return '+44' + cleaned.replace(/^0/, '');
-  }
-  if (/^447\d{9}$/.test(cleaned)) {
-    return '+' + cleaned;
-  }
-  return value;
-}
-
-function validateUKPhone(value: string): string | null {
-  const cleaned = value.replace(/[\s-]/g, '').replace(/^\+/, '');
-  if (/^(0?7\d{9}|447\d{9})$/.test(cleaned)) {
-    return null;
-  }
-  return 'Enter a valid UK mobile number';
-}
 
 function now() {
   return new Date().toISOString();
@@ -161,12 +143,12 @@ export default function Settings() {
   };
 
   const handleSaveProfile = () => {
-    const err = validateUKPhone(editPhone);
+    const err = validatePhone(editPhone);
     if (err) { setPhoneError(err); return; }
     setPhoneError(null);
     saveField('full_name', editFullName);
     saveField('business_name', editBusinessName);
-    saveField('phone', normalizeUKPhone(editPhone));
+    saveField('phone', normalizePhone(editPhone));
     if (editTrade) {
       saveField('trade', editTrade);
       if (editTrade === 'other' && editTradeOther.trim()) {
@@ -1060,10 +1042,39 @@ export default function Settings() {
               inputMode="tel"
               value={editPhone}
               onChange={(e) => { setEditPhone(e.target.value); setPhoneError(null); }}
-              placeholder="Phone number"
+              onBlur={() => { const err = validatePhone(editPhone); setPhoneError(err); }}
+              placeholder="e.g. 07700 900123 or +353 86 123 4567"
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black ${phoneError ? 'border-status-red' : 'border-brand-border'}`}
             />
             {phoneError && <p className="text-label text-status-red mt-1">{phoneError}</p>}
+            {editPhone && !phoneError && validatePhone(editPhone) === null && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                <button
+                  onClick={() => {
+                    const normalized = normalizePhone(editPhone);
+                    window.open(`https://wa.me/${phoneForWhatsApp(normalized)}?text=${encodeURIComponent('Test message from Buildlogg — your phone number is correct!')}`, '_blank');
+                  }}
+                  className="flex items-center gap-1.5 text-sm font-medium text-status-green"
+                >
+                  <MessageCircle size={14} />
+                  Send test WhatsApp
+                </button>
+                {/Mobile|Android|iPhone/i.test(navigator.userAgent) ? (
+                  <button
+                    onClick={() => {
+                      const normalized = normalizePhone(editPhone);
+                      window.location.href = `sms:${normalized}?body=${encodeURIComponent('Test message from Buildlogg — your phone number is correct!')}`;
+                    }}
+                    className="flex items-center gap-1.5 text-sm font-medium text-brand-mid"
+                  >
+                    <MessageSquare size={14} />
+                    Send test text (SMS)
+                  </button>
+                ) : (
+                  <p className="text-xs text-brand-muted">Open Buildlogg on your phone to send a test message</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Trade — horizontal chips with selected state */}
