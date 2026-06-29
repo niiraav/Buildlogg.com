@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageSquare, M
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
+import { useDiscardGuard } from '../../hooks/useUnsavedChanges';
 import { supabase } from '../../lib/supabase';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
@@ -175,6 +176,8 @@ export default function Settings() {
     setShowProfileSheet(false);
   };
 
+  /* Unsaved changes guard for profile edit sheet — moved after derived vars below */
+
   const handlePreviewPDF = async () => {
     if (!profile) return;
     const dummyCustomer = { id: 'preview', user_id: '', name: 'Sample Customer', phone: '', created_at: '', updated_at: '', _sync_status: 'synced' as const };
@@ -243,6 +246,16 @@ export default function Settings() {
 
   const showNudge = !nudgeDismissed && !businessName.trim();
   const businessNameEmpty = !businessName.trim();
+
+  /* Unsaved changes guard for profile edit sheet */
+  const profileSheetDirty = showProfileSheet && (
+    editFullName !== fullName ||
+    editBusinessName !== businessName ||
+    editPhone !== phone ||
+    editTrade !== trade ||
+    editTradeOther !== (profile?.trade_other || '')
+  );
+  const handleProfileSheetClose = useDiscardGuard(profileSheetDirty, () => setShowProfileSheet(false), 'You have unsaved profile changes. Discard and close?');
 
   if (loading) {
     return <SkeletonSettingsScreen />;
@@ -377,7 +390,7 @@ export default function Settings() {
               )}
             </div>
             <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
+              className="px-4 py-3 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors border-t border-brand-surface"
               onClick={() => can('message_templates') ? navigate('/settings/message-templates') : undefined}
             >
               <div>
@@ -400,7 +413,7 @@ export default function Settings() {
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
+              className="px-4 py-3 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
               onClick={() => navigate('/settings/booking')}
             >
               <div>
@@ -419,7 +432,7 @@ export default function Settings() {
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
-              className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
+              className="px-4 py-3 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
               onClick={() => navigate('/settings/reminders')}
             >
               <div>
@@ -959,7 +972,7 @@ export default function Settings() {
       {/* Profile edit sheet */}
       <BottomSheet
         isOpen={showProfileSheet}
-        onClose={() => setShowProfileSheet(false)}
+        onClose={handleProfileSheetClose}
         title="Edit profile"
         footer={
           <Button variant="primary" fullWidth onClick={handleSaveProfile}>

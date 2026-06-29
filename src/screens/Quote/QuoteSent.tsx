@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CreditCard, Star, FileText, X, Calendar, Copy } from 'lucide-react';
+import { Check, CreditCard, Star, FileText, X, Calendar, Copy, ExternalLink, Share2 } from 'lucide-react';
 import { db, type Job, type Customer, type Profile } from '../../lib/db';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
@@ -145,21 +145,17 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
                   </p>
                 </div>
               </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  readOnly
-                  value={shortUrl}
-                  onClick={() => {
-                    navigator.clipboard?.writeText(url).then(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    }).catch(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    });
-                  }}
-                  className="w-full text-sm text-brand-dark bg-white border border-brand-border rounded-lg py-2.5 pl-3 pr-10 cursor-pointer outline-none focus:border-brand-black truncate"
-                  placeholder={shortUrl}
-                />
+              {/* Link row with inline copy — same pattern as Booking > Your link */}
+              <div className="flex items-center gap-2 bg-white rounded-lg p-3">
+                <ExternalLink size={16} className="text-status-green shrink-0" />
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0 text-sm font-medium text-status-green truncate block"
+                >
+                  {shortUrl}
+                </a>
                 <button
                   onClick={() => {
                     navigator.clipboard?.writeText(url).then(() => {
@@ -168,10 +164,39 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
                       showSuccess(`Link copied — send it to ${customerFirstName}`);
                     });
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-brand-mid cursor-pointer"
+                  className="shrink-0 p-1.5 -mr-1 text-brand-muted hover:text-brand-black active:opacity-70 cursor-pointer"
                   aria-label="Copy link"
                 >
-                  <Copy size={15} />
+                  <Copy size={16} />
+                </button>
+              </div>
+              {/* Copy + Share buttons */}
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(url).then(() => {
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
+                    }).catch(() => {
+                      showSuccess(`Link copied — send it to ${customerFirstName}`);
+                    });
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-2 py-2 bg-white border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <Copy size={14} />
+                  Copy
+                </button>
+                <button
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try { await navigator.share({ title: 'Book me online', url }); } catch { /* cancelled */ }
+                    } else {
+                      navigator.clipboard?.writeText(url).then(() => showSuccess('Link copied'));
+                    }
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-2 py-2 bg-white border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <Share2 size={14} />
+                  Share
                 </button>
               </div>
             </div>

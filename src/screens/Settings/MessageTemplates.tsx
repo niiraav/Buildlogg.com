@@ -11,6 +11,7 @@ import { getAvailablePlaceholders, setDefaultForCategory, hasDefaultForCategory 
 import { captureTemplateEdited } from '../../lib/analytics';
 import { showSuccess, showToast } from '../../components/Toast/store';
 import { Button } from '../../components/Button';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   booking: 'Booking',
@@ -293,6 +294,10 @@ function TemplateEditor({
   const placeholders = getAvailablePlaceholders();
 
   const canSave = name.trim().length > 0 && body.trim().length > 0;
+
+  /* Unsaved changes guard — warn when template has been modified */
+  const templateDirty = name !== template.name || body !== template.body || category !== template.category || isDefault !== template.is_default;
+  useUnsavedChanges(templateDirty, 'You have unsaved template changes. Leave without saving?');
 
   const insertPlaceholder = (ph: string) => {
     setBody((prev) => prev + ph);

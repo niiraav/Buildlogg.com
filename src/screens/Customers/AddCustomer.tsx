@@ -8,6 +8,7 @@ import { findDuplicateByPhone } from '../../lib/customers';
 import { addToSyncQueue } from '../../lib/syncQueue';
 import { SkeletonInline } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 const UK_PHONE_RE = /^(\+44|0)7\d{9}$/;
 
@@ -33,6 +34,10 @@ export default function AddCustomer() {
   const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
 
   const canSave = name.trim().length > 0 && isValidUkPhone(phone);
+
+  /* Unsaved changes guard — warn when user has entered customer data */
+  const formIsDirty = name.trim().length > 0 || phone.trim().length > 0 || address.trim().length > 0 || email.trim().length > 0;
+  useUnsavedChanges(formIsDirty, 'You have unsaved customer details. Leave without saving?');
 
   const handleSave = async () => {
     if (!userId || !canSave) return;

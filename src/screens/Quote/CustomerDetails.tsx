@@ -6,6 +6,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { searchCustomers, findDuplicateByPhone } from '../../lib/customers';
 import type { Customer } from '../../lib/db';
 import { SkeletonInline } from '../../components/Skeleton';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 /* ─── helpers ─── */
 
@@ -73,6 +74,10 @@ export default function CustomerDetails({ customerId, onComplete, onCancel }: Cu
 
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+
+  /* Unsaved changes guard — warn when user has entered customer data */
+  const formIsDirty = !loading && (name.trim().length > 0 || phone.trim().length > 0 || address.trim().length > 0 || email.trim().length > 0);
+  useUnsavedChanges(formIsDirty, 'You have unsaved customer details. Leave without saving?');
 
   const FORM_KEY = 'buildlogg_quote_customer_form';
 
