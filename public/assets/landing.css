@@ -210,6 +210,7 @@ main > * { position: relative; z-index: 1; }
   .section { border-top: none; max-width: 100%; }
   .section:not(.hero)::before,
   .section:not(.hero)::after { display: none; }
+  .grid-spacer { display: none; }
   .problem-grid > *:first-child,
   .feat > *:first-child,
   .compare-grid > *:first-child,
@@ -235,14 +236,45 @@ main > * { position: relative; z-index: 1; }
   }
 }
 
-/* Empty spacer between sections — maintains grid template with breathing room */
+/* Empty spacer between sections — complete box with all 4 grid lines.
+   Creates a square breathing-room cell that maintains the grid template. */
 .grid-spacer {
   max-width: var(--container);
   margin: 0 auto;
   height: 64px;
-  border-left: 1px solid #ebebeb;
-  border-right: 1px solid #ebebeb;
+  border: 1px solid #ebebeb;
+  position: relative;
 }
+/* + marks at spacer corners (where spacer borders meet section borders) */
+.grid-spacer::before,
+.grid-spacer::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 0H5.5V10H4.5V0Z' fill='%237D7D7D'/%3E%3Cpath d='M0 5.5V4.5H10V5.5H0Z' fill='%237D7D7D'/%3E%3C/svg%3E");
+  background-size: 7px 7px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 2;
+}
+.grid-spacer::before { left: -3.5px; top: -4px; }
+.grid-spacer::after { right: -3.5px; top: -4px; }
+/* Bottom corner + marks */
+.grid-spacer {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 0H5.5V10H4.5V0Z' fill='%237D7D7D'/%3E%3Cpath d='M0 5.5V4.5H10V5.5H0Z' fill='%237D7D7D'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 0H5.5V10H4.5V0Z' fill='%237D7D7D'/%3E%3Cpath d='M0 5.5V4.5H10V5.5H0Z' fill='%237D7D7D'/%3E%3C/svg%3E");
+  background-size: 7px 7px, 7px 7px;
+  background-repeat: no-repeat, no-repeat;
+  background-position: bottom -4px left -3.5px, bottom -4px right -3.5px;
+}
+
+/* Sections that follow a spacer don't need their own top border or + marks
+   (the spacer's bottom border + bottom + marks handle it) */
+.grid-spacer + .section { border-top: none; }
+.grid-spacer + .section:not(.hero)::before,
+.grid-spacer + .section:not(.hero)::after { display: none; }
 
 /* ---------- Buttons ---------- */
 .btn {
