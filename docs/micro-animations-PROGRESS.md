@@ -21,3 +21,13 @@
 | T2-4 | Exit animation CSS (item-exit) | ✅ DONE | 2059968 |
 | T2-5 | AnimatedRemove wrapper component | ✅ DONE | 2059968 |
 | T2-6 | Final verification and deploy | ✅ DONE | 223fdfe |
+
+# Missed Call UX Fixes — Progress
+
+| Task | Description | Status | Commit |
+|------|-------------|--------|--------|
+| MC-1 | Require phone number for save (canSave + guard) | ✅ DONE | 2e3a8b7 |
+| MC-2 | Fix placeholder to single UK example | ✅ DONE | 2e3a8b7 |
+| MC-3 | Change missed call urgency from "Urgent" to "Follow up" | ✅ DONE | 2e3a8b7 |
+| MC-4 | Fix info box wording + post-save nav to Tasks tab | ✅ DONE | 2e3a8b7 |
+| MC-5 | Final verification and deploy | ✅ DONE | 2e3a8b7 |
