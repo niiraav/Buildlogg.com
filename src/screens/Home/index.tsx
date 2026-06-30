@@ -230,6 +230,11 @@ export default function Home() {
   const upcomingRecurring = useLiveQuery(() => userId ? getUpcomingRecurringJobs(userId, 14) : [], [userId], []);
   const allRecurring = useLiveQuery(() => userId ? getUpcomingRecurringJobs(userId, 90) : [], [userId], []);
   const pendingBookings = useLiveQuery(() => userId ? getPendingBookingRequests(userId) : [], [userId], []);
+  const publicItemCount = useLiveQuery(
+    () => userId ? db.custom_items.where('user_id').equals(userId).filter(i => i.is_public === true).count() : 0,
+    [userId],
+    0
+  );
 
   const loading = rawJobs === undefined || rawCustomers === undefined || rawProfile === undefined;
 
@@ -1332,6 +1337,9 @@ export default function Home() {
           <div className="flex gap-2">
             <button
               onClick={() => {
+                if (publicItemCount === 0) {
+                  showToast('Your booking page has no services yet. Clients will see your contact info only.', 'info', 4000);
+                }
                 const url = bookingPageUrl(profile.booking_slug!);
                 navigator.clipboard?.writeText(url).then(() => {
                   showToast('Booking link copied', 'success');

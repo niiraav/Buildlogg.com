@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, CreditCard, Star, FileText, X, Calendar, Copy, ExternalLink, Share2 } from 'lucide-react';
 import { db, type Job, type Customer, type Profile } from '../../lib/db';
+import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { SkeletonInline } from '../../components/Skeleton';
 import { bookingPageUrl } from '../../lib/referral';
-import { showSuccess } from '../../components/Toast/store';
+import { showSuccess, showToast } from '../../components/Toast/store';
 
 /* ─── helpers ─── */
 
@@ -28,11 +30,18 @@ interface QuoteSentProps {
 
 export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: QuoteSentProps) {
   const navigate = useNavigate();
+  const userId = useAppStore((s) => s.userId);
   const [job, setJob] = useState<Job | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const publicItemCount = useLiveQuery(
+    () => userId ? db.custom_items.where('user_id').equals(userId).filter(i => i.is_public === true).count() : 0,
+    [userId],
+    0
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -134,6 +143,26 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
         {profile?.booking_enabled && profile?.booking_slug && (() => {
           const url = bookingPageUrl(profile.booking_slug);
           const shortUrl = url.replace(/^https?:\/\//, "");
+          const copyLink = () => {
+            if (publicItemCount === 0) {
+              showToast('Your booking page has no services yet. Clients will see your contact info only.', 'info', 4000);
+            }
+            navigator.clipboard?.writeText(url).then(() => {
+              showSuccess(`Link copied — send it to ${customerFirstName}`);
+            }).catch(() => {
+              showSuccess(`Link copied — send it to ${customerFirstName}`);
+            });
+          };
+          const shareLink = async () => {
+            if (publicItemCount === 0) {
+              showToast('Your booking page has no services yet. Clients will see your contact info only.', 'info', 4000);
+            }
+            if (navigator.share) {
+              try { await navigator.share({ title: 'Book me online', url }); } catch { /* cancelled */ }
+            } else {
+              navigator.clipboard?.writeText(url).then(() => showSuccess('Link copied'));
+            }
+          };
           return (
             <div className="w-full bg-brand-surface border border-brand-border rounded-lg p-4 mb-4 text-left">
               <div className="flex items-start gap-2 mb-3">
@@ -157,13 +186,7 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
                   {shortUrl}
                 </a>
                 <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(url).then(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    }).catch(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    });
-                  }}
+                  onClick={copyLink}
                   className="shrink-0 p-1.5 -mr-1 text-brand-muted hover:text-brand-black active:opacity-70 cursor-pointer"
                   aria-label="Copy link"
                 >
@@ -173,26 +196,14 @@ export default function QuoteSent({ jobId, sendMethod, onViewJob, onHome }: Quot
               {/* Copy + Share buttons */}
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(url).then(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    }).catch(() => {
-                      showSuccess(`Link copied — send it to ${customerFirstName}`);
-                    });
-                  }}
+                  onClick={copyLink}
                   className="flex items-center justify-center gap-1.5 px-2 py-2 bg-white border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
                 >
                   <Copy size={14} />
                   Copy
                 </button>
                 <button
-                  onClick={async () => {
-                    if (navigator.share) {
-                      try { await navigator.share({ title: 'Book me online', url }); } catch { /* cancelled */ }
-                    } else {
-                      navigator.clipboard?.writeText(url).then(() => showSuccess('Link copied'));
-                    }
-                  }}
+                  onClick={shareLink}
                   className="flex items-center justify-center gap-1.5 px-2 py-2 bg-white border border-brand-border rounded-lg text-xs font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
                 >
                   <Share2 size={14} />

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ChevronLeft, Phone, MessageCircle, MessageSquare, Copy, Clock, Banknote, Pencil, Building2, Check, CalendarPlus, Plus, X, MoreVertical, MapPin, Navigation, Camera, Image as ImageIcon, AlertTriangle, CreditCard,
@@ -162,6 +163,12 @@ export default function JobDetail() {
   const location = useLocation();
   const { jobId } = useParams<{ jobId: string }>();
   const userId = useAppStore((s) => s.userId);
+
+  const publicItemCount = useLiveQuery(
+    () => userId ? db.custom_items.where('user_id').equals(userId).filter(i => i.is_public === true).count() : 0,
+    [userId],
+    0
+  );
 
   const [job, setJob] = useState<Job | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -2475,6 +2482,9 @@ export default function JobDetail() {
                 </Button>
                 <button
                   onClick={() => {
+                    if (publicItemCount === 0) {
+                      showToast('Your booking page has no services yet. Clients will see your contact info only.', 'info', 4000);
+                    }
                     navigator.clipboard.writeText(bookingUrl).then(() => {
                       showToast('Booking link copied', 'info', 3000);
                     }).catch(() => {

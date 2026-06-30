@@ -127,6 +127,7 @@ export default function Booking() {
   const [publicItemCount, setPublicItemCount] = useState(0);
   const [publicItems, setPublicItems] = useState<CustomItem[]>([]);
   const [showSlugChangeConfirm, setShowSlugChangeConfirm] = useState(false);
+  const [showQRWarning, setShowQRWarning] = useState(false);
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const qrCodeRef = useRef<QRCodeStyling | null>(null);
   const navigate = useNavigate();
@@ -290,21 +291,23 @@ export default function Booking() {
     });
   }, [profile?.booking_slug]);
 
-  const handleDownloadQR = useCallback(async () => {
+  const handleDownloadQR = useCallback(async (force?: boolean) => {
     if (!qrCodeRef.current || !profile?.booking_slug) return;
+    if (!force && publicItemCount === 0) { setShowQRWarning(true); return; }
     try {
       await qrCodeRef.current.download({ name: `booking-qr-${profile.booking_slug}`, extension: 'png' });
       showSuccess('QR downloaded');
     } catch {
       showToast('Could not download QR', 'error', 3000);
     }
-  }, [profile?.booking_slug]);
+  }, [profile?.booking_slug, publicItemCount]);
 
   // Platform detection for Save to Photos vs Download
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   const handleSaveToPhotos = useCallback(async () => {
     if (!qrCodeRef.current || !profile?.booking_slug) return;
+    if (publicItemCount === 0) { setShowQRWarning(true); return; }
     try {
       const blob = await qrCodeRef.current.getRawData('png');
       if (!blob) { showToast('Could not generate QR image', 'error'); return; }
@@ -320,7 +323,7 @@ export default function Booking() {
     } catch {
       // User cancelled share sheet — no error toast
     }
-  }, [profile?.booking_slug, isIOS]);
+  }, [profile?.booking_slug, isIOS, publicItemCount]);
 
   const handleShareLink = useCallback(async () => {
     if (!profile?.booking_slug) return;
@@ -844,7 +847,7 @@ export default function Booking() {
                         {isIOS ? 'Save to Photos' : 'Save image'}
                       </button>
                       <button
-                        onClick={handleDownloadQR}
+                        onClick={() => handleDownloadQR()}
                         className="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-surface border border-brand-border rounded-xl text-sm font-medium text-brand-dark cursor-pointer active:opacity-70 transition-opacity"
                       >
                         <Download size={14} />
@@ -879,6 +882,32 @@ export default function Booking() {
                 className="flex-1 py-2.5 bg-brand-black text-white rounded-lg text-sm font-semibold cursor-pointer"
               >
                 Change link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR warning sheet — shown when downloading QR with zero public services */}
+      {showQRWarning && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowQRWarning(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-brand-black mb-2">No services on your booking page</h3>
+            <p className="text-sm text-brand-muted mb-4">
+              Clients scanning this QR will only see your contact info. Add services first so they can pick what they want to book.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowQRWarning(false); navigate('/settings/custom-items'); }}
+                className="flex-1 py-2.5 bg-brand-black text-white rounded-lg text-sm font-semibold cursor-pointer"
+              >
+                Add services
+              </button>
+              <button
+                onClick={() => { setShowQRWarning(false); handleDownloadQR(true); }}
+                className="flex-1 py-2.5 bg-brand-surface border border-brand-border rounded-lg text-sm font-semibold text-brand-dark cursor-pointer"
+              >
+                Download anyway
               </button>
             </div>
           </div>
