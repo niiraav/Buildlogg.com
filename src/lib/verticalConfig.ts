@@ -20,6 +20,7 @@ export interface VerticalConfig {
     showMaterials: boolean;
     showCalloutCharge: boolean;
     showLogMissedCall: boolean;
+    showServiceMenu: boolean;
     requireDeposit: boolean;
     depositDefaults: number[];
   };
@@ -40,6 +41,7 @@ const TRADES_CONFIG: VerticalConfig = {
     showMaterials: true,
     showCalloutCharge: true,
     showLogMissedCall: true,
+    showServiceMenu: false,
     requireDeposit: false,
     depositDefaults: [50, 100, 200],
   },
@@ -60,6 +62,7 @@ const BEAUTY_CONFIG: VerticalConfig = {
     showMaterials: false,
     showCalloutCharge: false,
     showLogMissedCall: false,
+    showServiceMenu: true,
     requireDeposit: true,
     depositDefaults: [15, 25, 50],
   },
