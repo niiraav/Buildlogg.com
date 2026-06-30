@@ -31,4 +31,4 @@
 - [x] 4.1 — TypeScript check — clean (0 errors)
 - [x] 4.2 — Production build — 101 precache entries, SW generated
 - [x] 4.3 — Deploy to preview — https://preview.tradepad-eu0.pages.dev
-- [ ] 4.4 — Run Supabase migration — MANUAL: run `supabase/migrations/20260630000001_app_mode.sql` in Supabase SQL editor
+- [ ] 4.4 — Run Supabase migration — BLOCKED: requires Supabase dashboard access (service role key). SQL file at `supabase/migrations/20260630000001_app_mode.sql`. Run manually in Supabase SQL Editor.
