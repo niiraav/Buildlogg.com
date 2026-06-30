@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Check, Crown, FileText, Calendar, CreditCard, Bell, BarChart3, Users } from 'lucide-react';
+import { ChevronLeft, Check, Crown, FileText, Calendar, CreditCard, Bell, BarChart3 } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useEntitlements } from '../../hooks/useEntitlements';
@@ -67,7 +67,6 @@ export default function ProPlan() {
   }, [userId]);
 
   const isActive = profile?.subscription_status === 'active';
-  const isBeta = isPro && !isActive;
 
   return (
     <div className="flex flex-col min-h-dvh">
