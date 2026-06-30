@@ -99,29 +99,54 @@ const SAMPLE_DATA: Record<string, SampleData> = {
     jobTitle: 'Treatment',
     items: [{ description: 'Treatment', amount: 50 }],
   },
+  photographer: {
+    customerName: 'Emma Clarke',
+    customerPhone: '07000000000',
+    customerAddress: '12 Park Ave, London N1',
+    jobTitle: 'Wedding — deposit',
+    items: [{ description: 'Wedding package', amount: 1500 }],
+  },
+  cleaning: {
+    customerName: 'Sarah Mitchell',
+    customerPhone: '07000000000',
+    customerAddress: '45 Oak Rd, Birmingham B20',
+    jobTitle: 'End of tenancy clean',
+    items: [{ description: 'End of tenancy clean', amount: 250 }],
+  },
+  grooming: {
+    customerName: 'Lisa Turner',
+    customerPhone: '07000000000',
+    customerAddress: '',
+    jobTitle: 'Small dog groom — Bella',
+    items: [{ description: 'Small dog groom', amount: 45 }],
+  },
+  massage: {
+    customerName: 'James Wilson',
+    customerPhone: '07000000000',
+    customerAddress: '',
+    jobTitle: '60-min massage',
+    items: [{ description: '60-min massage', amount: 60 }],
+  },
+  tutoring: {
+    customerName: 'Priya Sharma',
+    customerPhone: '07000000000',
+    customerAddress: '',
+    jobTitle: 'GCSE maths — 1hr',
+    items: [{ description: '1-hour session', amount: 40 }],
+  },
 };
-
-function pickSampleKey(trade: string | undefined, businessType: string, beautySpecialty: string | undefined): string {
-  if (businessType === 'beauty') {
-    if (beautySpecialty && SAMPLE_DATA[beautySpecialty]) return beautySpecialty;
-    return 'beauty_other';
-  }
-  if (trade && SAMPLE_DATA[trade]) return trade;
-  return 'other_trades';
-}
 
 export async function seedSampleJob(
   userId: string,
   profile: Profile | null,
-  trade: string | undefined,
-  businessType: string,
-  beautySpecialty?: string,
+  sampleJobKey: string,
+  appMode: string,
 ): Promise<void> {
   // Guard: skip if a sample job already exists
   const existing = await db.jobs.where('user_id').equals(userId).toArray();
   if (existing.some((j) => j.is_sample)) return;
 
-  const key = pickSampleKey(trade, businessType, beautySpecialty);
+  const key = SAMPLE_DATA[sampleJobKey] ? sampleJobKey : (appMode === 'bookings' ? 'beauty_other' : 'other_trades');
   const data = SAMPLE_DATA[key];
   if (!data) return;
 

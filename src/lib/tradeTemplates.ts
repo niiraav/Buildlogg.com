@@ -54,6 +54,20 @@ export const TRADE_TEMPLATES: Record<string, TemplateSeed[]> = {
     { description: 'Labour (per day)', amount: 300 },
     { description: 'Callout charge', amount: 75 },
   ],
+  photographer: [
+    { description: 'Wedding package', amount: 1500 },
+    { description: 'Portrait session', amount: 250 },
+    { description: 'Event coverage', amount: 500 },
+    { description: 'Editing (per hour)', amount: 50 },
+    { description: 'Print (A4)', amount: 25 },
+  ],
+  cleaning: [
+    { description: 'One-off deep clean', amount: 120 },
+    { description: 'Regular weekly clean', amount: 40 },
+    { description: 'End of tenancy clean', amount: 250 },
+    { description: 'Carpet cleaning', amount: 60 },
+    { description: 'Window cleaning', amount: 25 },
+  ],
 };
 
 export const BEAUTY_TEMPLATES: TemplateSeed[] = [
@@ -67,4 +81,34 @@ export const BEAUTY_TEMPLATES: TemplateSeed[] = [
   { description: 'Tint (lash or brow)', amount: 15, duration_minutes: 15, is_public: true },
   { description: 'Nail art (per nail)', amount: 3, duration_minutes: 15, is_public: true },
   { description: 'Treatment (per hour)', amount: 50, duration_minutes: 60, is_public: true },
+];
+
+export const BARBER_TEMPLATES: TemplateSeed[] = [
+  { description: 'Skin fade', amount: 25, duration_minutes: 30, is_public: true },
+  { description: 'Beard trim', amount: 15, duration_minutes: 15, is_public: true },
+  { description: 'Cut & finish', amount: 30, duration_minutes: 45, is_public: true },
+  { description: 'Hot towel shave', amount: 20, duration_minutes: 30, is_public: true },
+  { description: 'Kids cut', amount: 15, duration_minutes: 30, is_public: true },
+];
+
+export const GROOMING_TEMPLATES: TemplateSeed[] = [
+  { description: 'Small dog groom', amount: 45, duration_minutes: 90, is_public: true },
+  { description: 'Large dog groom', amount: 65, duration_minutes: 120, is_public: true },
+  { description: 'Nail clipping', amount: 15, duration_minutes: 15, is_public: true },
+  { description: 'Bath & dry', amount: 30, duration_minutes: 60, is_public: true },
+  { description: 'Full groom + extras', amount: 80, duration_minutes: 150, is_public: true },
+];
+
+export const MASSAGE_TEMPLATES: TemplateSeed[] = [
+  { description: '30-min massage', amount: 35, duration_minutes: 30, is_public: true },
+  { description: '60-min massage', amount: 60, duration_minutes: 60, is_public: true },
+  { description: '90-min massage', amount: 85, duration_minutes: 90, is_public: true },
+  { description: 'Sports massage', amount: 70, duration_minutes: 60, is_public: true },
+];
+
+export const TUTORING_TEMPLATES: TemplateSeed[] = [
+  { description: '1-hour session', amount: 40, duration_minutes: 60, is_public: true },
+  { description: '30-min session', amount: 25, duration_minutes: 30, is_public: true },
+  { description: 'Group session', amount: 15, duration_minutes: 60, is_public: true },
+  { description: 'Initial assessment', amount: 50, duration_minutes: 90, is_public: true },
 ];

@@ -10,6 +10,7 @@ export interface Profile {
   trade?: 'plumber' | 'electrician' | 'builder' | 'other';
   trade_other?: string;
   business_type?: 'trades' | 'beauty' | 'home_services' | 'professional' | 'other';
+  app_mode?: 'quotes' | 'bookings' | 'both';
   specialty?: string;
   callout_charge: number;
   payment_terms: 'on_completion' | 'deposit' | 'invoice';
