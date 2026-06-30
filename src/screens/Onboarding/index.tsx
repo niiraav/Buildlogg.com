@@ -12,15 +12,19 @@ import { hapticSuccess, haptic } from '../../lib/haptics';
 import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
 import AuthDesktopLayout from '../../components/AuthDesktopLayout';
-import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle } from 'lucide-react';
+import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle, Plus, Trash2 } from 'lucide-react';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
 import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
-import { getVerticalFromUrl, type BusinessType } from '../../lib/verticalConfig';
+import { getVerticalFromUrl, getVerticalConfig, type BusinessType } from '../../lib/verticalConfig';
 import { captureVerticalSelected } from '../../lib/analytics';
 import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { seedSampleJob } from '../../lib/seedSampleJob';
 import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
+import { addToSyncQueue } from '../../lib/syncQueue';
+import { TRADE_TEMPLATES, BEAUTY_TEMPLATES } from '../../lib/tradeTemplates';
+
+const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -34,6 +38,14 @@ type PaymentTerms = 'on_completion' | 'deposit' | 'invoice';
 type Step = 1 | 2 | 3 | 4;
 
 type BeautySpecialty = 'nail_tech' | 'lash_tech' | 'salon' | 'barber' | 'tattoo' | 'other';
+
+type OnboardingItem = {
+  id: string;
+  description: string;
+  amount: number;
+  duration_minutes: number;
+  is_public: boolean;
+};
 
 const BEAUTY_SPECIALTIES: Array<{ value: BeautySpecialty; label: string }> = [
   { value: 'nail_tech', label: 'Nail tech' },
@@ -81,6 +93,10 @@ export default function Onboarding() {
   const [defaultLabourCharge, setDefaultLabourCharge] = useState('150');
   const [autoFillDefault, setAutoFillDefault] = useState(true);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
+  const [priceListItems, setPriceListItems] = useState<OnboardingItem[]>([]);
+  const [newItemDesc, setNewItemDesc] = useState('');
+  const [newItemAmount, setNewItemAmount] = useState('');
+  const [itemsSeeded, setItemsSeeded] = useState(false);
 
   // Track onboarding step progress
   useEffect(() => {
@@ -92,6 +108,8 @@ export default function Onboarding() {
     const detected = getVerticalFromUrl();
     if (detected === 'beauty') {
       setBusinessType('beauty');
+      const config = getVerticalConfig('beauty');
+      setPaymentTerms(config.defaultPaymentTerms);
       captureVerticalSelected({ businessType: 'beauty', source: 'url' });
     }
   }, []);
@@ -217,6 +235,101 @@ export default function Onboarding() {
     nextStep();
   };
 
+  // Initialize price list items when entering Step 3
+  useEffect(() => {
+    if (step !== 3 || itemsSeeded) return;
+    const config = getVerticalConfig(businessType);
+    if (config.features.showServiceMenu) {
+      // Service-menu businesses: seed from beauty templates with durations + is_public
+      setPriceListItems(BEAUTY_TEMPLATES.map((t) => ({
+        id: crypto.randomUUID(),
+        description: t.description,
+        amount: t.amount,
+        duration_minutes: t.duration_minutes ?? 60,
+        is_public: t.is_public ?? true,
+      })));
+    } else {
+      // Trades: seed from trade templates, no duration, not public
+      const seeds = TRADE_TEMPLATES[trade || 'other'] || TRADE_TEMPLATES['other'];
+      setPriceListItems(seeds.map((t) => ({
+        id: crypto.randomUUID(),
+        description: t.description,
+        amount: t.amount,
+        duration_minutes: 60,
+        is_public: false,
+      })));
+    }
+    setItemsSeeded(true);
+  }, [step, itemsSeeded, businessType, trade]);
+
+  const addPriceListItem = useCallback(() => {
+    const trimmed = newItemDesc.trim();
+    const val = parseFloat(newItemAmount);
+    if (!trimmed || isNaN(val) || val <= 0) return;
+    const config = getVerticalConfig(businessType);
+    setPriceListItems((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      description: trimmed,
+      amount: val,
+      duration_minutes: 60,
+      is_public: config.features.showServiceMenu,
+    }]);
+    setNewItemDesc('');
+    setNewItemAmount('');
+    haptic('light');
+  }, [newItemDesc, newItemAmount, businessType]);
+
+  const removePriceListItem = useCallback((id: string) => {
+    setPriceListItems((prev) => prev.filter((i) => i.id !== id));
+  }, []);
+
+  const updatePriceListItem = useCallback((id: string, patch: Partial<OnboardingItem>) => {
+    setPriceListItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  }, []);
+
+  const handleContinueS3 = useCallback(async () => {
+    const resolvedUserId = userId || storeUserId;
+    if (!resolvedUserId) { nextStep(); return; }
+
+    // Save items to Dexie + sync queue
+    const now = new Date().toISOString();
+    for (let i = 0; i < priceListItems.length; i++) {
+      const item = priceListItems[i];
+      const dbItem = {
+        id: item.id,
+        user_id: resolvedUserId,
+        description: item.description,
+        amount: item.amount,
+        sort_order: i,
+        is_public: item.is_public,
+        duration_minutes: item.duration_minutes,
+        created_at: now,
+        updated_at: now,
+        _sync_status: 'pending' as const,
+      };
+      await db.custom_items.add(dbItem);
+      await addToSyncQueue('custom_items', item.id, { ...dbItem }, 'insert');
+
+      // Immediate Supabase push for public items so booking page works immediately
+      if (item.is_public && navigator.onLine) {
+        try {
+          await supabase.from('custom_items').insert({
+            id: item.id,
+            user_id: resolvedUserId,
+            description: item.description,
+            amount: item.amount,
+            sort_order: i,
+            is_public: true,
+            duration_minutes: item.duration_minutes,
+            created_at: now,
+            updated_at: now,
+          });
+        } catch { /* sync worker will retry */ }
+      }
+    }
+    nextStep();
+  }, [userId, storeUserId, priceListItems]);
+
   const handleContinueS4 = async () => {
     const resolvedUserId = await handleWriteProfile();
     if (!resolvedUserId) {
@@ -224,6 +337,9 @@ export default function Onboarding() {
       return;
     }
     setUserId(resolvedUserId);
+    // Seed templates — the seedItems guard (existingCount > 0) means this is a no-op
+    // for beauty users who already saved items in Step 3's handleContinueS3.
+    // For trades users who didn't create items in Step 3, this seeds their trade templates.
     businessType === 'beauty' ? seedBeautyTemplates(resolvedUserId) : seedTradeTemplates(resolvedUserId, trade || 'other')
       .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
       .catch(() => {});
@@ -261,7 +377,7 @@ export default function Onboarding() {
       ) {
         handleContinueS2();
       } else if (step === 3) {
-        nextStep();
+        handleContinueS3();
       } else if (step === 4) {
         handleContinueS4();
       }
@@ -269,7 +385,7 @@ export default function Onboarding() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, fullName, trade, tradeOther, handleContinueS1, handleContinueS2, handleContinueS4, nextStep]);
+  }, [step, fullName, trade, tradeOther, handleContinueS1, handleContinueS2, handleContinueS3, handleContinueS4, nextStep]);
 
   const firstName = fullName.trim().split(' ')[0] || 'there';
 
@@ -469,7 +585,10 @@ export default function Onboarding() {
               <Button
                 variant="primary"
                 onClick={handleContinueS2}
-                disabled={!trade || (trade === 'other' && tradeOther.trim().length === 0)}
+                disabled={
+                  (businessType === 'trades' && (!trade || (trade === 'other' && tradeOther.trim().length === 0))) ||
+                  (businessType === 'beauty' && !beautySpecialty)
+                }
               >
                 Continue →
               </Button>
@@ -477,94 +596,195 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ── S3: Defaults ── */}
+        {/* ── S3: Your pricing ── */}
         {step === 3 && (
           <div className="flex-1 flex flex-col">
             <div className="px-6 pt-8 flex-1">
               <div className="mb-6">
                 <h1 className="text-xl font-extrabold text-brand-black">
-                  Set your defaults
+                  Your pricing
                 </h1>
                 <p className="text-md text-brand-muted mt-1">
-                  Saves you time on every job. Change any time in Settings.
+                  Saves you time on every quote. Change any time in Settings.
                 </p>
               </div>
 
               <div className="flex flex-col gap-5">
-                {/* Callout Charge */}
-                <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
-                    Callout Charge
-                  </label>
-                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
-                    <span className="text-md text-brand-black px-4 shrink-0">£</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={calloutCharge}
-                      onChange={(e) => setCalloutCharge(e.target.value.replace(/[^0-9.]/g, ''))}
-                      className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
-                    />
-                  </div>
-                  <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">
-                    A fee you charge when you turn up but can't do the job — e.g. customer isn't home. Most tradespeople charge £50–£100.
-                  </p>
-                </div>
+                {/* Callout charge + labour — only for trades (showCalloutCharge) */}
+                {getVerticalConfig(businessType).features.showCalloutCharge && (
+                  <>
+                    <div>
+                      <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                        Callout Charge
+                      </label>
+                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
+                        <span className="text-md text-brand-black px-4 shrink-0">£</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={calloutCharge}
+                          onChange={(e) => setCalloutCharge(e.target.value.replace(/[^0-9.]/g, ''))}
+                          className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
+                        />
+                      </div>
+                      <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">
+                        A fee you charge when you turn up but can't do the job — e.g. customer isn't home. Most tradespeople charge £50–£100.
+                      </p>
+                    </div>
 
-                {/* Default Labour Charge */}
-                <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
-                    Default Labour Charge
-                  </label>
-                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
-                    <span className="text-md text-brand-black px-4 shrink-0">£</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={defaultLabourCharge}
-                      onChange={(e) => setDefaultLabourCharge(e.target.value.replace(/[^0-9.]/g, ''))}
-                      className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
-                    />
-                  </div>
-                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
-                    <input
-                      type="text"
-                      inputMode="text"
-                      value={defaultLabourDesc}
-                      onChange={(e) => setDefaultLabourDesc(e.target.value)}
-                      placeholder="e.g. Labour, Day rate, Call-out fee"
-                      className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent px-4"
-                    />
-                  </div>
-                  <p className="text-sm text-brand-mid mt-1.5 leading-relaxed">
-                    The label shown next to your labour charge on the quote. Common choices: 'Labour', 'Day rate', 'Call-out fee'.
-                  </p>
+                    <div>
+                      <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                        Default Labour Charge
+                      </label>
+                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
+                        <span className="text-md text-brand-black px-4 shrink-0">£</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={defaultLabourCharge}
+                          onChange={(e) => setDefaultLabourCharge(e.target.value.replace(/[^0-9.]/g, ''))}
+                          className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
+                        />
+                      </div>
+                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
+                        <input
+                          type="text"
+                          inputMode="text"
+                          value={defaultLabourDesc}
+                          onChange={(e) => setDefaultLabourDesc(e.target.value)}
+                          placeholder="e.g. Labour, Day rate, Call-out fee"
+                          className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent px-4"
+                        />
+                      </div>
+                      <p className="text-sm text-brand-mid mt-1.5 leading-relaxed">
+                        The label shown next to your labour charge on the quote. Common choices: 'Labour', 'Day rate', 'Call-out fee'.
+                      </p>
+                      <div className="flex items-center gap-3 mt-3">
+                        <button
+                          onClick={() => setAutoFillDefault(!autoFillDefault)}
+                          className={`relative h-7 w-12 rounded-full transition-colors cursor-pointer ${
+                            autoFillDefault ? 'bg-brand-black' : 'bg-brand-border'
+                          }`}
+                          aria-label={autoFillDefault ? 'Auto-fill enabled' : 'Auto-fill disabled'}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                              autoFillDefault ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                        <span className="text-sm text-brand-mid">
+                          Auto-fill on new quotes
+                        </span>
+                      </div>
+                      <p className="text-sm text-brand-muted mt-2 leading-relaxed">
+                        {autoFillDefault
+                          ? "Automatically adds this labour charge to every new quote so you don't type it each time. Edit or remove it per quote."
+                          : "You'll start each quote with a blank items list. You can still add saved items from your library."}
+                      </p>
+                    </div>
+                  </>
+                )}
 
-                  {/* Toggle */}
-                  <div className="flex items-center gap-3 mt-3">
-                    <button
-                      onClick={() => setAutoFillDefault(!autoFillDefault)}
-                      className={`relative h-7 w-12 rounded-full transition-colors cursor-pointer ${
-                        autoFillDefault ? 'bg-brand-black' : 'bg-brand-border'
-                      }`}
-                      aria-label={autoFillDefault ? 'Auto-fill enabled' : 'Auto-fill disabled'}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                          autoFillDefault ? 'translate-x-5' : 'translate-x-0'
-                        }`}
+                {/* What you offer — price list items (always shown) */}
+                <div>
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-2 block">
+                    What you offer
+                  </label>
+                  <div className="space-y-2">
+                    {priceListItems.map((item) => {
+                      const showServiceMenu = getVerticalConfig(businessType).features.showServiceMenu;
+                      return (
+                        <div
+                          key={item.id}
+                          className="border border-brand-border rounded-lg bg-white overflow-hidden"
+                        >
+                          <div className="flex items-center gap-2 px-3 py-2.5">
+                            <input
+                              type="text"
+                              value={item.description}
+                              onChange={(e) => updatePriceListItem(item.id, { description: e.target.value })}
+                              className="flex-1 min-w-0 text-sm font-medium text-brand-dark outline-none bg-transparent"
+                            />
+                            <div className="relative w-20 shrink-0">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-brand-muted">£</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={item.amount || ''}
+                                onChange={(e) => updatePriceListItem(item.id, { amount: parseFloat(e.target.value) || 0 })}
+                                className="w-full h-10 pl-6 pr-2 border border-brand-border rounded-lg text-sm text-brand-black outline-none focus:border-brand-black"
+                              />
+                            </div>
+                            <button
+                              onClick={() => removePriceListItem(item.id)}
+                              className="p-1.5 text-status-red cursor-pointer active:opacity-60 transition-opacity shrink-0"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                          {showServiceMenu && (
+                            <div className="flex items-center justify-between px-3 pb-2.5 border-t border-brand-borderLight gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <select
+                                  value={item.duration_minutes}
+                                  onChange={(e) => updatePriceListItem(item.id, { duration_minutes: parseInt(e.target.value) })}
+                                  className="h-9 px-2 border border-brand-border rounded-lg text-xs font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                                >
+                                  {DURATION_PRESETS.map((d) => (
+                                    <option key={d} value={d}>{d} min</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => updatePriceListItem(item.id, { is_public: !item.is_public })}
+                                  className={`relative h-5 w-9 rounded-full transition-colors cursor-pointer shrink-0 ${
+                                    item.is_public ? 'bg-brand-black' : 'bg-brand-border'
+                                  }`}
+                                  aria-label={item.is_public ? 'Online booking enabled' : 'Online booking disabled'}
+                                >
+                                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                                    item.is_public ? 'left-[18px]' : 'left-0.5'
+                                  }`} />
+                                </button>
+                                <span className="text-xs text-brand-muted truncate">
+                                  {item.is_public ? 'On booking page' : 'Private'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add new item */}
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={newItemDesc}
+                      onChange={(e) => setNewItemDesc(e.target.value)}
+                      placeholder="+ Add item"
+                      className="flex-1 h-11 px-3 border border-brand-border rounded-lg text-sm text-brand-black placeholder:text-brand-muted outline-none focus:border-brand-black min-w-0"
+                    />
+                    <div className="relative w-24 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-brand-muted">£</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={newItemAmount}
+                        onChange={(e) => setNewItemAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                        placeholder="0.00"
+                        className="w-full h-11 pl-6 pr-2 border border-brand-border rounded-lg text-sm text-brand-black outline-none focus:border-brand-black"
                       />
+                    </div>
+                    <button
+                      onClick={addPriceListItem}
+                      disabled={!newItemDesc.trim() || !newItemAmount || parseFloat(newItemAmount) <= 0}
+                      className="h-11 px-3 bg-brand-black text-white rounded-lg text-sm font-semibold cursor-pointer disabled:bg-brand-border disabled:cursor-not-allowed shrink-0"
+                    >
+                      <Plus size={16} />
                     </button>
-                    <span className="text-sm text-brand-mid">
-                      Auto-fill on new quotes
-                    </span>
                   </div>
-
-                  <p className="text-sm text-brand-muted mt-2 leading-relaxed">
-                    {autoFillDefault
-                      ? "Automatically adds this labour charge to every new quote so you don't type it each time. Edit or remove it per quote."
-                      : "You'll start each quote with a blank items list. You can still add saved items from your library."}
-                  </p>
                 </div>
 
                 {/* Payment terms — radio cards with descriptions */}
@@ -638,7 +858,7 @@ export default function Onboarding() {
             </div>
 
             <StickyFooter className="px-0">
-              <Button variant="primary" onClick={nextStep}>
+              <Button variant="primary" onClick={handleContinueS3}>
                 Continue →
               </Button>
               <Button variant="ghost" onClick={skip}>
@@ -660,10 +880,10 @@ export default function Onboarding() {
                   You're all set, {firstName}
                 </h1>
                 <p className="text-md text-brand-mid mt-2">
-                  Log a missed call or create your first quote to get started.
+                  Your price list is ready — you'll see it when creating quotes.
                 </p>
                 <p className="text-md text-brand-mid mt-1">
-                  Your jobs will appear on the home screen as soon as they're booked.
+                  Clients can book online when you share your booking link.
                 </p>
               </div>
             </div>
