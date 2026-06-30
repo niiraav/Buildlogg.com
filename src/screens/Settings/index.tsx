@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ExternalLink, HelpCircle, MessageCircle, MessageSquare, Moon, Sun, Upload, FileText, Info, CreditCard, Check, Sparkles } from 'lucide-react';
 import { db, type Profile } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -66,6 +66,7 @@ export default function Settings() {
   const [showCardPaymentsSheet, setShowCardPaymentsSheet] = useState(false);
   const [showLogoHelp, setShowLogoHelp] = useState(false);
   const [showProfileSheet, setShowProfileSheet] = useState(false);
+  const [showProSheet, setShowProSheet] = useState(false);
   const [editFullName, setEditFullName] = useState('');
   const [editBusinessName, setEditBusinessName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -248,26 +249,40 @@ export default function Settings() {
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
             Your plan
           </div>
-          <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3.5 flex items-center justify-between">
-              <div>
-                {isPro ? (
-                  <>
-                    <span className="text-sm font-bold text-brand-black">Pro</span>
+          {isPro ? (
+            /* Pro plan — blue accent card, tappable to see features */
+            <button
+              onClick={() => setShowProSheet(true)}
+              className="w-full bg-white border border-brand-border rounded-xl overflow-hidden text-left active:scale-[0.99] transition-transform"
+            >
+              <div className="px-4 py-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#EFF6FF' }}>
+                    <Sparkles size={20} style={{ color: '#3b82f6' }} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-brand-black">Pro</span>
+                      <span className="text-[10px] font-bold tracking-wide text-white px-1.5 py-0.5 rounded-full" style={{ background: '#3b82f6' }}>
+                        {profile?.subscription_status === 'active' ? 'ACTIVE' : 'BETA'}
+                      </span>
+                    </div>
                     <p className="text-xs text-brand-muted mt-0.5">
-                      {profile?.subscription_status === 'active' ? '£14/month — active' : 'Free during beta'}
+                      {profile?.subscription_status === 'active' ? '£14/month — active' : 'Free during beta — all features unlocked'}
                     </p>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-sm font-bold text-brand-black">Free plan</span>
-                    <p className="text-xs text-brand-muted mt-0.5">Upgrade to unlock all features</p>
-                  </>
-                )}
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-brand-muted shrink-0" />
               </div>
-              {isPro ? (
-                <span className="w-2 h-2 rounded-full bg-status-green shrink-0" />
-              ) : (
+            </button>
+          ) : (
+            /* Free plan — upgrade CTA */
+            <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3.5 flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-bold text-brand-black">Free plan</span>
+                  <p className="text-xs text-brand-muted mt-0.5">Upgrade to unlock all features</p>
+                </div>
                 <Button
                   variant="primary"
                   size="sm"
@@ -296,16 +311,14 @@ export default function Settings() {
                 >
                   Upgrade to Pro
                 </Button>
-              )}
-            </div>
-            {!isPro && (
+              </div>
               <div className="px-4 py-3 border-t border-brand-surface bg-brand-surface/50">
                 <p className="text-xs text-brand-muted leading-relaxed">
                   Pro includes: online booking page, card payments, PDF quotes, auto-reminders, payment chasing, revenue dashboard, and more.
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Add to Home Screen — dismissible inline banner */}
@@ -1171,6 +1184,83 @@ export default function Settings() {
               />
             )}
           </div>
+        </div>
+      </BottomSheet>
+
+      {/* Pro plan features sheet */}
+      <BottomSheet
+        isOpen={showProSheet}
+        onClose={() => setShowProSheet(false)}
+        title="Your Pro plan"
+      >
+        <div className="flex flex-col gap-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {/* Pro enabled banner */}
+          <div className="flex items-center gap-3 p-3.5 rounded-xl" style={{ background: '#EFF6FF' }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#3b82f6' }}>
+              <Check size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-brand-black">Pro is enabled</p>
+              <p className="text-xs text-brand-muted mt-0.5">
+                {profile?.subscription_status === 'active' ? '£14/month — active' : 'Free during beta — all features unlocked'}
+              </p>
+            </div>
+          </div>
+
+          {/* Feature groups */}
+          {([
+            { category: 'Quotes & Documents', features: [
+              { name: 'PDF quotes & invoices', desc: 'Generate professional PDFs' },
+              { name: 'Send PDFs via WhatsApp', desc: 'Attach to messages in one tap' },
+              { name: 'Logo branding on PDFs', desc: 'Your logo on every document' },
+              { name: 'Bank details on invoices', desc: 'So customers can pay instantly' },
+              { name: 'VAT on invoices', desc: 'For VAT-registered businesses' },
+            ]},
+            { category: 'Booking', features: [
+              { name: 'Online booking page', desc: 'Clients book themselves' },
+              { name: 'Scheduling conflict detection', desc: 'No double bookings' },
+            ]},
+            { category: 'Payments', features: [
+              { name: 'Card payments & deposits', desc: 'Via Stripe — get paid by card' },
+              { name: 'Payment chase automation', desc: 'Auto reminders for overdue invoices' },
+            ]},
+            { category: 'Automation', features: [
+              { name: 'Auto-reminders', desc: 'Email clients about upcoming jobs' },
+              { name: 'Branded reminder emails', desc: 'Your branding on every email' },
+              { name: 'Message templates', desc: 'Save & reuse common messages' },
+            ]},
+            { category: 'CRM & Insights', features: [
+              { name: 'Revenue dashboard', desc: 'Track income and profit' },
+              { name: 'Customer stats', desc: 'Total spent, job history per customer' },
+              { name: 'Customer dedup', desc: 'Find and merge duplicate contacts' },
+              { name: 'Business insights', desc: 'Coaching tips based on your data' },
+              { name: 'Google review prompts', desc: 'Auto-ask for reviews after payment' },
+            ]},
+          ] as const).map((group) => (
+            <div key={group.category}>
+              <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2.5">
+                {group.category}
+              </div>
+              <div className="flex flex-col gap-0">
+                {group.features.map((feat, i) => (
+                  <div key={feat.name} className={`flex items-start gap-2.5 py-2.5 ${i < group.features.length - 1 ? 'border-b border-brand-borderLight' : ''}`}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: '#EFF6FF' }}>
+                      <Check size={12} style={{ color: '#3b82f6' }} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-brand-black">{feat.name}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">{feat.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Beta note */}
+          <p className="text-xs text-brand-muted text-center pt-2">
+            You're on Pro for free during beta. No card required, no charge.
+          </p>
         </div>
       </BottomSheet>
 
