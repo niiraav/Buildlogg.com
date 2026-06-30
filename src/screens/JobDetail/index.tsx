@@ -12,7 +12,7 @@ import { setContextualFlag } from '../../lib/notificationManager';
 import { captureJobMarkedPaid, captureJobBooked, captureJobStarted, captureJobCancelled, capturePaymentChase, capturePhotoAdded, capturePDFShared, capture } from '../../lib/analytics';
 import { nextJobNumber, ensureJobNumber, nextInvoiceNumber, ensureInvoiceNumber } from '../../lib/jobNumbers';
 import { showSuccess, showToast } from '../../components/Toast/store';
-import { hapticSuccess } from '../../lib/haptics';
+import { haptic, hapticSuccess } from '../../lib/haptics';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { MapPreview } from '../../components/MapPreview';
@@ -438,6 +438,7 @@ export default function JobDetail() {
 
   const handleCancelJob = async (reason: 'customer_cancelled' | 'dave_cancelled') => {
     if (!job) return;
+    haptic('heavy');
     const n = now();
     const logId = crypto.randomUUID();
     await db.jobs.update(job.id, {
@@ -511,6 +512,7 @@ export default function JobDetail() {
 
   const handleMarkDone = async (method: 'cash' | 'bank_transfer' | 'terminal' | 'other' | 'not_yet') => {
     if (!job || !userId || paymentProcessing) return;
+    haptic('medium');
     let pendingSendSheetConfig: { title: string; messageText: string; onSend: (method: SendMethod, pdfShared: boolean) => void; pdfOptions?: { label: string; generatePdf: () => Promise<Blob>; fileName: string } } | null = null;
 
     // £0.00 jobs: skip payment flow entirely, mark as paid
@@ -1025,6 +1027,7 @@ export default function JobDetail() {
 
   const handleMarkAsBooked = async () => {
     if (!job || !customer) return;
+    haptic('medium');
 
     // P2-05: Check for scheduling conflicts before booking
     if (job.scheduled_start && userId && can('scheduling_conflicts')) {
@@ -1135,6 +1138,7 @@ export default function JobDetail() {
 
   const handleStartJob = async () => {
     if (!job) return;
+    haptic('medium');
 
     // Anti-forgetting: check for other in-progress non-multi-day jobs
     if (userId) {
@@ -1533,11 +1537,12 @@ export default function JobDetail() {
   };
 
   const handleCall = () => {
-    if (customer?.phone) window.open(`tel:${customer.phone}`, '_self');
+    if (customer?.phone) { haptic('light'); window.open(`tel:${customer.phone}`, '_self'); }
   };
 
   const handleMessage = () => {
     if (!customer?.phone) return;
+    haptic('light');
     const body = encodeURIComponent(`Hi ${customer.name}, it's ${profile?.full_name?.split(' ')[0] || 'Dave'}.`);
     window.location.href = `sms:${customer.phone}?body=${body}`;
   };
