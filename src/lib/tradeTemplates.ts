@@ -8,6 +8,8 @@ export interface TemplateSeed {
   description: string;
   detail?: string;
   amount: number;
+  duration_minutes?: number;
+  is_public?: boolean;
 }
 
 export const TRADE_TEMPLATES: Record<string, TemplateSeed[]> = {
@@ -55,14 +57,14 @@ export const TRADE_TEMPLATES: Record<string, TemplateSeed[]> = {
 };
 
 export const BEAUTY_TEMPLATES: TemplateSeed[] = [
-  { description: 'Full set nails', amount: 45 },
-  { description: 'Gel polish', amount: 25 },
-  { description: 'Lash full set', amount: 65 },
-  { description: 'Lash infill', amount: 35 },
-  { description: 'Brow wax + shape', amount: 18 },
-  { description: 'Manicure', amount: 25 },
-  { description: 'Pedicure', amount: 30 },
-  { description: 'Tint (lash or brow)', amount: 15 },
-  { description: 'Nail art (per nail)', amount: 3 },
-  { description: 'Treatment (per hour)', amount: 50 },
+  { description: 'Full set nails', amount: 45, duration_minutes: 90, is_public: true },
+  { description: 'Gel polish', amount: 25, duration_minutes: 30, is_public: true },
+  { description: 'Lash full set', amount: 65, duration_minutes: 120, is_public: true },
+  { description: 'Lash infill', amount: 35, duration_minutes: 60, is_public: true },
+  { description: 'Brow wax + shape', amount: 18, duration_minutes: 15, is_public: true },
+  { description: 'Manicure', amount: 25, duration_minutes: 45, is_public: true },
+  { description: 'Pedicure', amount: 30, duration_minutes: 45, is_public: true },
+  { description: 'Tint (lash or brow)', amount: 15, duration_minutes: 15, is_public: true },
+  { description: 'Nail art (per nail)', amount: 3, duration_minutes: 15, is_public: true },
+  { description: 'Treatment (per hour)', amount: 50, duration_minutes: 60, is_public: true },
 ];
