@@ -92,9 +92,21 @@ export default function Auth() {
         let session = null;
 
         if (code) {
+          // PKCE flow: exchange the one-time code for a session.
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-          session = data.session;
+          if (exchangeError) {
+            // Fallback: if the code was already consumed (e.g. by a previous
+            // page load or a browser pre-fetch), check if a session already
+            // exists from that earlier exchange rather than erroring out.
+            const { data: existing } = await supabase.auth.getSession();
+            if (existing.session) {
+              session = existing.session;
+            } else {
+              throw exchangeError;
+            }
+          } else {
+            session = data.session;
+          }
         } else if (tokenHash) {
           const { data, error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
