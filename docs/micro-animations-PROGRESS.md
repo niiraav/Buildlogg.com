@@ -31,3 +31,14 @@
 | MC-3 | Change missed call urgency from "Urgent" to "Follow up" | ✅ DONE | 2e3a8b7 |
 | MC-4 | Fix info box wording + post-save nav to Tasks tab | ✅ DONE | 2e3a8b7 |
 | MC-5 | Final verification and deploy | ✅ DONE | 2e3a8b7 |
+
+# Haptic Feedback — Tier 1 (JobDetail) — Progress
+
+| Task | Description | Status | Commit |
+|------|-------------|--------|--------|
+| H-1 | haptic('medium') on handleStartJob | ✅ DONE | 1f5c247 |
+| H-2 | haptic('medium') on handleMarkAsBooked | ✅ DONE | 1f5c247 |
+| H-3 | haptic('medium') on handleMarkDone | ✅ DONE | 1f5c247 |
+| H-4 | haptic('heavy') on handleCancelJob | ✅ DONE | 1f5c247 |
+| H-5 | haptic('light') on handleCall + handleMessage | ✅ DONE | 1f5c247 |
+| H-6 | Final verification and deploy | ✅ DONE | 1f5c247 |
