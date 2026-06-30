@@ -155,6 +155,8 @@ export default function Onboarding() {
           business_name: profile.business_name,
           trade: profile.trade,
           trade_other: profile.trade_other,
+          business_type: profile.business_type,
+          specialty: profile.specialty,
           callout_charge: profile.callout_charge,
           payment_terms: profile.payment_terms,
           default_labour_description: profile.default_labour_description,
@@ -182,6 +184,8 @@ export default function Onboarding() {
         business_name: profile.business_name,
         trade: profile.trade,
         trade_other: profile.trade_other,
+        business_type: profile.business_type,
+        specialty: profile.specialty,
         callout_charge: profile.callout_charge,
         payment_terms: profile.payment_terms,
         default_labour_description: profile.default_labour_description,
@@ -249,8 +253,10 @@ export default function Onboarding() {
         handleContinueS1();
       } else if (
         step === 2 &&
-        trade &&
-        (trade !== 'other' || tradeOther.trim().length > 0) &&
+        (
+          (businessType === 'trades' && trade && (trade !== 'other' || tradeOther.trim().length > 0)) ||
+          (businessType === 'beauty' && beautySpecialty)
+        ) &&
         (phone.trim().length === 0 || validatePhone(phone) === null)
       ) {
         handleContinueS2();
