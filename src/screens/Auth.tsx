@@ -69,7 +69,8 @@ export default function Auth() {
   const [resending, setResending] = useState(false);
 
   // Handle magic-link / email-confirmation callbacks from the URL.
-  // This catches PKCE (?code=...), token_hash (?token_hash=...), and implicit flow (#access_token...).
+  // This catches implicit flow (?token_hash=...&type=signup), PKCE (?code=...),
+  // and hash-fragment implicit (#access_token...).
   useEffect(() => {
     let mounted = true;
 
@@ -79,8 +80,24 @@ export default function Auth() {
       const tokenHash = url.searchParams.get('token_hash');
       const token = url.searchParams.get('token');
       const type = url.searchParams.get('type') || 'email';
+      const errorParam = url.searchParams.get('error');
+      const errorDesc = url.searchParams.get('error_description') || url.searchParams.get('error_description');
       const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
       const hasAccessToken = hashParams.has('access_token') || hashParams.has('refresh_token');
+
+      // Supabase can redirect back with an explicit error param if verification
+      // failed on their end (e.g. expired token, already used). Surface it directly.
+      if (errorParam) {
+        console.error('[Auth] Supabase returned error:', errorParam, errorDesc);
+        if (mounted) {
+          hapticError();
+          const msg = errorDesc || errorParam || 'This sign-in link is invalid or expired.';
+          showError(msg);
+          setError(msg);
+          setLoading(false);
+        }
+        return;
+      }
 
       if (!code && !tokenHash && !token && !hasAccessToken) return;
 
@@ -89,11 +106,13 @@ export default function Auth() {
       setError('');
 
       try {
-        // Clear any existing session before exchanging the confirmation code.
-        // This prevents the bug where a user is signed in to account A, creates
-        // account B, clicks the confirmation link, and lands in account A's
-        // dashboard instead of account B's onboarding.
-        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+        // Clear any existing session before exchanging the confirmation token.
+        // Only call signOut if a session exists — otherwise Supabase returns
+        // a 403 on the /logout endpoint which shows a scary console error.
+        const { data: preCallbackSession } = await supabase.auth.getSession();
+        if (preCallbackSession.session) {
+          await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+        }
 
         let session = null;
 
@@ -114,6 +133,9 @@ export default function Auth() {
             session = data.session;
           }
         } else if (tokenHash) {
+          // Implicit flow: exchange the token hash for a session.
+          // No code_verifier needed — this is stateless and works across
+          // browsers/devices, unlike PKCE.
           const { data, error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: type as 'email' | 'recovery' | 'invite' | 'email_change' | 'signup' | 'magiclink',
@@ -129,8 +151,22 @@ export default function Auth() {
           if (verifyError) throw verifyError;
           session = data.session;
         } else if (hasAccessToken) {
-          const { data } = await supabase.auth.getSession();
-          session = data.session;
+          // Hash-fragment implicit flow: tokens are in the URL hash.
+          // With detectSessionInUrl: false, we need to manually parse and
+          // set the session from the hash params.
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          if (accessToken && refreshToken) {
+            const { data: refreshData, error: refreshError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (refreshError) throw refreshError;
+            session = refreshData.session;
+          } else {
+            const { data } = await supabase.auth.getSession();
+            session = data.session;
+          }
         }
 
         if (!session) {
@@ -216,15 +252,20 @@ export default function Auth() {
         navigate('/', { replace: true });
       } else {
         // Sign out any existing session before creating a new account.
-        // Without this, the old session persists in localStorage and the
-        // confirmation email link may land the user in the old account.
-        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+        // Only call signOut if a session exists — otherwise Supabase returns
+        // a 403 on the /logout endpoint (no session to revoke).
+        const { data: preSignupSession } = await supabase.auth.getSession();
+        if (preSignupSession.session) {
+          await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+        }
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: 'https://buildlogg.com/app/auth',
+            // Use the current origin so confirmation links redirect back to
+            // whichever deploy the user signed up on (preview or production).
+            emailRedirectTo: `${window.location.origin}/app/auth`,
           },
         });
 
@@ -252,9 +293,24 @@ export default function Auth() {
         }
 
         if (!data.session) {
-          // Email confirmation is required on the Supabase side.
+          // Email confirmation is required. The user may already exist but be
+          // unconfirmed (re-signup). In that case signUp doesn't send a new
+          // email — we need to call resend explicitly.
+          if (data.user && data.user.created_at !== data.user.updated_at) {
+            // User already existed (created_at < updated_at) — likely a
+            // re-signup. Send a fresh confirmation email.
+            await supabase.auth.resend({
+              email,
+              type: 'signup',
+              options: {
+                emailRedirectTo: `${window.location.origin}/app/auth`,
+              },
+            }).catch(() => {});
+            showToast('Confirmation email sent. Check your inbox and spam folder.', 'info', 5000);
+          } else {
+            showToast('Account created. Check your email (and spam folder) to confirm.', 'info', 5000);
+          }
           hapticSuccess();
-          showToast('Account created. Check your email (and spam folder) to confirm.', 'info', 5000);
           captureUserSignedUp(undefined, source);
           setEmailConfirmed(true);
           setLoading(false);
@@ -290,7 +346,7 @@ export default function Auth() {
     setLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://buildlogg.com/app/auth',
+        redirectTo: `${window.location.origin}/app/auth`,
       });
       if (resetError) {
         showError(resetError.message || 'Could not send reset email');
@@ -351,13 +407,19 @@ export default function Auth() {
     if (!email) return;
     setResending(true);
     try {
-      // Clear any existing session first — a stale session from another
-      // account can interfere with the resend call.
-      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+      // Clear any existing session first — but only if one exists (calling
+      // signOut with no session causes a 403 on the /logout endpoint).
+      const { data: existingSession } = await supabase.auth.getSession();
+      if (existingSession.session) {
+        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+      }
 
       const { error: resendError } = await supabase.auth.resend({
         email,
         type: 'signup',
+        options: {
+          emailRedirectTo: `${window.location.origin}/app/auth`,
+        },
       });
       if (resendError) {
         showError(resendError.message || 'Could not resend email');
