@@ -133,6 +133,11 @@ async function pushToSupabase(item: SyncQueueItem) {
       console.warn(`[sync] Table '${table_name}' not found in Supabase — skipping (local-only). Run SQL migration to create it.`);
       return; // Don't throw — treat as success so the queue item is removed
     }
+    // Column doesn't exist — skip silently (migration not yet run)
+    if (errMsg.includes('column') && errMsg.includes('does not exist')) {
+      console.warn(`[sync] Column missing in '${table_name}' — skipping. Run SQL migration: ${errMsg}`);
+      return;
+    }
     console.error(`[sync] ${operation} on ${table_name} failed:`, result.error);
     throw result.error;
   }

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buildlogg — Design System Colours</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #111; padding: 40px 20px; line-height: 1.5; }
+  h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  h2 { font-size: 18px; font-weight: 700; margin: 40px 0 16px; color: #374151; }
+  p.subtitle { color: #6b7280; margin-bottom: 32px; }
+  .group { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .swatch { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+  .swatch-color { height: 80px; display: flex; align-items: flex-end; padding: 8px; }
+  .swatch-color span { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.85); color: #111; }
+  .swatch-info { padding: 10px 12px; }
+  .swatch-name { font-size: 13px; font-weight: 600; color: #111; }
+  .swatch-token { font-size: 11px; color: #6b7280; font-family: monospace; margin-top: 2px; }
+  .swatch-bg { font-size: 11px; color: #6b7280; margin-top: 2px; font-family: monospace; }
+  .pro-option { display: flex; align-items: center; gap: 16px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 16px; margin-bottom: 12px; }
+  .pro-badge { padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; }
+  .pro-option .label { font-size: 15px; font-weight: 600; }
+  .pro-option .desc { font-size: 13px; color: #6b7280; }
+  .pro-option .swatch-mini { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>Buildlogg Design System</h1>
+<p class="subtitle">All colour tokens from <code>tokens.css</code> and <code>landing.css</code></p>
+
+<h2>Brand Palette (Monochrome Base)</h2>
+<div class="group">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#111827"><span>#111827</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Black</div><div class="swatch-token">--brand-black</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#374151"><span>#374151</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Dark</div><div class="swatch-token">--brand-dark</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#6B7280"><span>#6B7280</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Mid</div><div class="swatch-token">--brand-mid</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0E1828"><span>#0E1828</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Deep</div><div class="swatch-token">--brand-deep</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#E5E7EB"><span style="background:rgba(0,0,0,0.7);color:#fff">#E5E7EB</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Border</div><div class="swatch-token">--brand-border</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F9FAFB"><span style="background:rgba(0,0,0,0.7);color:#fff">#F9FAFB</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Surface</div><div class="swatch-token">--brand-surface</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F5F5F5"><span style="background:rgba(0,0,0,0.7);color:#fff">#F5F5F5</span></div>
+    <div class="swatch-info"><div class="swatch-name">Surface Card</div><div class="swatch-token">--brand-surface-card</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#101010"><span>#101010</span></div>
+    <div class="swatch-info"><div class="swatch-name">Dark BG</div><div class="swatch-token">--brand-dark-bg</div></div>
+  </div>
+</div>
+
+<h2>Accent Colours</h2>
+<div class="group">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#3b82f6"><span>#3b82f6</span></div>
+    <div class="swatch-info"><div class="swatch-name">Brand Accent (Blue)</div><div class="swatch-token">--brand-accent</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#2563eb"><span>#2563eb</span></div>
+    <div class="swatch-info"><div class="swatch-name">Landing Accent</div><div class="swatch-token">--accent (landing)</div></div>
+  </div>
+</div>
+
+<h2>Status Colours (Semantic)</h2>
+<div class="group">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#15803D"><span>#15803D</span></div>
+    <div class="swatch-info"><div class="swatch-name">Green</div><div class="swatch-token">--color-green</div><div class="swatch-bg">bg: #F0FDF4</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#10b981"><span>#10b981</span></div>
+    <div class="swatch-info"><div class="swatch-name">Success</div><div class="swatch-token">--success</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#B45309"><span>#B45309</span></div>
+    <div class="swatch-info"><div class="swatch-name">Amber</div><div class="swatch-token">--color-amber</div><div class="swatch-bg">bg: #FFFBEB</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F59E0B"><span>#F59E0B</span></div>
+    <div class="swatch-info"><div class="swatch-name">Warning</div><div class="swatch-token">--warning</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#DC2626"><span>#DC2626</span></div>
+    <div class="swatch-info"><div class="swatch-name">Red</div><div class="swatch-token">--color-red</div><div class="swatch-bg">bg: #FEF2F2</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#1D4ED8"><span>#1D4ED8</span></div>
+    <div class="swatch-info"><div class="swatch-name">Blue</div><div class="swatch-token">--color-blue</div><div class="swatch-bg">bg: #EFF6FF</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#475569"><span>#475569</span></div>
+    <div class="swatch-info"><div class="swatch-name">Slate</div><div class="swatch-token">--color-slate</div><div class="swatch-bg">bg: #F1F5F9</div></div>
+  </div>
+</div>
+
+<h2>Violet & Orange (Status Accents)</h2>
+<div class="group">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#7c3aed"><span>#7c3aed</span></div>
+    <div class="swatch-info"><div class="swatch-name">Violet</div><div class="swatch-token">--color-violet</div><div class="swatch-bg">bg: #F5F3FF</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#fb923c"><span>#fb923c</span></div>
+    <div class="swatch-info"><div class="swatch-name">Orange</div><div class="swatch-token">--color-orange</div></div>
+  </div>
+</div>
+
+<h2>Badge Pastels (Avatars)</h2>
+<div class="group">
+  <div class="swatch"><div class="swatch-color" style="background:#fb923c"><span>#fb923c</span></div><div class="swatch-info"><div class="swatch-name">Orange</div><div class="swatch-token">--p-orange</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#ec4899"><span>#ec4899</span></div><div class="swatch-info"><div class="swatch-name">Pink</div><div class="swatch-token">--p-pink</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#8b5cf6"><span>#8b5cf6</span></div><div class="swatch-info"><div class="swatch-name">Violet</div><div class="swatch-token">--p-violet</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#34d399"><span>#34d399</span></div><div class="swatch-info"><div class="swatch-name">Emerald</div><div class="swatch-token">--p-emerald</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#38bdf8"><span>#38bdf8</span></div><div class="swatch-info"><div class="swatch-name">Sky</div><div class="swatch-token">--p-sky</div></div></div>
+</div>
+
+<h2>Landing Page Dot Colours</h2>
+<div class="group">
+  <div class="swatch"><div class="swatch-color" style="background:#2563eb"><span>#2563eb</span></div><div class="swatch-info"><div class="swatch-name">Blue Dot</div><div class="swatch-token">--blue-dot</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#16a34a"><span>#16a34a</span></div><div class="swatch-info"><div class="swatch-name">Green Dot</div><div class="swatch-token">--green-dot</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#9333ea"><span>#9333ea</span></div><div class="swatch-info"><div class="swatch-name">Purple Dot</div><div class="swatch-token">--purple-dot</div></div></div>
+</div>
+
+<h2>Pro Plan Accent Options</h2>
+<p class="subtitle">Preview of how each colour would look as a Pro badge</p>
+
+<div class="pro-option">
+  <div class="swatch-mini" style="background:#3b82f6"></div>
+  <div><div class="label">Blue <span class="pro-badge" style="background:#3b82f6">PRO</span></div><div class="desc">Trust, premium, SaaS standard (Stripe, Linear, Cal.com)</div></div>
+</div>
+
+<div class="pro-option">
+  <div class="swatch-mini" style="background:#7c3aed"></div>
+  <div><div class="label">Violet <span class="pro-badge" style="background:#7c3aed">PRO</span></div><div class="desc">Premium, creative, stands out without being loud</div></div>
+</div>
+
+<div class="pro-option">
+  <div class="swatch-mini" style="background:#10b981"></div>
+  <div><div class="label">Emerald <span class="pro-badge" style="background:#10b981">PRO</span></div><div class="desc">Fresh, positive, "you're unlocked" feeling</div></div>
+</div>
+
+<div class="pro-option">
+  <div class="swatch-mini" style="background:#B45309"></div>
+  <div><div class="label">Amber <span class="pro-badge" style="background:#B45309">PRO</span></div><div class="desc">Warm, valuable, "gold tier" connotation</div></div>
+</div>
+
+<div class="pro-option">
+  <div class="swatch-mini" style="background:#0E1828"></div>
+  <div><div class="label">Deep Navy <span class="pro-badge" style="background:#0E1828">PRO</span></div><div class="desc">Premium but not black — your app icon colour</div></div>
+</div>
+
+</body>
+</html>

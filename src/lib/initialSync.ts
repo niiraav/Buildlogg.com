@@ -46,9 +46,16 @@ async function syncTable<T extends { id: string; _sync_status: string }>(
       // .single() result — handle profile
       const row = data as T;
       const local = await table.get(row.id);
-      if (!local || local._sync_status !== 'pending') {
+      if (!local) {
+        // No local record — accept remote
         await table.put({ ...row, _sync_status: 'synced' as const });
-
+      } else if (local._sync_status === 'pending') {
+        // Local has unsynced changes — don't overwrite with remote
+        // (the sync worker will push local changes to Supabase shortly)
+        // Skip this row entirely
+      } else {
+        // Local is synced — accept remote update (last-write-wins)
+        await table.put({ ...row, _sync_status: 'synced' as const });
       }
     }
   } catch (err) {

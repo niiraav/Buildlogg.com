@@ -34,6 +34,7 @@ import CustomItems from './screens/Settings/CustomItems';
 import Booking from './screens/Settings/Booking';
 import MessageTemplates from './screens/Settings/MessageTemplates';
 import Reminders from './screens/Settings/Reminders';
+import ProPlan from './screens/Settings/ProPlan';
 import Dashboard from './screens/Dashboard';
 import Customers from './screens/Customers';
 import CustomerDetail from './screens/Customers/CustomerDetail';
@@ -338,6 +339,7 @@ function AppRoutes() {
         <Route path="/settings/custom-items" element={<CustomItems />} />
         <Route path="/settings/booking" element={<Booking />} />
         <Route path="/settings/reminders" element={<Reminders />} />
+        <Route path="/settings/pro" element={<ProPlan />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/new" element={<AddCustomer />} />

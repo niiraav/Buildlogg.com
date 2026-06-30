@@ -23,13 +23,20 @@ export async function updateProfileFields(
   fields: Partial<Profile>,
 ): Promise<Profile | null> {
   const n = now();
+  // Convert undefined → null so JSON.stringify preserves them as NULL in Supabase
+  // (JSON.stringify strips undefined, which means sync would never clear a field)
+  const cleanFields: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    cleanFields[k] = v === undefined ? null : v;
+  }
+
   const update = { ...fields, updated_at: n, _sync_status: 'pending' } as Partial<Profile>;
   await db.profiles.update(userId, update);
   await db.sync_queue.add({
     operation: 'update',
     table_name: 'profiles',
     record_id: userId,
-    payload: { ...fields, updated_at: n },
+    payload: { ...cleanFields, updated_at: n },
     created_at: n,
     retry_count: 0,
   });
