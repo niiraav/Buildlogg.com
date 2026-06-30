@@ -2,11 +2,12 @@
 (function () {
   try {
     const path = window.location.pathname;
-    const isAuth = path === '/app/auth' || path.startsWith('/app/auth');
+    // Auth and onboarding pages are always light
+    const isAuthPage = path === '/app/auth' || path.startsWith('/app/auth') || path === '/onboarding' || path.startsWith('/onboarding');
     const stored = localStorage.getItem("buildlogg_dark_mode");
-    // Auth pages are always light. In-app pages respect stored preference,
+    // Auth/onboarding pages are always light. In-app pages respect stored preference,
     // defaulting to light (system preference is ignored).
-    const isDark = !isAuth && stored !== null ? stored === "true" : false;
+    const isDark = !isAuthPage && stored !== null ? stored === "true" : false;
     if (isDark) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
     const meta = document.querySelector('meta[name="theme-color"]');

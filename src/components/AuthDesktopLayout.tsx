@@ -9,7 +9,7 @@ export default function AuthDesktopLayout({ children, variant = 'auth' }: AuthDe
   void variant;
 
   return (
-    <div className="h-full min-h-full md:flex md:justify-center bg-gradient-to-br from-[#e5e7eb] to-[#eef0f4] dark:from-[#141416] dark:to-[#0d0d0f]">
+    <div className="h-full min-h-full md:flex md:justify-center bg-white">
       <div className="grid h-full min-h-full w-full md:grid-cols-[2fr_3fr] md:max-w-[1440px]">
       {/* Left panel — brand context (40%) */}
       <div className="relative hidden md:flex flex-col justify-between auth-left-panel p-8 lg:p-10 overflow-y-auto">

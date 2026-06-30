@@ -721,9 +721,9 @@ input[type="datetime-local"] {
   box-shadow: none;
 }
 
-/* Auth split-screen left panel — slight offset from the main canvas */
+/* Auth split-screen left panel — seamless with main canvas */
 .auth-left-panel {
-  background-color: #f4f6f9;
+  background-color: #ffffff;
 }
 .dark .auth-left-panel {
   background-color: #0f1014;
