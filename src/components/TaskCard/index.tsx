@@ -28,7 +28,7 @@ export interface TaskCardProps {
 }
 
 const typeConfig: Record<TaskType, { icon: React.ReactNode; label: string; urgency: 'high' | 'medium' | 'low' }> = {
-  missed_call: { icon: <Phone size={16} />, label: 'Missed call', urgency: 'high' },
+  missed_call: { icon: <Phone size={16} />, label: 'Missed call', urgency: 'medium' },
   no_show: { icon: <Clock size={16} />, label: 'No-show', urgency: 'medium' },
   urgent_new: { icon: <Phone size={16} />, label: 'New enquiry', urgency: 'medium' },
   draft_quote: { icon: <FileText size={16} />, label: 'Draft quote', urgency: 'low' },

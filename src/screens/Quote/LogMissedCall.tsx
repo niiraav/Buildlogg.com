@@ -31,6 +31,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
 
   const saveAndCreate = useCallback(async (shouldDial: boolean) => {
     if (!userId) return;
+    if (!phone.trim()) return;
     const err = validatePhone(phone);
     if (err !== null) {
       setPhoneError(true);
@@ -116,7 +117,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
   }, [phone, name, userId, onDone]);
 
   const phoneValid = validatePhone(phone) === null;
-  const canSave = phoneValid && !saving;
+  const canSave = phone.trim().length > 0 && phoneValid && !saving;
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -150,7 +151,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
               inputMode="tel"
               value={phone}
               onChange={(e) => { setPhone(formatPhoneInput(e.target.value)); setPhoneError(false); }}
-              placeholder="e.g. 07700 900123 or +353 86 123 4567"
+              placeholder="e.g. 07700 900123"
               autoFocus
               className={`w-full h-12 px-3.5 border-2 rounded-lg text-base font-medium text-brand-black placeholder:text-brand-muted outline-none ${
                 phoneError ? 'border-status-error' : 'border-brand-border focus:border-brand-black'
@@ -175,7 +176,7 @@ export default function LogMissedCall({ onDone }: LogMissedCallProps) {
         </div>
 
         <div className="bg-brand-surface border border-brand-border rounded-lg p-3.5 text-sm text-brand-muted leading-relaxed">
-          Saved to <strong className="text-brand-dark">Tasks</strong>. Call back first — once confirmed as a lead, tap <strong className="text-brand-dark">Create quote</strong> on the task card.
+          Saved to your <strong className="text-brand-dark">Tasks</strong> tab. Call back first — once confirmed as a lead, tap <strong className="text-brand-dark">Create quote</strong> on the task card.
         </div>
       </div>
 

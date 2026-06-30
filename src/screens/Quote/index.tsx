@@ -200,7 +200,7 @@ export default function Quote() {
 
   const handleMissedCallDone = () => {
     clearPersistedState();
-    navigate('/', { replace: true, state: { initialTab: 'drafts' } });
+    navigate('/', { replace: true, state: { initialTab: 'tasks' } });
   };
 
   const handleCustomerDetailsComplete = async (data: { id: string; name: string; phone: string; address?: string; email?: string }) => {
