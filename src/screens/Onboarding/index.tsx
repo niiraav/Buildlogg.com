@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppStore } from '../../store/useAppStore';
-import { captureUserSignedUp, capture } from '../../lib/analytics';
+import { captureUserSignedUp, captureTradeTemplatesSeeded, capture } from '../../lib/analytics';
 import { showSuccess, showError } from '../../components/Toast/store';
 import { supabase } from '../../lib/supabase';
 import { db } from '../../lib/db';
@@ -12,19 +12,37 @@ import { hapticSuccess, haptic } from '../../lib/haptics';
 import { StickyFooter } from '../../components/StickyFooter';
 import { Button } from '../../components/Button';
 import AuthDesktopLayout from '../../components/AuthDesktopLayout';
-import { Check, Wrench, Zap, HardHat, Hammer, HelpCircle, Plus, Trash2 } from 'lucide-react';
+import { Check, HelpCircle, Plus, Trash2, FileText, Calendar, CheckCircle } from 'lucide-react';
 import AddToHomeScreen from '../../components/AddToHomeScreen';
-import { seedTradeTemplates, seedBeautyTemplates } from '../../lib/seedTemplates';
-import { getVerticalFromUrl, getVerticalConfig, type BusinessType } from '../../lib/verticalConfig';
-import { captureVerticalSelected } from '../../lib/analytics';
+import { seedTradeTemplates } from '../../lib/seedTemplates';
+import { getAppModeConfig, getAppModeFromUrl } from '../../lib/verticalConfig';
 import { seedMessageTemplates } from '../../lib/seedMessageTemplates';
 import { seedSampleJob } from '../../lib/seedSampleJob';
-import { captureTradeTemplatesSeeded } from '../../lib/analytics';
 import { validatePhone, normalizePhone, formatPhoneInput } from '../../lib/phone';
 import { addToSyncQueue } from '../../lib/syncQueue';
-import { TRADE_TEMPLATES, BEAUTY_TEMPLATES } from '../../lib/tradeTemplates';
+import { matchTemplates, type MatchResult } from '../../lib/templateMatcher';
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
+const APP_MODES: Array<{ value: 'quotes' | 'bookings' | 'both'; label: string; description: string; icon: React.ReactNode }> = [
+  {
+    value: 'quotes',
+    label: 'Quotes & invoices',
+    description: 'Send quotes, track jobs, get paid. For custom work where every job is different.',
+    icon: <FileText size={20} />,
+  },
+  {
+    value: 'bookings',
+    label: 'Bookings & deposits',
+    description: 'Take bookings, charge deposits, stop no-shows. For fixed-price services.',
+    icon: <Calendar size={20} />,
+  },
+  {
+    value: 'both',
+    label: 'Both',
+    description: 'I do custom work AND fixed-price services.',
+    icon: <CheckCircle size={20} />,
+  },
+];
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -33,11 +51,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-type TradeType = 'plumber' | 'electrician' | 'builder' | 'other';
 type PaymentTerms = 'on_completion' | 'deposit' | 'invoice';
 type Step = 1 | 2 | 3 | 4;
-
-type BeautySpecialty = 'nail_tech' | 'lash_tech' | 'salon' | 'barber' | 'tattoo' | 'other';
+type AppMode = 'quotes' | 'bookings' | 'both';
 
 type OnboardingItem = {
   id: string;
@@ -46,22 +62,6 @@ type OnboardingItem = {
   duration_minutes: number;
   is_public: boolean;
 };
-
-const BEAUTY_SPECIALTIES: Array<{ value: BeautySpecialty; label: string }> = [
-  { value: 'nail_tech', label: 'Nail tech' },
-  { value: 'lash_tech', label: 'Lash tech' },
-  { value: 'salon', label: 'Salon' },
-  { value: 'barber', label: 'Barber' },
-  { value: 'tattoo', label: 'Tattoo artist' },
-  { value: 'other', label: 'Other' },
-];
-
-const TRADE_OPTIONS: Array<{ value: TradeType; label: string; icon: React.ReactNode }> = [
-  { value: 'plumber', label: 'Plumber', icon: <Wrench size={18} /> },
-  { value: 'electrician', label: 'Electrician', icon: <Zap size={18} /> },
-  { value: 'builder', label: 'Builder', icon: <HardHat size={18} /> },
-  { value: 'other', label: 'Other', icon: <Hammer size={18} /> },
-];
 
 const PAYMENT_TERMS: Array<{ value: PaymentTerms; label: string; description: string }> = [
   { value: 'on_completion', label: 'On completion', description: 'Customer pays the full amount once the job is done — in cash, by card, or bank transfer.' },
@@ -72,7 +72,7 @@ const PAYMENT_TERMS: Array<{ value: PaymentTerms; label: string; description: st
 export default function Onboarding() {
   const [step, setStep] = useState<Step>(1);
   const navigate = useNavigate();
-  
+
   const setUserId = useAppStore((s) => s.setUserId);
   const storeUserId = useAppStore((s) => s.userId);
   const [userId, setLocalUserId] = useState<string | null>(null);
@@ -82,10 +82,8 @@ export default function Onboarding() {
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
-  const [trade, setTrade] = useState<TradeType | undefined>();
-  const [businessType, setBusinessType] = useState<BusinessType>('trades');
-  const [beautySpecialty, setBeautySpecialty] = useState<BeautySpecialty | undefined>();
-  const [tradeOther, setTradeOther] = useState('');
+  const [appMode, setAppMode] = useState<AppMode | undefined>();
+  const [whatDoYouDo, setWhatDoYouDo] = useState('');
   const [calloutCharge, setCalloutCharge] = useState('75');
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('on_completion');
   const [quoteValidDays, setQuoteValidDays] = useState('30');
@@ -97,22 +95,42 @@ export default function Onboarding() {
   const [newItemDesc, setNewItemDesc] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
   const [itemsSeeded, setItemsSeeded] = useState(false);
+  const [itemsDirty, setItemsDirty] = useState(false);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [debouncedWhat, setDebouncedWhat] = useState('');
 
   // Track onboarding step progress
   useEffect(() => {
     capture('onboarding_step_viewed', { step, total_steps: 4 });
   }, [step]);
 
-  // Detect vertical from URL (beauty-landing → beauty)
+  // Detect app mode from URL
   useEffect(() => {
-    const detected = getVerticalFromUrl();
-    if (detected === 'beauty') {
-      setBusinessType('beauty');
-      const config = getVerticalConfig('beauty');
-      setPaymentTerms(config.defaultPaymentTerms);
-      captureVerticalSelected({ businessType: 'beauty', source: 'url' });
+    const detected = getAppModeFromUrl();
+    if (detected === 'bookings') {
+      setAppMode('bookings');
+      setPaymentTerms('deposit');
     }
   }, []);
+
+  // Debounced keyword matching for "What do you do?"
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedWhat(whatDoYouDo.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [whatDoYouDo]);
+
+  useEffect(() => {
+    if (step !== 3 || !appMode || itemsDirty) return;
+    const result = matchTemplates(debouncedWhat, appMode);
+    setMatchResult(result);
+    setPriceListItems(result.templates.map((t) => ({
+      id: crypto.randomUUID(),
+      description: t.description,
+      amount: t.amount,
+      duration_minutes: t.duration_minutes ?? 60,
+      is_public: t.is_public ?? (appMode === 'bookings' || appMode === 'both'),
+    })));
+  }, [debouncedWhat, appMode, step, itemsDirty]);
 
   // Get user on mount
   useEffect(() => {
@@ -132,24 +150,25 @@ export default function Onboarding() {
     fetchUser();
   }, []);
 
-  const toggleTrade = useCallback((value: TradeType) => {
-    setTrade((prev) => (prev === value ? undefined : value));
+  const handleSelectMode = useCallback((mode: AppMode) => {
+    setAppMode(mode);
+    haptic('light');
   }, []);
 
   const handleWriteProfile = useCallback(async () => {
     let resolvedUserId = userId || storeUserId;
     if (!resolvedUserId) return;
 
+    const businessType = appMode === 'bookings' ? 'beauty' : 'trades';
     const now = new Date().toISOString();
     const profile: Profile = {
       id: resolvedUserId,
       full_name: fullName.trim(),
       phone: normalizePhone(phone),
       business_name: businessName.trim() || undefined,
-      trade,
       business_type: businessType,
-      specialty: businessType === 'beauty' ? beautySpecialty : trade,
-      trade_other: trade === 'other' ? tradeOther.trim() || undefined : undefined,
+      app_mode: appMode,
+      specialty: whatDoYouDo.trim() || undefined,
       callout_charge: parseFloat(calloutCharge) || 75,
       payment_terms: paymentTerms,
       default_labour_description: defaultLabourDesc.trim() || 'Labour',
@@ -171,9 +190,8 @@ export default function Onboarding() {
           full_name: profile.full_name,
           phone: profile.phone,
           business_name: profile.business_name,
-          trade: profile.trade,
-          trade_other: profile.trade_other,
           business_type: profile.business_type,
+          app_mode: profile.app_mode,
           specialty: profile.specialty,
           callout_charge: profile.callout_charge,
           payment_terms: profile.payment_terms,
@@ -200,9 +218,8 @@ export default function Onboarding() {
         full_name: profile.full_name,
         phone: profile.phone,
         business_name: profile.business_name,
-        trade: profile.trade,
-        trade_other: profile.trade_other,
         business_type: profile.business_type,
+        app_mode: profile.app_mode,
         specialty: profile.specialty,
         callout_charge: profile.callout_charge,
         payment_terms: profile.payment_terms,
@@ -216,7 +233,7 @@ export default function Onboarding() {
       retry_count: 0,
     });
     return resolvedUserId;
-  }, [userId, fullName, businessName, phone, trade, tradeOther, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
+  }, [userId, storeUserId, fullName, businessName, phone, appMode, whatDoYouDo, calloutCharge, paymentTerms, defaultLabourDesc, defaultLabourCharge, autoFillDefault, quoteValidDays]);
 
   const nextStep = () => setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
   const skip = () => nextStep();
@@ -227,64 +244,55 @@ export default function Onboarding() {
   };
 
   const handleContinueS2 = () => {
-    if (businessType === 'trades' && !trade) return;
-    if (businessType === 'beauty' && !beautySpecialty) return;
-    if (trade === 'other' && tradeOther.trim().length === 0) return;
-    // Phone is optional; only validate non-empty values
+    if (!appMode) return;
     if (phone.trim().length > 0 && validatePhone(phone) !== null) return;
     nextStep();
   };
 
   // Initialize price list items when entering Step 3
   useEffect(() => {
-    if (step !== 3 || itemsSeeded) return;
-    const config = getVerticalConfig(businessType);
-    if (config.features.showServiceMenu) {
-      // Service-menu businesses: seed from beauty templates with durations + is_public
-      setPriceListItems(BEAUTY_TEMPLATES.map((t) => ({
-        id: crypto.randomUUID(),
-        description: t.description,
-        amount: t.amount,
-        duration_minutes: t.duration_minutes ?? 60,
-        is_public: t.is_public ?? true,
-      })));
-    } else {
-      // Trades: seed from trade templates, no duration, not public
-      const seeds = TRADE_TEMPLATES[trade || 'other'] || TRADE_TEMPLATES['other'];
-      setPriceListItems(seeds.map((t) => ({
-        id: crypto.randomUUID(),
-        description: t.description,
-        amount: t.amount,
-        duration_minutes: 60,
-        is_public: false,
-      })));
-    }
+    if (step !== 3 || itemsSeeded || !appMode) return;
+    const result = matchTemplates('', appMode);
+    setMatchResult(result);
+    const config = getAppModeConfig(appMode);
+    const showServiceMenu = appMode === 'bookings' || appMode === 'both';
+    const templates = result.templates.length > 0 ? result.templates : config.templates;
+    setPriceListItems(templates.map((t) => ({
+      id: crypto.randomUUID(),
+      description: t.description,
+      amount: t.amount,
+      duration_minutes: t.duration_minutes ?? 60,
+      is_public: t.is_public ?? showServiceMenu,
+    })));
     setItemsSeeded(true);
-  }, [step, itemsSeeded, businessType, trade]);
+  }, [step, itemsSeeded, appMode]);
 
   const addPriceListItem = useCallback(() => {
     const trimmed = newItemDesc.trim();
     const val = parseFloat(newItemAmount);
     if (!trimmed || isNaN(val) || val <= 0) return;
-    const config = getVerticalConfig(businessType);
+    const showServiceMenu = appMode === 'bookings' || appMode === 'both';
     setPriceListItems((prev) => [...prev, {
       id: crypto.randomUUID(),
       description: trimmed,
       amount: val,
       duration_minutes: 60,
-      is_public: config.features.showServiceMenu,
+      is_public: showServiceMenu,
     }]);
+    setItemsDirty(true);
     setNewItemDesc('');
     setNewItemAmount('');
     haptic('light');
-  }, [newItemDesc, newItemAmount, businessType]);
+  }, [newItemDesc, newItemAmount, appMode]);
 
   const removePriceListItem = useCallback((id: string) => {
     setPriceListItems((prev) => prev.filter((i) => i.id !== id));
+    setItemsDirty(true);
   }, []);
 
   const updatePriceListItem = useCallback((id: string, patch: Partial<OnboardingItem>) => {
     setPriceListItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setItemsDirty(true);
   }, []);
 
   const handleContinueS3 = useCallback(async () => {
@@ -327,6 +335,7 @@ export default function Onboarding() {
         } catch { /* sync worker will retry */ }
       }
     }
+    setItemsDirty(false);
     nextStep();
   }, [userId, storeUserId, priceListItems]);
 
@@ -338,19 +347,20 @@ export default function Onboarding() {
     }
     setUserId(resolvedUserId);
     // Seed templates — the seedItems guard (existingCount > 0) means this is a no-op
-    // for beauty users who already saved items in Step 3's handleContinueS3.
-    // For trades users who didn't create items in Step 3, this seeds their trade templates.
-    businessType === 'beauty' ? seedBeautyTemplates(resolvedUserId) : seedTradeTemplates(resolvedUserId, trade || 'other')
-      .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: trade || 'other', count }); })
+    // if items were already saved in Step 3. For trades users who didn't create items
+    // in Step 3, this seeds their default templates.
+    seedTradeTemplates(resolvedUserId, 'other')
+      .then((count: number) => { if (count > 0) captureTradeTemplatesSeeded({ trade: whatDoYouDo || 'other', count }); })
       .catch(() => {});
     seedMessageTemplates(resolvedUserId).catch(() => {});
     // Seed a sample job so the user lands on a populated home screen
     const profileData = await db.profiles.get(resolvedUserId);
-    await seedSampleJob(resolvedUserId, profileData || null, trade || 'other', businessType, beautySpecialty).catch(() => {});
-    capture('sample_job_seeded', { trade: trade || 'other', businessType });
+    const sampleJobKey = matchResult?.sampleJobKey || 'other_trades';
+    await seedSampleJob(resolvedUserId, profileData || null, sampleJobKey, appMode || 'quotes').catch(() => {});
+    capture('sample_job_seeded', { sampleJobKey, appMode: appMode || 'quotes' });
     hapticSuccess();
     showSuccess("Profile saved — let's go!");
-    captureUserSignedUp(trade, window.location.search);
+    captureUserSignedUp(whatDoYouDo || appMode, window.location.search);
     navigate('/', { replace: true });
   };
 
@@ -367,14 +377,7 @@ export default function Onboarding() {
 
       if (step === 1 && fullName.trim().length > 0) {
         handleContinueS1();
-      } else if (
-        step === 2 &&
-        (
-          (businessType === 'trades' && trade && (trade !== 'other' || tradeOther.trim().length > 0)) ||
-          (businessType === 'beauty' && beautySpecialty)
-        ) &&
-        (phone.trim().length === 0 || validatePhone(phone) === null)
-      ) {
+      } else if (step === 2 && appMode && (phone.trim().length === 0 || validatePhone(phone) === null)) {
         handleContinueS2();
       } else if (step === 3) {
         handleContinueS3();
@@ -385,9 +388,14 @@ export default function Onboarding() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, fullName, trade, tradeOther, handleContinueS1, handleContinueS2, handleContinueS3, handleContinueS4, nextStep]);
+  }, [step, fullName, appMode, phone, handleContinueS1, handleContinueS2, handleContinueS3, handleContinueS4]);
 
   const firstName = fullName.trim().split(' ')[0] || 'there';
+
+  const showCallout = appMode === 'quotes' && (matchResult?.isTrade ?? true);
+  const showServiceMenu = appMode === 'bookings' || appMode === 'both';
+  const showLabour = appMode === 'quotes';
+  const isLabourInternal = appMode === 'both';
 
   return (
     <AuthDesktopLayout variant="onboarding">
@@ -433,49 +441,6 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Email (read-only, pre-filled from auth) */}
-                <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
-                    Your Email
-                  </label>
-                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden bg-brand-surface border-brand-border">
-                    <input
-                      type="email"
-                      value={email || 'Not required in test mode'}
-                      readOnly
-                      className="flex-1 text-base text-brand-mid min-h-13 px-4 bg-transparent outline-none cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <StickyFooter className="px-0">
-              <Button
-                variant="primary"
-                onClick={handleContinueS1}
-                disabled={fullName.trim().length === 0}
-              >
-                Continue →
-              </Button>
-            </StickyFooter>
-          </div>
-        )}
-
-        {/* ── S2: Business ── */}
-        {step === 2 && (
-          <div className="flex-1 flex flex-col">
-            <div className="px-6 pt-8 flex-1">
-              <div className="mb-6">
-                <h1 className="text-xl font-extrabold text-brand-black">
-                  Tell us about your business
-                </h1>
-                <p className="text-md text-brand-muted mt-1">
-                  This appears on quotes. You can update it any time.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-6">
                 {/* Business Name */}
                 <div>
                   <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
@@ -512,71 +477,19 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Trade Type / Beauty Specialty — 2×2 grid */}
+                {/* Email (read-only, pre-filled from auth) */}
                 <div>
-                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-2 block">
-                    {businessType === 'beauty' ? 'Specialty' : 'Trade Type'}
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                    Your Email
                   </label>
-                  {businessType === 'beauty' ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {BEAUTY_SPECIALTIES.map((opt) => {
-                        const isSelected = beautySpecialty === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => { setBeautySpecialty(opt.value); haptic('light'); }}
-                            className={`h-13 rounded-xl border-2 font-semibold text-sm transition-all cursor-pointer flex items-center justify-center ${
-                              isSelected
-                                ? 'border-brand-black bg-brand-surface text-brand-black'
-                                : 'border-brand-border text-brand-mid'
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {TRADE_OPTIONS.map((opt) => {
-                        const isSelected = trade === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => toggleTrade(opt.value)}
-                            className={`h-13 rounded-xl border-2 font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                              isSelected
-                                ? 'border-brand-black bg-brand-surface text-brand-black'
-                                : 'border-brand-border text-brand-mid'
-                            }`}
-                          >
-                            <span className={isSelected ? 'text-brand-black' : 'text-brand-muted'}>{opt.icon}</span>
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {trade === 'other' && (
-                    <div className="mt-3">
-                      <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
-                        What Trade?
-                      </label>
-                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
-                        <input
-                          type="text"
-                          inputMode="text"
-                          placeholder="e.g. Landscaper, Painter, Roofer"
-                          autoCapitalize="words"
-                          value={tradeOther}
-                          onChange={(e) => setTradeOther(e.target.value)}
-                          className="flex-1 text-base text-brand-black outline-none min-h-13 px-4 bg-transparent"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden bg-brand-surface border-brand-border">
+                    <input
+                      type="email"
+                      value={email || 'Not required in test mode'}
+                      readOnly
+                      className="flex-1 text-base text-brand-mid min-h-13 px-4 bg-transparent outline-none cursor-not-allowed"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -584,11 +497,59 @@ export default function Onboarding() {
             <StickyFooter className="px-0">
               <Button
                 variant="primary"
+                onClick={handleContinueS1}
+                disabled={fullName.trim().length === 0}
+              >
+                Continue →
+              </Button>
+            </StickyFooter>
+          </div>
+        )}
+
+        {/* ── S2: Business Mode ── */}
+        {step === 2 && (
+          <div className="flex-1 flex flex-col">
+            <div className="px-6 pt-8 flex-1">
+              <div className="mb-6">
+                <h1 className="text-xl font-extrabold text-brand-black">
+                  What type of work do you do?
+                </h1>
+                <p className="text-md text-brand-muted mt-1">
+                  Pick how you mainly run your business. You can change this later.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {APP_MODES.map((opt) => {
+                  const isSelected = appMode === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleSelectMode(opt.value)}
+                      className={`flex flex-col gap-0.5 min-h-13 rounded-xl border-2 px-4 py-3 transition-all cursor-pointer text-left ${
+                        isSelected
+                          ? 'border-brand-black bg-brand-surface'
+                          : 'border-brand-border bg-white'
+                      }`}
+                    >
+                      <span className={`flex items-center gap-2 font-semibold text-base ${isSelected ? 'text-brand-black' : 'text-brand-mid'}`}>
+                        <span className={isSelected ? 'text-brand-black' : 'text-brand-muted'}>{opt.icon}</span>
+                        {opt.label}
+                      </span>
+                      <span className={`text-sm leading-relaxed ${isSelected ? 'text-brand-black' : 'text-brand-muted'}`}>
+                        {opt.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <StickyFooter className="px-0">
+              <Button
+                variant="primary"
                 onClick={handleContinueS2}
-                disabled={
-                  (businessType === 'trades' && (!trade || (trade === 'other' && tradeOther.trim().length === 0))) ||
-                  (businessType === 'beauty' && !beautySpecialty)
-                }
+                disabled={!appMode}
               >
                 Continue →
               </Button>
@@ -610,8 +571,26 @@ export default function Onboarding() {
               </div>
 
               <div className="flex flex-col gap-5">
-                {/* Callout charge + labour — only for trades (showCalloutCharge) */}
-                {getVerticalConfig(businessType).features.showCalloutCharge && (
+                {/* What do you do? */}
+                <div>
+                  <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                    What do you do?
+                  </label>
+                  <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
+                    <input
+                      type="text"
+                      inputMode="text"
+                      placeholder="e.g. Plumber, Nail tech, Photographer, Cleaner"
+                      autoCapitalize="words"
+                      value={whatDoYouDo}
+                      onChange={(e) => setWhatDoYouDo(e.target.value)}
+                      className="flex-1 text-base text-brand-black outline-none min-h-13 px-4 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Callout charge + labour */}
+                {showCallout && (
                   <>
                     <div>
                       <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
@@ -631,130 +610,150 @@ export default function Onboarding() {
                         A fee you charge when you turn up but can't do the job — e.g. customer isn't home. Most tradespeople charge £50–£100.
                       </p>
                     </div>
-
-                    <div>
-                      <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
-                        Default Labour Charge
-                      </label>
-                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
-                        <span className="text-md text-brand-black px-4 shrink-0">£</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={defaultLabourCharge}
-                          onChange={(e) => setDefaultLabourCharge(e.target.value.replace(/[^0-9.]/g, ''))}
-                          className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
-                        />
-                      </div>
-                      <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
-                        <input
-                          type="text"
-                          inputMode="text"
-                          value={defaultLabourDesc}
-                          onChange={(e) => setDefaultLabourDesc(e.target.value)}
-                          placeholder="e.g. Labour, Day rate, Call-out fee"
-                          className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent px-4"
-                        />
-                      </div>
-                      <p className="text-sm text-brand-mid mt-1.5 leading-relaxed">
-                        The label shown next to your labour charge on the quote. Common choices: 'Labour', 'Day rate', 'Call-out fee'.
-                      </p>
-                      <div className="flex items-center gap-3 mt-3">
-                        <button
-                          onClick={() => setAutoFillDefault(!autoFillDefault)}
-                          className={`relative h-7 w-12 rounded-full transition-colors cursor-pointer ${
-                            autoFillDefault ? 'bg-brand-black' : 'bg-brand-border'
-                          }`}
-                          aria-label={autoFillDefault ? 'Auto-fill enabled' : 'Auto-fill disabled'}
-                        >
-                          <span
-                            className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                              autoFillDefault ? 'translate-x-5' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                        <span className="text-sm text-brand-mid">
-                          Auto-fill on new quotes
-                        </span>
-                      </div>
-                      <p className="text-sm text-brand-muted mt-2 leading-relaxed">
-                        {autoFillDefault
-                          ? "Automatically adds this labour charge to every new quote so you don't type it each time. Edit or remove it per quote."
-                          : "You'll start each quote with a blank items list. You can still add saved items from your library."}
-                      </p>
-                    </div>
                   </>
                 )}
 
-                {/* What you offer — price list items (always shown) */}
+                {showLabour && (
+                  <div>
+                    <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                      Default Labour Charge
+                    </label>
+                    <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
+                      <span className="text-md text-brand-black px-4 shrink-0">£</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={defaultLabourCharge}
+                        onChange={(e) => setDefaultLabourCharge(e.target.value.replace(/[^0-9.]/g, ''))}
+                        className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
+                      />
+                    </div>
+                    <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border">
+                      <input
+                        type="text"
+                        inputMode="text"
+                        value={defaultLabourDesc}
+                        onChange={(e) => setDefaultLabourDesc(e.target.value)}
+                        placeholder="e.g. Labour, Day rate, Call-out fee"
+                        className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent px-4"
+                      />
+                    </div>
+                    <p className="text-sm text-brand-mid mt-1.5 leading-relaxed">
+                      The label shown next to your labour charge on the quote. Common choices: 'Labour', 'Day rate', 'Call-out fee'.
+                    </p>
+                    <div className="flex items-center gap-3 mt-3">
+                      <button
+                        onClick={() => setAutoFillDefault(!autoFillDefault)}
+                        className={`relative h-7 w-12 rounded-full transition-colors cursor-pointer ${
+                          autoFillDefault ? 'bg-brand-black' : 'bg-brand-border'
+                        }`}
+                        aria-label={autoFillDefault ? 'Auto-fill enabled' : 'Auto-fill disabled'}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                            autoFillDefault ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-sm text-brand-mid">
+                        Auto-fill on new quotes
+                      </span>
+                    </div>
+                    <p className="text-sm text-brand-muted mt-2 leading-relaxed">
+                      {autoFillDefault
+                        ? "Automatically adds this labour charge to every new quote so you don't type it each time. Edit or remove it per quote."
+                        : "You'll start each quote with a blank items list. You can still add saved items from your library."}
+                    </p>
+                  </div>
+                )}
+
+                {isLabourInternal && (
+                  <div>
+                    <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-1.5 block">
+                      Default hourly rate
+                    </label>
+                    <div className="flex items-center border-2 rounded-xl min-h-13 overflow-hidden border-brand-border mb-2">
+                      <span className="text-md text-brand-black px-4 shrink-0">£</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={defaultLabourCharge}
+                        onChange={(e) => setDefaultLabourCharge(e.target.value.replace(/[^0-9.]/g, ''))}
+                        className="flex-1 text-base text-brand-black outline-none min-h-13 bg-transparent pr-4"
+                      />
+                    </div>
+                    <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">
+                      Your default hourly rate is used for custom quotes and appointments.
+                    </p>
+                  </div>
+                )}
+
+                {/* What you offer — price list items */}
                 <div>
                   <label className="text-label font-bold tracking-[0.4px] text-brand-dark mb-2 block">
                     What you offer
                   </label>
                   <div className="space-y-2">
-                    {priceListItems.map((item) => {
-                      const showServiceMenu = getVerticalConfig(businessType).features.showServiceMenu;
-                      return (
-                        <div
-                          key={item.id}
-                          className="border border-brand-border rounded-lg bg-white overflow-hidden"
-                        >
-                          <div className="flex items-center gap-2 px-3 py-2.5">
+                    {priceListItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="border border-brand-border rounded-lg bg-white overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updatePriceListItem(item.id, { description: e.target.value })}
+                            className="flex-1 min-w-0 text-sm font-medium text-brand-dark outline-none bg-transparent"
+                          />
+                          <div className="relative w-20 shrink-0">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-brand-muted">£</span>
                             <input
                               type="text"
-                              value={item.description}
-                              onChange={(e) => updatePriceListItem(item.id, { description: e.target.value })}
-                              className="flex-1 min-w-0 text-sm font-medium text-brand-dark outline-none bg-transparent"
+                              inputMode="decimal"
+                              value={item.amount || ''}
+                              onChange={(e) => updatePriceListItem(item.id, { amount: parseFloat(e.target.value) || 0 })}
+                              className="w-full h-10 pl-6 pr-2 border border-brand-border rounded-lg text-sm text-brand-black outline-none focus:border-brand-black"
                             />
-                            <div className="relative w-20 shrink-0">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-brand-muted">£</span>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={item.amount || ''}
-                                onChange={(e) => updatePriceListItem(item.id, { amount: parseFloat(e.target.value) || 0 })}
-                                className="w-full h-10 pl-6 pr-2 border border-brand-border rounded-lg text-sm text-brand-black outline-none focus:border-brand-black"
-                              />
-                            </div>
-                            <button
-                              onClick={() => removePriceListItem(item.id)}
-                              className="p-1.5 text-status-red cursor-pointer active:opacity-60 transition-opacity shrink-0"
-                            >
-                              <Trash2 size={16} />
-                            </button>
                           </div>
-                          {showServiceMenu && (
-                            <div className="flex items-center justify-between px-3 pb-2.5 border-t border-brand-borderLight gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <select
-                                  value={item.duration_minutes}
-                                  onChange={(e) => updatePriceListItem(item.id, { duration_minutes: parseInt(e.target.value) })}
-                                  className="h-9 px-2 border border-brand-border rounded-lg text-xs font-medium text-brand-black outline-none focus:border-brand-black bg-white"
-                                >
-                                  {DURATION_PRESETS.map((d) => (
-                                    <option key={d} value={d}>{d} min</option>
-                                  ))}
-                                </select>
-                                <button
-                                  onClick={() => updatePriceListItem(item.id, { is_public: !item.is_public })}
-                                  className={`relative h-5 w-9 rounded-full transition-colors cursor-pointer shrink-0 ${
-                                    item.is_public ? 'bg-brand-black' : 'bg-brand-border'
-                                  }`}
-                                  aria-label={item.is_public ? 'Online booking enabled' : 'Online booking disabled'}
-                                >
-                                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                                    item.is_public ? 'left-[18px]' : 'left-0.5'
-                                  }`} />
-                                </button>
-                                <span className="text-xs text-brand-muted truncate">
-                                  {item.is_public ? 'On booking page' : 'Private'}
-                                </span>
-                              </div>
-                            </div>
-                          )}
+                          <button
+                            onClick={() => removePriceListItem(item.id)}
+                            className="p-1.5 text-status-red cursor-pointer active:opacity-60 transition-opacity shrink-0"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                      );
-                    })}
+                        {showServiceMenu && (
+                          <div className="flex items-center justify-between px-3 pb-2.5 border-t border-brand-borderLight gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <select
+                                value={item.duration_minutes}
+                                onChange={(e) => updatePriceListItem(item.id, { duration_minutes: parseInt(e.target.value) })}
+                                className="h-9 px-2 border border-brand-border rounded-lg text-xs font-medium text-brand-black outline-none focus:border-brand-black bg-white"
+                              >
+                                {DURATION_PRESETS.map((d) => (
+                                  <option key={d} value={d}>{d} min</option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => updatePriceListItem(item.id, { is_public: !item.is_public })}
+                                className={`relative h-5 w-9 rounded-full transition-colors cursor-pointer shrink-0 ${
+                                  item.is_public ? 'bg-brand-black' : 'bg-brand-border'
+                                }`}
+                                aria-label={item.is_public ? 'Online booking enabled' : 'Online booking disabled'}
+                              >
+                                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                                  item.is_public ? 'left-[18px]' : 'left-0.5'
+                                }`} />
+                              </button>
+                              <span className="text-xs text-brand-muted truncate">
+                                {item.is_public ? 'On booking page' : 'Private'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
                   {/* Add new item */}

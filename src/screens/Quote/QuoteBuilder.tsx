@@ -8,7 +8,7 @@ import { Button } from '../../components/Button';
 import { StickyFooter } from '../../components/StickyFooter';
 import { showToast } from '../../components/Toast/store';
 import { BottomSheet, SheetRow } from '../../components/BottomSheet';
-import { TRADE_TEMPLATES, BEAUTY_TEMPLATES, type TemplateSeed } from '../../lib/tradeTemplates';
+import { TRADE_TEMPLATES, BEAUTY_TEMPLATES, BARBER_TEMPLATES, GROOMING_TEMPLATES, MASSAGE_TEMPLATES, TUTORING_TEMPLATES, type TemplateSeed } from '../../lib/tradeTemplates';
 import { getPricingHistory, getJobTitlePricingHistory, clearPricingCache, type PricingHistory } from '../../lib/pricingHistory';
 import { capture } from '../../lib/analytics';
 import BrandedLoader from '../../components/BrandedLoader';
@@ -660,17 +660,23 @@ export default function QuoteBuilder({ customerId, jobId, sourceJobId, onPreview
 
   // XU-1: Determine available templates based on profile
   const getAvailableTemplates = (): Array<{ label: string; seeds: TemplateSeed[] }> => {
-    if (profile?.business_type === 'beauty') {
-      return [{ label: `Beauty services — ${BEAUTY_TEMPLATES.length} items`, seeds: BEAUTY_TEMPLATES }];
+    const mode = profile?.app_mode || (profile?.business_type === 'beauty' ? 'bookings' : 'quotes');
+
+    if (mode === 'bookings' || mode === 'both') {
+      return [
+        { label: 'Beauty services', seeds: BEAUTY_TEMPLATES },
+        { label: 'Barber', seeds: BARBER_TEMPLATES },
+        { label: 'Dog grooming', seeds: GROOMING_TEMPLATES },
+        { label: 'Massage', seeds: MASSAGE_TEMPLATES },
+        { label: 'Tutoring', seeds: TUTORING_TEMPLATES },
+      ];
     }
-    const tradeKey = profile?.trade || 'other';
-    const tradeTemplates = TRADE_TEMPLATES[tradeKey];
-    if (tradeTemplates) {
-      const tradeLabel = tradeKey === 'other' ? 'General' :
-        tradeKey.charAt(0).toUpperCase() + tradeKey.slice(1);
-      return [{ label: `${tradeLabel} — ${tradeTemplates.length} items`, seeds: tradeTemplates }];
-    }
-    return [{ label: `General — ${TRADE_TEMPLATES['other'].length} items`, seeds: TRADE_TEMPLATES['other'] }];
+
+    // Quotes mode — show all trade templates grouped by category
+    return Object.entries(TRADE_TEMPLATES).map(([key, seeds]) => ({
+      label: key === 'other' ? 'General' : key.charAt(0).toUpperCase() + key.slice(1),
+      seeds,
+    }));
   };
 
   const handleRemoveEmptyItems = () => {

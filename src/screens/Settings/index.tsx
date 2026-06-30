@@ -357,11 +357,10 @@ export default function Settings() {
                 {businessNameEmpty ? 'Add business name' : businessName}
               </p>
               <p className="text-xs text-brand-muted mt-0.5">
-                {trade
-                  ? trade === 'other' && profile?.trade_other
-                    ? profile.trade_other
-                    : TRADE_OPTIONS.find((t) => t.value === trade)?.label || trade
-                  : 'Trade not set'}
+                {profile?.app_mode === 'bookings' ? 'Bookings & deposits'
+                  : profile?.app_mode === 'both' ? 'Quotes & bookings'
+                  : profile?.app_mode === 'quotes' ? 'Quotes & invoices'
+                  : profile?.specialty || (trade ? (trade === 'other' && profile?.trade_other ? profile.trade_other : TRADE_OPTIONS.find((t) => t.value === trade)?.label || trade) : 'Trade not set')}
               </p>
             </div>
             <ChevronRight size={18} className="text-brand-muted shrink-0" />
