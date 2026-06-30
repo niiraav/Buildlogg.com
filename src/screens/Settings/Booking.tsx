@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Copy, Download, Share2, Clock, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { createPrettyQR } from '../../lib/prettyQr';
 import type QRCodeStyling from 'qr-code-styling';
-import { db, type Profile } from '../../lib/db';
+import { db, type Profile, type CustomItem } from '../../lib/db';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../lib/supabase';
 import { updateProfileFields, updateProfileSlug } from '../../lib/profile';
@@ -124,9 +125,11 @@ export default function Booking() {
   const [slugSaved, setSlugSaved] = useState(true);
   const [savingSlug, setSavingSlug] = useState(false);
   const [publicItemCount, setPublicItemCount] = useState(0);
+  const [publicItems, setPublicItems] = useState<CustomItem[]>([]);
   const [showSlugChangeConfirm, setShowSlugChangeConfirm] = useState(false);
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const qrCodeRef = useRef<QRCodeStyling | null>(null);
+  const navigate = useNavigate();
 
   /* Unsaved changes guard — warn when slug input has unsaved changes */
   const slugIsDirty = !loading && !slugSaved && slugStatus !== 'checking';
@@ -145,8 +148,11 @@ export default function Booking() {
       .where('user_id')
       .equals(userId)
       .filter((i) => i.is_public === true)
-      .count()
-      .then(setPublicItemCount)
+      .sortBy('sort_order')
+      .then((items) => {
+        setPublicItems(items);
+        setPublicItemCount(items.length);
+      })
       .catch(() => setPublicItemCount(0));
   }, [userId]);
 
@@ -522,6 +528,46 @@ export default function Booking() {
         {/* ─── Everything below only shows when booking is enabled ─── */}
         {isEnabled && (
           <>
+            {/* Your services — cross-link to Price list */}
+            <div>
+              <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Your services</div>
+              <div className="bg-white border border-brand-border rounded-xl p-4">
+                {publicItemCount > 0 ? (
+                  <>
+                    <p className="text-sm font-semibold text-brand-black mb-2">
+                      {publicItemCount} service{publicItemCount === 1 ? '' : 's'} on your booking page
+                    </p>
+                    <div className="space-y-1.5 mb-3">
+                      {publicItems.slice(0, 4).map((item) => (
+                        <div key={item.id} className="flex items-center justify-between text-sm">
+                          <span className="text-brand-dark truncate flex-1 min-w-0 pr-2">{item.description}</span>
+                          <span className="text-brand-muted shrink-0">
+                            £{item.amount.toFixed(0)} · {item.duration_minutes ?? 60} min
+                          </span>
+                        </div>
+                      ))}
+                      {publicItems.length > 4 && (
+                        <p className="text-xs text-brand-muted">+ {publicItems.length - 4} more</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-brand-black mb-1">No services on your booking page yet</p>
+                    <p className="text-xs text-brand-muted mb-3 leading-relaxed">
+                      Clients will only see your contact info. Add services so clients can pick what they want to book.
+                    </p>
+                  </>
+                )}
+                <button
+                  onClick={() => navigate('/settings/custom-items')}
+                  className="text-sm font-semibold text-brand-black bg-brand-surface border border-brand-border rounded-lg px-4 py-2.5 cursor-pointer hover:bg-brand-bgLight transition-colors w-full text-center"
+                >
+                  {publicItemCount > 0 ? 'Add or edit services →' : 'Add services →'}
+                </button>
+              </div>
+            </div>
+
             {/* Availability section */}
             <div>
               <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">Availability</div>
@@ -816,7 +862,7 @@ export default function Booking() {
       {/* Slug change confirm sheet */}
       {showSlugChangeConfirm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowSlugChangeConfirm(false)}>
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-bold text-brand-black mb-2">Change your link?</h3>
             <p className="text-sm text-brand-muted mb-4">
               Anyone with the old link or QR code will see &ldquo;not found&rdquo;. This can&rsquo;t be undone.
