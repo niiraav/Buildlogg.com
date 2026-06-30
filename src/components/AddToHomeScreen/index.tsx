@@ -343,10 +343,10 @@ export const AddToHomeScreen: React.FC<AddToHomeScreenProps> = ({
           </div>
         )}
 
-        {/* CTA button — opens modal on all platforms */}
+        {/* CTA button — secondary styling to not clash with main onboarding CTA */}
         <button
           onClick={handleInstallClick}
-          className={`w-full ${compact ? 'h-11' : 'h-12'} bg-brand-black text-brand-surface rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity mt-3`}
+          className={`w-full ${compact ? 'h-11' : 'h-12'} bg-brand-surface border border-brand-border text-brand-black rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer active:opacity-80 transition-opacity mt-3`}
         >
           <Plus size={18} />
           Show instructions

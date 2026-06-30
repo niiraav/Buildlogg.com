@@ -886,10 +886,11 @@ export default function Onboarding() {
                   Clients can book online when you share your booking link.
                 </p>
               </div>
-            </div>
 
-            <div className="px-6 w-full">
-              <AddToHomeScreen />
+              {/* Add to home screen — inline within centered content */}
+              <div className="w-full max-w-sm mt-4">
+                <AddToHomeScreen />
+              </div>
             </div>
 
             <StickyFooter className="px-0">
