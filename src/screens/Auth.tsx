@@ -89,6 +89,12 @@ export default function Auth() {
       setError('');
 
       try {
+        // Clear any existing session before exchanging the confirmation code.
+        // This prevents the bug where a user is signed in to account A, creates
+        // account B, clicks the confirmation link, and lands in account A's
+        // dashboard instead of account B's onboarding.
+        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+
         let session = null;
 
         if (code) {
@@ -209,6 +215,11 @@ export default function Auth() {
         // on iPhone Safari where IndexedDB can be slow on first access.
         navigate('/', { replace: true });
       } else {
+        // Sign out any existing session before creating a new account.
+        // Without this, the old session persists in localStorage and the
+        // confirmation email link may land the user in the old account.
+        await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -340,6 +351,10 @@ export default function Auth() {
     if (!email) return;
     setResending(true);
     try {
+      // Clear any existing session first — a stale session from another
+      // account can interfere with the resend call.
+      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+
       const { error: resendError } = await supabase.auth.resend({
         email,
         type: 'signup',

@@ -178,15 +178,18 @@ export default function Settings() {
     // In production, fire-and-forget signOut before navigating away.
     const isMockMode = !localStorage.getItem('buildlogg_supabase_session') && import.meta.env.DEV;
     if (!isMockMode) {
-      supabase.auth.signOut().catch(() => {});
+      // Use scope: 'global' to revoke ALL sessions (not just the current one).
+      // Await it so the session is fully cleared before we navigate away —
+      // otherwise window.location.replace can race ahead of signOut and
+      // the old session persists in localStorage.
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch {}
     }
 
-    // db.delete() is fire-and-forget — don't await it.
-    // Use window.location.replace() for immediate hard navigation away,
-    // abandoning all pending JS (promises, IndexedDB transactions, etc).
-    // This prevents the hang where db.delete() holds an IDB lock that
-    // blocks window.location.reload().
+    // Clear local IndexedDB (fire-and-forget — don't block navigation on it).
     db.delete().catch(() => {});
+    // Hard navigation — clears all in-memory state.
     window.location.replace('/app/auth');
   };
 
