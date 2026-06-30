@@ -103,7 +103,7 @@ export default function CustomItems() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <h1 className="text-lg font-extrabold text-brand-black">My Items</h1>
+          <h1 className="text-lg font-extrabold text-brand-black">Price list</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <SkeletonInline />
@@ -121,15 +121,15 @@ export default function CustomItems() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-lg font-extrabold text-brand-black">My Items</h1>
+        <h1 className="text-lg font-extrabold text-brand-black">Price list</h1>
       </div>
 
       {/* Body */}
       <div className="flex-1 px-4 md:px-6 pb-[calc(140px + env(safe-area-inset-bottom))]">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-brand-muted text-center">
-            <p className="text-sm">No saved items yet</p>
-            <p className="text-sm mt-1">Add your most common parts and services below</p>
+            <p className="text-sm">No items yet</p>
+            <p className="text-sm mt-1">Add your services and parts to use in quotes and on your booking page</p>
           </div>
         ) : (
           <div className="space-y-1">

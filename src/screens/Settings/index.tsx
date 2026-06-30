@@ -380,14 +380,14 @@ export default function Settings() {
         {/* My Items */}
         <div className="mb-6">
           <div className="text-micro font-bold tracking-[0.7px] text-brand-mid mb-2 px-0.5">
-            My items
+            Price list
           </div>
           <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
             <div
               className="px-4 min-h-13 flex items-center justify-between cursor-pointer active:bg-brand-borderLight/50 transition-colors"
               onClick={() => can('custom_item_library') ? navigate('/settings/custom-items') : undefined}
             >
-              <span className="text-sm font-medium text-brand-dark">Saved items</span>
+              <span className="text-sm font-medium text-brand-dark">Price list items</span>
               {can('custom_item_library') ? (
                 <div className="flex items-center gap-2">
                   <span className="text-base font-medium text-brand-black">
