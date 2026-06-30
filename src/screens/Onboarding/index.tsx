@@ -94,7 +94,6 @@ export default function Onboarding() {
   const [priceListItems, setPriceListItems] = useState<OnboardingItem[]>([]);
   const [newItemDesc, setNewItemDesc] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
-  const [itemsSeeded, setItemsSeeded] = useState(false);
   const [itemsDirty, setItemsDirty] = useState(false);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [debouncedWhat, setDebouncedWhat] = useState('');
@@ -123,12 +122,15 @@ export default function Onboarding() {
     if (step !== 3 || !appMode || itemsDirty) return;
     const result = matchTemplates(debouncedWhat, appMode);
     setMatchResult(result);
-    setPriceListItems(result.templates.map((t) => ({
+    const config = getAppModeConfig(appMode);
+    const showServiceMenu = appMode === 'bookings' || appMode === 'both';
+    const templates = result.templates.length > 0 ? result.templates : config.templates;
+    setPriceListItems(templates.map((t) => ({
       id: crypto.randomUUID(),
       description: t.description,
       amount: t.amount,
       duration_minutes: t.duration_minutes ?? 60,
-      is_public: t.is_public ?? (appMode === 'bookings' || appMode === 'both'),
+      is_public: t.is_public ?? showServiceMenu,
     })));
   }, [debouncedWhat, appMode, step, itemsDirty]);
 
@@ -171,8 +173,8 @@ export default function Onboarding() {
       specialty: whatDoYouDo.trim() || undefined,
       callout_charge: parseFloat(calloutCharge) || 75,
       payment_terms: paymentTerms,
-      default_labour_description: defaultLabourDesc.trim() || 'Labour',
-      default_labour_charge: autoFillDefault ? (parseFloat(defaultLabourCharge) || 0) : 0,
+      default_labour_description: appMode === 'both' ? 'Hourly rate' : (defaultLabourDesc.trim() || 'Labour'),
+      default_labour_charge: autoFillDefault || appMode === 'both' ? (parseFloat(defaultLabourCharge) || 0) : 0,
       quote_valid_days: parseInt(quoteValidDays, 10) || 30,
       created_at: now,
       updated_at: now,
@@ -248,24 +250,6 @@ export default function Onboarding() {
     if (phone.trim().length > 0 && validatePhone(phone) !== null) return;
     nextStep();
   };
-
-  // Initialize price list items when entering Step 3
-  useEffect(() => {
-    if (step !== 3 || itemsSeeded || !appMode) return;
-    const result = matchTemplates('', appMode);
-    setMatchResult(result);
-    const config = getAppModeConfig(appMode);
-    const showServiceMenu = appMode === 'bookings' || appMode === 'both';
-    const templates = result.templates.length > 0 ? result.templates : config.templates;
-    setPriceListItems(templates.map((t) => ({
-      id: crypto.randomUUID(),
-      description: t.description,
-      amount: t.amount,
-      duration_minutes: t.duration_minutes ?? 60,
-      is_public: t.is_public ?? showServiceMenu,
-    })));
-    setItemsSeeded(true);
-  }, [step, itemsSeeded, appMode]);
 
   const addPriceListItem = useCallback(() => {
     const trimmed = newItemDesc.trim();

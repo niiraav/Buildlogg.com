@@ -209,12 +209,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           <p className="text-sm text-brand-muted mt-1 px-4 shrink-0">{subtitle}</p>
         )}
 
-        {/* Scrollable content — flex-1 so it takes available space between header and footer */}
-        <div className="overflow-y-auto overflow-x-hidden overscroll-contain flex-1 px-4 pt-2 pb-4">
+        {/* Scrollable content — flex-1 so it takes available space between header and footer.
+            Safe-area-inset-bottom ensures content clears the iPhone home indicator on
+            sheets without a sticky footer (e.g. Card Payments, Google Reviews). */}
+        <div className="overflow-y-auto overflow-x-hidden overscroll-contain flex-1 px-4 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {children}
         </div>
 
-        {/* Sticky footer — always visible, outside scroll area */}
+        {/* Sticky footer — always visible, outside scroll area.
+            Safe-area handled here so the footer CTA clears the home indicator. */}
         {footer && (
           <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-brand-borderLight shrink-0">
             {footer}
